@@ -62,7 +62,7 @@ Mobile example:
 
 ```js
 const bridge = require('rn-bridge')
-const ClientBackend = require('telios-client-backend')
+const { ClientBackend } = require('telios-client-backend')
 
 const channel = bridge.channel
 
@@ -107,8 +107,8 @@ Payload consists of:
 }
 ```
 
-#### `channel.on({ event: 'account:create:success', data => {} })`
-#### `channel.on({ event: 'account:create:error', error => {} })`
+#### `channel.on('account:create:success', data => {})`
+#### `channel.on('account:create:error', error => {})`
 
 ### Mailbox API
 
