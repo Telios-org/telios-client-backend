@@ -27,6 +27,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/node": "^17.0.8",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
     "tap-spec": "^5.0.0",
