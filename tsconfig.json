@@ -10,7 +10,7 @@
     "outDir": "./dist",
     "typeRoots": [ "./types", "./node_modules/@types"],
 
-    "checkJs": true,
+    "checkJs": false,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
