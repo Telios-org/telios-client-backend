@@ -57,7 +57,7 @@ export class AccountModel {
     return JSON.parse(deciphered.toString())
   }
 
-  private _encrypt(msg: string, password: string) : Buffer {
+  private _encrypt(msg: string, password: string) {
     const keyPair = this._keypairFromStr(password)
     return this._encryptPubSecretBoxMessage(msg, keyPair.publicKey, keyPair.privateKey)
   }
@@ -68,7 +68,7 @@ export class AccountModel {
     return deciphered.toString('utf-8')
   }
 
-  private _encryptPubSecretBoxMessage(msg: string, sbpkey: any, privKey: any) : Buffer {
+  private _encryptPubSecretBoxMessage(msg: string, sbpkey: any, privKey: any) {
     const m = Buffer.from(msg, 'utf-8')
     const c = Buffer.alloc(m.length + sodium.crypto_box_MACBYTES)
     const n = Buffer.alloc(sodium.crypto_box_NONCEBYTES)
@@ -83,7 +83,7 @@ export class AccountModel {
     return c
   }
 
-  private _decryptPubSecretBoxMessage(c: string, pk: string | Buffer, sk: string | Buffer) : Buffer {
+  private _decryptPubSecretBoxMessage(c: string, pk: any, sk: any) {
     const m = Buffer.alloc(c.length - sodium.crypto_box_MACBYTES)
     const n = Buffer.alloc(sodium.crypto_box_NONCEBYTES)
   
@@ -94,7 +94,7 @@ export class AccountModel {
     return m
   }
 
-  private _keypairFromStr(str: string) : { publicKey: Buffer, privateKey: Buffer } {
+  private _keypairFromStr(str: string) : { publicKey: any, privateKey: any } {
     let pk = Buffer.alloc(sodium.crypto_box_PUBLICKEYBYTES)
     let sk = Buffer.alloc(sodium.crypto_box_SECRETKEYBYTES)
     let seed = Buffer.alloc(sodium.crypto_box_SEEDBYTES)

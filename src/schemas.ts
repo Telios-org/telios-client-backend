@@ -21,7 +21,7 @@ export interface StoreSchema {
     crypto: any;
   };
   drive: any;
-  encryptionKey: string | Buffer;
+  encryptionKey: any;
   teliosPubKey: string;
   acctPath: string;
   new(env: 'development' | 'production' | 'test'): any

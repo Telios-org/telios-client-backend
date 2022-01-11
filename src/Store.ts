@@ -8,7 +8,7 @@ import { AccountSchema } from './schemas'
 export class Store {
   public sdk
   public drive: any
-  public encryptionKey: string | Buffer
+  public encryptionKey: any
   public teliosPubKey: string
   public acctPath: string
   
