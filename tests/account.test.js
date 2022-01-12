@@ -9,6 +9,8 @@ const Channel = require('./helper')
 test('create account', async t => {
   t.plan(4)
 
+  await cleanup()
+
   const channel = new Channel(path.join(__dirname, 'Drive'))
 
   channel.on('drive:network:updated', data => {
@@ -96,10 +98,6 @@ test('account login error', async t => {
   t.teardown(async () => {
     channel.kill()
   })
-})
-
-test.onFinish(async () => {
-  await cleanup()
 })
 
 async function cleanup() {

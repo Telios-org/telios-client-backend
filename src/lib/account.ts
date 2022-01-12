@@ -1,9 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const ClientSDK = require("@telios/client-sdk")
 const { randomBytes } = require('crypto')
-const teliosSDK = new ClientSDK()
-const Account = teliosSDK.Account
 const del = require('del')
 
 import { AccountModel } from '../models/account.model'
@@ -14,7 +11,8 @@ import { StoreSchema } from '../schemas'
 export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props 
   const { event, payload } = msg
-
+  const Account = store.sdk.account
+  const Crypto = store.sdk.crypto
   /**
    * CREATE ACCOUNT
    */
@@ -31,9 +29,9 @@ export default async (props: AccountOpts) => {
         secretBoxKeypair,
         signingKeypair,
         mnemonic
-      } = teliosSDK.Account.makeKeys();
+      } = Account.makeKeys();
       
-      const encryptionKey = teliosSDK.Crypto.generateAEDKey();
+      const encryptionKey = Crypto.generateAEDKey();
       const driveKeyPair = {
         publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
         secretKey: Buffer.from(signingKeypair.privateKey, 'hex')

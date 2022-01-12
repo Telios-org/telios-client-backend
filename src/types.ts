@@ -14,10 +14,48 @@ export interface AccountMessage {
   }
 }
 
+export interface MailboxMessage {
+  event: 'mailbox:register'
+        | 'mailbox:getNewMailMeta' 
+        | 'mailbox:markArrayAsSynced' 
+        | 'mailbox:getMailboxes'
+        | 'mailbox:getMailboxFolders'
+        | 'mailbox:registerAliasNamespace'
+        | 'mailbox:getMailboxAliases'
+        | 'mailbox:registerAliasAddress'
+        | 'mailbox:updateAliasAddress'
+        | 'mailbox:removeAliasAddress'
+        | 'mailbox:getMessagesByFolderId'
+        | 'mailbox:getMessagesByAliasId'
+        | 'mailbox:getMessageById'
+        | 'mailbox:markAsUnread'
+        | 'mailbox:sendEmail'
+        | 'mailbox:saveSentMessageToDB'
+        | 'mailbox:saveMessageToDB'
+        | 'mailbox:removeMessages'
+        | 'mailbox:moveMessages'
+        | 'mailbox:saveMailbox'
+        | 'mailbox:saveFiles'
+        | 'mailbox:searchMailbox'
+        | 'mailbox:createFolder'
+        | 'mailbox:updateFolder'
+        | 'mailbox:updateFolderCount'
+        | 'mailbox:updateAliasCount'
+        | 'mailbox:deleteFolder'
+  payload: any
+}
+
 export interface AccountOpts {
   channel: any
   userDataPath: string,
   msg: AccountMessage,
+  store: any
+}
+
+export interface MailboxOpts {
+  channel: any
+  userDataPath: string,
+  msg: MailboxMessage,
   store: any
 }
 
@@ -29,6 +67,13 @@ export interface setDriveOpts {
   },
   encryptionKey: string
   acl?: string[]
+}
+
+export interface QueryOpts {
+  count?: boolean
+  sort?: (sortKey: string, direction: number) => any
+  skip?: (amount: number) => any
+  limit?: (amount: number) => any
 }
 
 export interface ChannelError {

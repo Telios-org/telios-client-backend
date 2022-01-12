@@ -76,7 +76,7 @@ export class Store {
     this._account = account
   }
 
-  public getAccount() {
+  public getAccount() : AccountSchema | undefined{
     return this._account
   }
 

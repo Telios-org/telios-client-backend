@@ -1,19 +1,5 @@
 import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
 
-export interface AccountSchema {
-  uid: string
-  driveEncryptionKey: string
-  secretBoxPubKey: string
-  secretBoxPrivKey: string
-  deviceSigningPubKey: string
-  deviceSigningPrivKey: string
-  serverSig: string
-  deviceId: string,
-  // Timestamps
-  createdAt: string,
-  updatedAt: string
-}
-
 export interface StoreSchema {
   sdk: {
     account: any
@@ -33,4 +19,126 @@ export interface StoreSchema {
   getAccountSecrets(): AccountSecrets
   setAuthPayload(payload: AuthPayload): void
   getAuthPayload(): AuthPayload | undefined
+}
+
+export interface AccountSchema {
+  uid: string
+  driveEncryptionKey: string
+  secretBoxPubKey: string
+  secretBoxPrivKey: string
+  deviceSigningPubKey: string
+  deviceSigningPrivKey: string
+  serverSig: string
+  deviceId: string
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MailboxSchema {
+  mailboxId: string
+  address: string
+  name: string
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EmailSchema {
+  emailId: string
+  folderId: number
+  aliasId?: string
+  subject: string
+  unread: boolean
+  date: string
+  toJSON: string
+  fromJSON: string
+  ccJSON?: string
+  bccJSON?: string
+  bodyAsText: string
+  bodyAsHtml: string
+  attachments: string
+  path: string
+  count?: any
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AliasSchema {
+  aliasId: string
+  name: string
+  description?: string
+  namespaceKey: string
+  fwdAddress?: string
+  count: number
+  disabled?: boolean
+  whitelisted?: boolean
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AliasNamespaceSchema {
+  name: string
+  publicKey: string
+  privateKey: string
+  mailboxId: string
+  domain: string
+  disabled?: boolean
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FileSchema {
+  emailId: string
+  folderId: number
+  filename: string
+  contentType: string
+  size: number
+  drive: string
+  path: string
+  key?: string
+  header?: string
+  hash: string
+  feed?: string
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FolderSchema {
+  folderId: number
+  mailboxId: number
+  name: string
+  type: string
+  count: number
+  icon: string
+  color: string
+  seq: number
+  // Timestamps
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ContactSchema {
+  contactId: number
+  name: string
+  givenName?: string
+  familyName?: string
+  nickname?: string
+  birthday?: string
+  publicKey?: string
+  pgpPublicKey?: string
+  photo?: string
+  email: string
+  phone?: any
+  address?: string
+  website?: string
+  notes?: string
+  organization?: any
+  // Timestamps
+  createdAt: string
+  updatedAt: string
 }
