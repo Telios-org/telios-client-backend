@@ -93,7 +93,7 @@ channel.on('account:create:success', data => {
 ```
 
 ### Drive API
-#### `channel.on('drive:networkUpdated', data => {})`
+#### `channel.on('drive:network:updated', data => {})`
 
 ### Account API
 #### `channel.send({ event: 'account:create', payload })`
@@ -110,6 +110,22 @@ Payload consists of:
 
 #### `channel.on('account:create:success', data => {})`
 #### `channel.on('account:create:error', error => {})`
+
+#### `channel.send({ event: 'account:login', payload })`
+
+Payload consists of:
+```js
+{
+  email: 'alice@telios.io',
+  password: 'letmein123'
+}
+```
+#### `channel.on('account:login:success', data => {})`
+#### `channel.on('account:login:error', error => {})`
+
+#### `channel.send({ event: 'account:logout' })`
+#### `channel.on('account:logout:success', () => {})`
+#### `channel.on('account:logout:error', error => {})`
 
 ### Mailbox API
 

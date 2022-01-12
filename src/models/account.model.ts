@@ -24,9 +24,13 @@ export class AccountModel {
     return this._collection.insert(doc)
   }
 
-  // public async find(doc: AccountSchema) {
-    
-  // }
+  public async find(doc?: any) : Promise<AccountSchema> {
+    return this._collection.find(doc)
+  }
+
+  public async findOne(doc?: any) : Promise<AccountSchema> {
+    return this._collection.findOne(doc)
+  }
 
   // public async update(doc: AccountSchema) {
     
@@ -36,7 +40,7 @@ export class AccountModel {
     
   // }
 
-  public async setVault(password: string, type: string, payload: { master_pass?: string, drive_encryption_key?: any }) {
+  public async setVault(password: string, type: 'recovery' | 'vault', payload: { master_pass?: string, drive_encryption_key?: any, keyPair?: any }) {
     const memStream = new MemStream()
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
@@ -45,7 +49,7 @@ export class AccountModel {
     return this._drive.writeFile(`/${type}`, memStream, { encrypted: false })
   }
 
-  public getVault(password: string, type: string) : { drive_encryption_key: any } {
+  public getVault(password: string, type: 'recovery' | 'vault') : { drive_encryption_key: any, keyPair: any } {
     const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
   
     if(!fs.existsSync(vaultPath)) throw `${type} file not found.`

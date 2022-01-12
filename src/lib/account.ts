@@ -4,6 +4,7 @@ const ClientSDK = require("@telios/client-sdk")
 const { randomBytes } = require('crypto')
 const teliosSDK = new ClientSDK()
 const Account = teliosSDK.Account
+const del = require('del')
 
 import { AccountModel } from '../models/account.model'
 
@@ -14,6 +15,9 @@ export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props 
   const { event, payload } = msg
 
+  /**
+   * CREATE ACCOUNT
+   */
   if (event === 'account:create') {
     try {
       const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
@@ -30,15 +34,16 @@ export default async (props: AccountOpts) => {
       } = teliosSDK.Account.makeKeys();
       
       const encryptionKey = teliosSDK.Crypto.generateAEDKey();
+      const driveKeyPair = {
+        publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
+        secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
+      }
 
       // Create account Nebula drive
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
-        keyPair: {
-          publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-          secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
-        }
+        keyPair: driveKeyPair
       })
 
       handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
@@ -52,7 +57,7 @@ export default async (props: AccountOpts) => {
       await accountModel.setVault(mnemonic, 'recovery', { master_pass: payload.password })
 
       // Create vault file with drive enryption key
-      await accountModel.setVault(payload.password, 'vault', { drive_encryption_key: encryptionKey })
+      await accountModel.setVault(payload.password, 'vault', { drive_encryption_key: encryptionKey, keyPair: driveKeyPair })
 
       const opts = {
         account: {
@@ -131,7 +136,109 @@ export default async (props: AccountOpts) => {
       })
     }
   }
+
+
+
+  /**
+   * GET ACCOUNT / LOGIN
+   */
+   if (event === 'account:login') {
+    const acctPath = `${userDataPath}/Accounts/${payload.email}`
+    store.acctPath = acctPath
+
+    // Initialize account collection
+    const accountModel = new AccountModel(store)
+
+    try {
+      // Retrieve drive encryption key and keyPair from vault using master password
+      const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
+
+      channel.send({ event: 'account:log:info', data: { encryptionKey, keyPair } })
+
+      // Initialize drive
+      const drive = store.setDrive({
+        name: `${acctPath}/Drive`,
+        encryptionKey,
+        keyPair: {
+          publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+          secretKey: Buffer.from(keyPair.secretKey, 'hex')
+        }
+      });
+
+      handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+      await drive.ready()
+      await accountModel.ready() // Initialize account db from within drive
+
+      // Get account
+      const fullAcct = await accountModel.findOne({ driveEncryptionKey: encryptionKey })
+
+      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
+
+      store.setAccount(fullAcct)
+
+      const auth = {
+        claims: {
+          account_key: fullAcct.secretBoxPubKey,
+          device_signing_key: fullAcct.deviceSigningPubKey,
+          device_id: fullAcct.deviceId
+        },
+        device_signing_priv_key: fullAcct.deviceSigningPrivKey,
+        sig: fullAcct.serverSig
+      }
+
+      store.setAuthPayload(auth)
+
+      channel.send({ event: 'account:login:success', data: fullAcct })
+    } catch(err: any) {
+      channel.send({ event: 'account:login:error', error: { name: err.name, message: err.message, stack: err.stack} })
+    }
+  }
+
+
+
+  /**
+   * REMOVE ACCOUNT
+   */
+   if (event === 'account:remove') {
+    const acctPath = path.join(userDataPath, `/Accounts/${payload.email}`)
+    await del(acctPath, { force: true })
+   }
+
+
+
+  /**
+   * LOGOUT
+   */
+   if (event === 'account:logout') {
+    try {
+      store.setAccountSecrets({ email: undefined, password: undefined })
+      store.setAccount(null)
+
+      channel.send({ event: 'account:logout:success', data: null })
+
+      if(channel.pid) {
+        channel.kill(channel.pid)
+      }
+    } catch (e: any) {
+      channel.send({ event: 'account:logout:error', error: e.message })
+    }
+
+    return 'loggedOut'
+  }
+
+
+
+  /**
+   * EXIT
+   */
+  if (event === 'account:exit') {
+    channel.kill(0)
+  }
+
 }
+
+
 
 async function handleDriveMessages(drive: any, account: any, channel: any, store: StoreSchema) {
   drive.on('message', (peerPubKey: string, data: any) => {
@@ -161,6 +268,6 @@ async function handleDriveMessages(drive: any, account: any, channel: any, store
 
 function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on('network-updated', (network: { internet: boolean, drive: boolean }) => {
-    channel.send({ event: 'drive:networkUpdated', data: { network } })
+    channel.send({ event: 'drive:network:updated', data: { network } })
   })
 }

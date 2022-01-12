@@ -7,12 +7,16 @@ class Channel extends EventEmitter {
   constructor(dirPath) {
     super()
 
+    this.pid = null
+
     if(!fs.existsSync(path.join(__dirname, 'Drive/Accounts')))
       fs.mkdirSync(path.join(__dirname, 'Drive/Accounts'), { recursive: true })
 
     this.process = fork('./index', [dirPath, 'development'], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     })
+
+    this.pid = this.process.pid
 
     this.process.on('message', m => {
       const { event, data, error } = m
@@ -32,7 +36,8 @@ class Channel extends EventEmitter {
   }
 
   kill() {
-    this.process.kill(0)
+    // this.process.kill(0)
+    process.kill(this.process.pid)
   }
 }
 

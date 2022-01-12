@@ -5,7 +5,7 @@ export interface MainOpts {
 }
 
 export interface AccountMessage {
-  event: 'account:create' | 'account:remove' | 'account:logout' | 'account:exit'
+  event: 'account:create' | 'account:login'| 'account:remove' | 'account:logout' | 'account:exit'
   payload: {
     email: string
     password: string
@@ -45,4 +45,9 @@ export interface AuthPayload {
   }
   device_signing_priv_key: string
   sig: string
+}
+
+export interface AccountSecrets {
+  password: string | undefined
+  email: string | undefined
 }

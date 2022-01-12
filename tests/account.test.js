@@ -5,12 +5,13 @@ const path = require('path')
 const del = require('del')
 const fs = require('fs')
 const Channel = require('./helper')
-const channel = new Channel(path.join(__dirname, 'Drive'))
 
 test('create account', async t => {
-  t.plan(3)
+  t.plan(4)
 
-  channel.on('drive:networkUpdated', data => {
+  const channel = new Channel(path.join(__dirname, 'Drive'))
+
+  channel.on('drive:network:updated', data => {
     const { network } = data
     
     if(network?.drive)
@@ -31,18 +32,74 @@ test('create account', async t => {
   })
 
   channel.on('account:create:error', error => {
-    console.log(error)
-    // t.fail(error)
+    t.fail(error)
   })
 
   channel.on('account:create:success', data => {
     t.ok(data.uid)
+
+    channel.send({ event: 'account:logout' })
+  })
+
+  channel.on('account:logout:success', () => {
+    channel.send({ event: 'account:exit' }) // for good measure
+    t.ok(1, 'Logged out of account.')
+  })
+})
+
+test('account login success', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Drive'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'alice@telios.io',
+      password: 'letmein123'
+    }
+  })
+
+  channel.on('account:login:error', error => {
+    console.log(error)
+    t.fail(error)
+  })
+
+  channel.on('account:login:success', data => {
+    t.ok(data.uid)
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('account login error', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Drive'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'alice@telios.io',
+      password: 'wrongpassword'
+    }
+  })
+
+  channel.on('account:login:error', error => {
+    if(error?.message && error.message === 'Unable to decrypt message.') {
+      t.ok(1, 'Return error with incorrect password.')
+    }
+  })
+
+  t.teardown(async () => {
+    channel.kill()
   })
 })
 
 test.onFinish(async () => {
   await cleanup()
-  process.exit(0)
 })
 
 async function cleanup() {

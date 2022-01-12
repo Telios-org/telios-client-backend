@@ -2,7 +2,7 @@ const ClientSDK = require("@telios/client-sdk")
 const Drive = require('@telios/nebula')
 const fs = require('fs')
 const envAPI = require('../src/env_api')
-import { setDriveOpts, AuthPayload } from './types'
+import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
 import { AccountSchema } from './schemas'
 
 export class Store {
@@ -14,6 +14,7 @@ export class Store {
   
   private _account: AccountSchema | undefined
   private _authPayload: AuthPayload | undefined
+  private _accountSecrets: AccountSecrets | undefined
 
   constructor(env: 'development' | 'production' | 'test') {
     const teliosSDK = new ClientSDK({ 
@@ -32,7 +33,7 @@ export class Store {
     
     this._account = undefined
     this._authPayload = undefined
-    // this.accountSecrets = {};
+    this._accountSecrets = undefined
     // this.account = null;
     // this.currentAccount = null;
     // this.sessionActive = false;
@@ -71,12 +72,20 @@ export class Store {
     return this.drive
   }
 
+  public setAccount(account: AccountSchema) {
+    this._account = account
+  }
+
   public getAccount() {
     return this._account
   }
 
-  public setAccount(account: AccountSchema) {
-    this._account = account
+  public setAccountSecrets(secrets: AccountSecrets) {
+    this._accountSecrets = secrets
+  }
+
+  public getAccountSecrets() : AccountSecrets | undefined {
+    return this._accountSecrets
   }
 
   public setAuthPayload(payload: AuthPayload) {

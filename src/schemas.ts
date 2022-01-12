@@ -1,4 +1,4 @@
-import { setDriveOpts, AuthPayload } from './types'
+import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
 
 export interface AccountSchema {
   uid: string
@@ -16,19 +16,21 @@ export interface AccountSchema {
 
 export interface StoreSchema {
   sdk: {
-    account: any;
-    mailbox: any;
-    crypto: any;
-  };
-  drive: any;
-  encryptionKey: any;
-  teliosPubKey: string;
-  acctPath: string;
+    account: any
+    mailbox: any
+    crypto: any
+  }
+  drive: any
+  encryptionKey: any
+  teliosPubKey: string
+  acctPath: string
   new(env: 'development' | 'production' | 'test'): any
-  setDrive(props: setDriveOpts): any;
-  getDrive(): any;
-  getAccount(): AccountSchema | undefined;
-  setAccount(account: AccountSchema): void;
-  setAuthPayload(payload: AuthPayload): void;
-  getAuthPayload(): AuthPayload | undefined;
+  setDrive(props: setDriveOpts): any
+  getDrive(): any
+  setAccount(account: AccountSchema): void
+  getAccount(): AccountSchema | undefined
+  setAccountSecrets(secrets: AccountSecrets): void
+  getAccountSecrets(): AccountSecrets
+  setAuthPayload(payload: AuthPayload): void
+  getAuthPayload(): AuthPayload | undefined
 }
