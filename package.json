@@ -1,8 +1,12 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "dist/*"
+  ],
   "scripts": {
     "test": "npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
     "prepare": "npm run build",
