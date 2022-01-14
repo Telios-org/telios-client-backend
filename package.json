@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -25,7 +25,6 @@
   "dependencies": {
     "@telios/client-sdk": "^4.0.1",
     "@telios/nebula": "^1.2.2",
-    "del": "^6.0.0",
     "file-type": "^16.5.3",
     "memorystream": "^0.3.1",
     "remove-markdown": "^0.3.0",
