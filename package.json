@@ -25,7 +25,6 @@
   "dependencies": {
     "@telios/client-sdk": "^4.0.1",
     "@telios/nebula": "^1.2.2",
-    "del": "^6.0.0",
     "file-type": "^16.5.3",
     "memorystream": "^0.3.1",
     "remove-markdown": "^0.3.0",
