@@ -1,9 +1,9 @@
-const ClientSDK = require("@telios/client-sdk")
-const Drive = require('@telios/nebula')
-const fs = require('fs')
-const envAPI = require('../src/env_api')
-import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
-import { AccountSchema } from './schemas'
+const ClientSDK = require('@telios/client-sdk');
+const Drive = require('@telios/nebula');
+const fs = require('fs');
+import envAPI from './env_api';
+import { setDriveOpts, AuthPayload, AccountSecrets } from './types';
+import { AccountSchema } from './schemas';
 
 export class Store {
   public sdk
