@@ -14,7 +14,7 @@ export class EmailModel {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('Email')
 
-    await this._collection.createIndex(['emailId', 'folderId', 'createdAt', 'updatedAt'])
+    await this._collection.createIndex(['emailId', 'folderId', 'date', 'createdAt', 'updatedAt'])
     await this._collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'])
 
     return this._collection

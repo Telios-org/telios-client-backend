@@ -47,9 +47,9 @@ export interface MailboxSchema {
 export interface EmailSchema {
   emailId: string
   folderId: number
-  aliasId?: string
+  aliasId?: string | null
   subject: string
-  unread: boolean
+  unread: number
   date: string
   toJSON: string
   fromJSON: string
@@ -68,12 +68,12 @@ export interface EmailSchema {
 export interface AliasSchema {
   aliasId: string
   name: string
-  description?: string
-  namespaceKey: string
-  fwdAddress?: string
+  description?: string | undefined
+  namespaceKey: string | undefined
+  fwdAddresses?: any
   count: number
-  disabled?: boolean
-  whitelisted?: boolean
+  disabled?: boolean | undefined
+  whitelisted?: boolean | undefined
   // Timestamps
   createdAt: string
   updatedAt: string
@@ -92,6 +92,8 @@ export interface AliasNamespaceSchema {
 }
 
 export interface FileSchema {
+  _id: any
+  fileId?: string
   emailId: string
   folderId: number
   filename: string
@@ -99,16 +101,19 @@ export interface FileSchema {
   size: number
   drive: string
   path: string
-  key?: string
-  header?: string
+  key?: any
+  header?: any
   hash: string
   feed?: string
+  discoveryKey?: any
   // Timestamps
   createdAt: string
   updatedAt: string
 }
 
 export interface FolderSchema {
+  _id: any
+  id: number
   folderId: number
   mailboxId: number
   name: string

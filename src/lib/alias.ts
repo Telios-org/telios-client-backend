@@ -11,7 +11,7 @@ import { FolderModel, DefaultFolders } from '../models/folder.model'
 
 import * as FileUtil from '../util/file.util'
 
-import { MailboxOpts, Attachment } from '../types'
+import { AliasOpts, Attachment } from '../types'
 import { 
   StoreSchema, 
   AccountSchema, 
@@ -23,7 +23,7 @@ import {
   MailboxSchema} from '../schemas'
 import { isDataView } from 'util/types';
 
-export default async (props: MailboxOpts) => {
+export default async (props: AliasOpts) => {
   const { channel, userDataPath, msg, store } = props 
   const { event, payload } = msg
 

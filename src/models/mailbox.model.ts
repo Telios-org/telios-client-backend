@@ -12,6 +12,8 @@ export class MailboxModel {
   public async ready() {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('Mailbox')
+
+    return this._collection
   }
 
   public async insert(doc: MailboxSchema) : Promise<MailboxSchema> {

@@ -1,6 +1,5 @@
 const ClientSDK = require("@telios/client-sdk")
 const Drive = require('@telios/nebula')
-const fs = require('fs')
 const envAPI = require('../src/env_api')
 import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
 import { AccountSchema } from './schemas'
@@ -11,10 +10,14 @@ export class Store {
   public encryptionKey: any
   public teliosPubKey: string
   public acctPath: string
+  public domain: {
+
+  }
   
   private _account: AccountSchema | undefined
   private _authPayload: AuthPayload | undefined
   private _accountSecrets: AccountSecrets | undefined
+  private _keyPairs: any
 
   constructor(env: 'development' | 'production' | 'test') {
     const teliosSDK = new ClientSDK({ 
@@ -27,6 +30,11 @@ export class Store {
       crypto: teliosSDK.Crypto
     }
 
+    this.domain = {
+      api: env === 'production' || !env ? envAPI.prod : envAPI.dev,
+      mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
+    }
+
     this.drive = null
     this.encryptionKey = ''
     this.acctPath = ''
@@ -34,6 +42,7 @@ export class Store {
     this._account = undefined
     this._authPayload = undefined
     this._accountSecrets = undefined
+    this._keyPairs = new Map()
     // this.account = null;
     // this.currentAccount = null;
     // this.sessionActive = false;
@@ -52,7 +61,9 @@ export class Store {
 
   public setDrive(props: setDriveOpts) {
     const { name, keyPair, encryptionKey, acl = [] } = props
+    
     this.encryptionKey = encryptionKey
+    
     if(!Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
     
     this.drive = new Drive(name, null, {
@@ -65,6 +76,7 @@ export class Store {
         acl: [this.teliosPubKey, ...acl]
       }
     });
+    
     return this.drive;
   }
 
@@ -94,6 +106,14 @@ export class Store {
 
   public getAuthPayload() {
     return this._authPayload
+  }
+
+  public setKeypair(keypair: { publicKey: string, privateKey: string }) {
+    this._keyPairs.set(keypair.publicKey, keypair)
+  }
+
+  public getKeypairs() {
+    return this._keyPairs;
   }
 
   // setNewDraft(draft) {
@@ -126,45 +146,6 @@ export class Store {
 
   // getAccountSecrets() {
   //   return this.accountSecrets;
-  // }
-
-  // setDBConnection(account, db) {
-  //   this.connection = {};
-  //   this.connection[account] = db;
-  //   this.currentAccount = account;
-  // }
-
-  // getDBConnection(account) {
-  //   return this.connection[account];
-  // }
-
-  // async closeDBConnection() {
-  //   await this.connection[this.currentAccount].close();
-  //   delete this.connection[this.currentAccount];
-  // }
-
-  // setKeypair(keypair) {
-  //   this.keypairs[keypair.publicKey] = keypair
-  // }
-
-  // getKeypairs() {
-  //   return this.keypairs;
-  // }
-
-  // setMailbox(mailbox) {
-  //   this.api.mailbox = mailbox;
-  // }
-
-  // getMailbox() {
-  //   return this.api.mailbox;
-  // }
-
-  // setSessionActive(bool) {
-  //   this.sessionActive = bool;
-  // }
-
-  // getSessionActive() {
-  //   return this.sessionActive;
   // }
 
   // setTheme(newTheme) {

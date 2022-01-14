@@ -19,13 +19,13 @@ export interface MailboxMessage {
         | 'mailbox:getNewMailMeta' 
         | 'mailbox:markArrayAsSynced' 
         | 'mailbox:getMailboxes'
-        | 'mailbox:getMailboxFolders'
-        | 'mailbox:registerAliasNamespace'
-        | 'mailbox:getMailboxAliases'
-        | 'mailbox:registerAliasAddress'
-        | 'mailbox:updateAliasAddress'
-        | 'mailbox:removeAliasAddress'
-        | 'mailbox:getMessagesByFolderId'
+        | 'mailbox:saveMailbox'
+        | 'mailbox:searchMailbox'
+  payload: any
+}
+
+export interface EmailMessage {
+  event: 'mailbox:getMessagesByFolderId'
         | 'mailbox:getMessagesByAliasId'
         | 'mailbox:getMessageById'
         | 'mailbox:markAsUnread'
@@ -34,14 +34,27 @@ export interface MailboxMessage {
         | 'mailbox:saveMessageToDB'
         | 'mailbox:removeMessages'
         | 'mailbox:moveMessages'
-        | 'mailbox:saveMailbox'
         | 'mailbox:saveFiles'
-        | 'mailbox:searchMailbox'
+  payload: any
+}
+
+export interface FolderMessage {
+  event: 'mailbox:getMailboxFolders'
         | 'mailbox:createFolder'
         | 'mailbox:updateFolder'
         | 'mailbox:updateFolderCount'
-        | 'mailbox:updateAliasCount'
         | 'mailbox:deleteFolder'
+  payload: any
+}
+
+export interface AliasMessage {
+  event: 'mailbox:updateAliasCount'
+        | 'mailbox:getMailboxNamespaces'
+        | 'mailbox:registerAliasNamespace'
+        | 'mailbox:getMailboxAliases'
+        | 'mailbox:registerAliasAddress'
+        | 'mailbox:updateAliasAddress'
+        | 'mailbox:removeAliasAddress'
   payload: any
 }
 
@@ -56,6 +69,20 @@ export interface MailboxOpts {
   channel: any
   userDataPath: string,
   msg: MailboxMessage,
+  store: any
+}
+
+export interface FolderOpts {
+  channel: any
+  userDataPath: string,
+  msg: FolderMessage,
+  store: any
+}
+
+export interface AliasOpts {
+  channel: any
+  userDataPath: string,
+  msg: AliasMessage,
   store: any
 }
 
@@ -95,4 +122,20 @@ export interface AuthPayload {
 export interface AccountSecrets {
   password: string | undefined
   email: string | undefined
+}
+
+export interface Attachment {
+  fileId?: string
+  emailId?: string
+  name?: string
+  content?: string
+  filename?: string
+  contentType?: string
+  mimetype?: string
+  size: number
+  discoveryKey?: string
+  hash?: string
+  header?: string
+  key?: string
+  path?: string
 }
