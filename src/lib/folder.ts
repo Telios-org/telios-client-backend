@@ -10,7 +10,7 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  GET MAILBOX FOLDERS
    ************************************************/
-  if (event === 'mailbox:getMailboxFolders') {
+  if (event === 'folder:getMailboxFolders') {
     try {
       const folderModel = new FolderModel(store)
       const Folder = await folderModel.ready()
@@ -18,12 +18,12 @@ export default async (props: FolderOpts) => {
       const folders: FolderSchema[] = await Folder.find({ mailboxId: payload.id }).sort('seq', 1)
 
       channel.send({
-        event: 'mailbox:getMailboxFolders:success',
+        event: 'folder:getMailboxFolders:success',
         data: folders
       });
     } catch(e: any) {
       channel.send({
-        event: 'mailbox:getMailboxFolders:error',
+        event: 'folder:getMailboxFolders:error',
         error: {
           name: e.name,
           message: e.message,
@@ -38,7 +38,7 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  CREATE FOLDER
    ************************************************/
-  if (event === 'mailbox:createFolder') {
+  if (event === 'folder:createFolder') {
     try {
       const folderModel = new FolderModel(store)
       const Folder = await folderModel.ready()
@@ -64,10 +64,10 @@ export default async (props: FolderOpts) => {
       })
 
       folder.id = folder.folderId
-      channel.send({ event: 'mailbox:createFolder:success', data: folder })
+      channel.send({ event: 'folder:createFolder:success', data: folder })
     } catch(e: any) {
       channel.send({
-        event: 'mailbox:createFolder:error',
+        event: 'folder:createFolder:error',
         error: {
           name: e.name,
           message: e.message,
@@ -81,7 +81,7 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  UPDATE FOLDER
    ************************************************/
-  if (event === 'mailbox:updateFolder') {
+  if (event === 'folder:updateFolder') {
     try {
       const folderModel = new FolderModel(store)
       const Folder = await folderModel.ready()
@@ -91,7 +91,7 @@ export default async (props: FolderOpts) => {
       channel.send({ event: 'updateFolder', data: payload })
     } catch(e: any) {
       channel.send({
-        event: 'mailbox:updateFolder:error',
+        event: 'folder:updateFolder:error',
         error: {
           name: e.name,
           message: e.message,
@@ -105,7 +105,7 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  UPDATE FOLDER COUNT
    ************************************************/
-  if (event === 'mailbox:updateFolderCount') {
+  if (event === 'folder:updateFolderCount') {
     const { id, amount } = payload
 
     try {
@@ -118,10 +118,10 @@ export default async (props: FolderOpts) => {
         await Folder.update({ folderId: id }, { $inc: { count: Math.abs(amount) } })
       }
 
-      channel.send({ event: 'mailbox:updateFolderCount:success', updated: true })
+      channel.send({ event: 'folder:updateFolderCount:success', updated: true })
     } catch(e: any) {
       channel.send({
-        event: 'mailbox:updateFolderCount:error',
+        event: 'folder:updateFolderCount:error',
         error: {
           name: e.name,
           message: e.message,
@@ -135,7 +135,7 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  DELETE FOLDERS
    ************************************************/
-  // if (event === 'mailbox:deleteFolder') {
+  // if (event === 'folder:deleteFolder') {
   //   try {
   //     const folderModel = new FolderModel(store)
   //     const Folder = await folderModel.ready()
@@ -156,7 +156,7 @@ export default async (props: FolderOpts) => {
 
   //   } catch(e: any) {
   //     channel.send({
-  //       event: 'mailbox:deleteFolder:error',
+  //       event: 'folder:deleteFolder:error',
   //       error: {
   //         name: e.name,
   //         message: e.message,

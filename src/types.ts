@@ -25,36 +25,36 @@ export interface MailboxMessage {
 }
 
 export interface EmailMessage {
-  event: 'mailbox:getMessagesByFolderId'
-        | 'mailbox:getMessagesByAliasId'
-        | 'mailbox:getMessageById'
-        | 'mailbox:markAsUnread'
-        | 'mailbox:sendEmail'
-        | 'mailbox:saveSentMessageToDB'
-        | 'mailbox:saveMessageToDB'
-        | 'mailbox:removeMessages'
-        | 'mailbox:moveMessages'
-        | 'mailbox:saveFiles'
+  event: 'email:getMessagesByFolderId'
+        | 'email:getMessagesByAliasId'
+        | 'email:getMessageById'
+        | 'email:markAsUnread'
+        | 'email:sendEmail'
+        | 'email:saveSentMessageToDB'
+        | 'email:saveMessageToDB'
+        | 'email:removeMessages'
+        | 'email:moveMessages'
+        | 'email:saveFiles'
   payload: any
 }
 
 export interface FolderMessage {
-  event: 'mailbox:getMailboxFolders'
-        | 'mailbox:createFolder'
-        | 'mailbox:updateFolder'
-        | 'mailbox:updateFolderCount'
-        | 'mailbox:deleteFolder'
+  event: 'folder:getMailboxFolders'
+        | 'folder:createFolder'
+        | 'folder:updateFolder'
+        | 'folder:updateFolderCount'
+        | 'folder:deleteFolder'
   payload: any
 }
 
 export interface AliasMessage {
-  event: 'mailbox:updateAliasCount'
-        | 'mailbox:getMailboxNamespaces'
-        | 'mailbox:registerAliasNamespace'
-        | 'mailbox:getMailboxAliases'
-        | 'mailbox:registerAliasAddress'
-        | 'mailbox:updateAliasAddress'
-        | 'mailbox:removeAliasAddress'
+  event: 'alias:updateAliasCount'
+        | 'alias:getMailboxNamespaces'
+        | 'alias:registerAliasNamespace'
+        | 'alias:getMailboxAliases'
+        | 'alias:registerAliasAddress'
+        | 'alias:updateAliasAddress'
+        | 'alias:removeAliasAddress'
   payload: any
 }
 
@@ -83,6 +83,13 @@ export interface AliasOpts {
   channel: any
   userDataPath: string,
   msg: AliasMessage,
+  store: any
+}
+
+export interface EmailOpts {
+  channel: any
+  userDataPath: string,
+  msg: EmailMessage,
   store: any
 }
 

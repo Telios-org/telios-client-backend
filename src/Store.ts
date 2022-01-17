@@ -14,20 +14,21 @@ export class Store {
 
   }
   
+  private _teliosSDK: any
   private _account: AccountSchema | undefined
   private _authPayload: AuthPayload | undefined
   private _accountSecrets: AccountSecrets | undefined
   private _keyPairs: any
 
   constructor(env: 'development' | 'production' | 'test') {
-    const teliosSDK = new ClientSDK({ 
+    this._teliosSDK = new ClientSDK({ 
       provider: env === 'production' || !env ? envAPI.prod : envAPI.dev 
     })
 
     this.sdk = {
-      account: teliosSDK.Account,
-      mailbox: teliosSDK.Mailbox,
-      crypto: teliosSDK.Crypto
+      account: this._teliosSDK.Account,
+      mailbox: this._teliosSDK.Mailbox,
+      crypto: this._teliosSDK.Crypto
     }
 
     this.domain = {
@@ -102,6 +103,7 @@ export class Store {
 
   public setAuthPayload(payload: AuthPayload) {
     this._authPayload = payload
+    this._teliosSDK.setAuthPayload(payload)
   }
 
   public getAuthPayload() {
