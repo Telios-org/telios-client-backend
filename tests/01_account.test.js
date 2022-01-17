@@ -2,7 +2,6 @@ const tape = require('tape')
 const _test = require('tape-promise').default
 const test = _test(tape)
 const path = require('path')
-const del = require('del')
 const fs = require('fs')
 const Channel = require('./helper')
 
@@ -15,16 +14,14 @@ test('create account', async t => {
 
   channel.on('drive:network:updated', data => {
     const { network } = data
-    
-    if(network?.drive)
-      t.equals(network.drive, true) // Drive is connected to p2p network
 
-    if(network?.internet)
-      t.equals(network.internet, true) // Drive is connected to the global internet
+    if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
+
+    if (network && network.internet) t.equals(network.internet, true) // Drive is connected to the global internet
   })
 
   channel.send({
-    event: 'account:create', 
+    event: 'account:create',
     payload: {
       email: 'bob@telios.io',
       password: 'letmein123',
@@ -90,7 +87,11 @@ test('account login error', async t => {
   })
 
   channel.on('account:login:error', error => {
-    if(error?.message && error.message === 'Unable to decrypt message.') {
+    if (
+      error &&
+      error.message &&
+      error.message === 'Unable to decrypt message.'
+    ) {
       t.ok(1, 'Return error with incorrect password.')
     }
   })
@@ -102,8 +103,6 @@ test('account login error', async t => {
 
 async function cleanup() {
   if (fs.existsSync(path.join(__dirname, '/Drive'))) {
-    await del([
-      path.join(__dirname, '/Drive')
-    ])
+    fs.rmSync(path.join(__dirname, '/Drive'), { recursive: true })
   }
 }
