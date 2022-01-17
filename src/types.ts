@@ -20,7 +20,6 @@ export interface MailboxMessage {
         | 'mailbox:markArrayAsSynced' 
         | 'mailbox:getMailboxes'
         | 'mailbox:saveMailbox'
-        | 'mailbox:searchMailbox'
   payload: any
 }
 
@@ -35,6 +34,7 @@ export interface EmailMessage {
         | 'email:removeMessages'
         | 'email:moveMessages'
         | 'email:saveFiles'
+        | 'email:searchMailbox'
   payload: any
 }
 

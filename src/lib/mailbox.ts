@@ -13,8 +13,7 @@ export default async (props: MailboxOpts) => {
   const { event, payload } = msg
 
   const Mailbox = store.sdk.mailbox
-  const mailboxModel = new MailboxModel(store)
-
+  
   /***************************************
    *  REGISTER MAILBOX
    **************************************/
@@ -38,13 +37,15 @@ export default async (props: MailboxOpts) => {
   if (event === 'mailbox:getNewMailMeta') {
     try {
       const account: AccountSchema = store.getAccount()
-
+      channel.send({ event: 'mailbox:info', data: { account } })
       let meta = {}
 
       meta = await Mailbox.getNewMailMeta(
         account.secretBoxPrivKey,
         account.secretBoxPubKey
       )
+
+      channel.send({ event: 'mailbox:info', data: { meta } })
 
       channel.send({ event: 'mailbox:getNewMailMeta:success', data: { meta, account } })
     } catch(e: any) {
@@ -87,8 +88,11 @@ export default async (props: MailboxOpts) => {
    ************************************************/
   if (event === 'mailbox:getMailboxes') {
     try {
-      const mailboxes = await mailboxModel.findOne()
+      const mailboxModel = new MailboxModel(store)
+      const Mailbox = await mailboxModel.ready()
 
+      const mailboxes = await Mailbox.findOne()
+      
       channel.send({ event: 'mailbox:getMailboxes:success', data: mailboxes })
     } catch(e: any) {
       channel.send({
@@ -108,7 +112,7 @@ export default async (props: MailboxOpts) => {
    *  SAVE MAILBOX
    ************************************************/
   if (event === 'mailbox:saveMailbox') {
-    const address = payload
+    const { address } = payload
 
     try {
       const folderModel = new FolderModel(store)
@@ -122,45 +126,13 @@ export default async (props: MailboxOpts) => {
       for (const folder of DefaultFolders) {
         let _folder: any = { ...folder }
         _folder.mailboxId = mailbox.mailboxId;
-        await Folder.create(_folder)
+        await Folder.insert(_folder)
       }
 
       channel.send({ event: 'mailbox:saveMailbox:success', data: mailbox })
     } catch(e: any) {
       channel.send({
         event: 'mailbox:saveMailbox:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
-  /*************************************************
-   *  SEARCH MAILBOX
-   ************************************************/
-  if (event === 'mailbox:searchMailbox' ) {
-    const { searchQuery } = payload
-
-    try {
-      if (searchQuery) {
-        const emailModel = new EmailModel(store)
-        const Email = await emailModel.ready()
-
-        const results: EmailSchema[] = await Email.search(searchQuery)
-
-        channel.send({
-          event: 'mailbox:searchMailbox:success',
-          data: results
-        });
-      }
-    } catch(e: any) {
-      channel.send({
-        event: 'mailbox:searchMailbox:error',
         error: {
           name: e.name,
           message: e.message,

@@ -98,9 +98,8 @@ channel.on('account:create:success', data => {
 ### Account API
 #### `channel.send({ event: 'account:create', payload })`
 
-Payload consists of:
 ```js
-{
+const payload = {
   email: 'alice@telios.io',
   password: 'letmein123',
   vcode: 'testcode123',
@@ -108,29 +107,49 @@ Payload consists of:
 }
 ```
 
-#### `channel.on('account:create:success', data => {})`
-#### `channel.on('account:create:error', error => {})`
-
 #### `channel.send({ event: 'account:login', payload })`
 
-Payload consists of:
 ```js
-{
+const payload = {
   email: 'alice@telios.io',
   password: 'letmein123'
 }
 ```
-#### `channel.on('account:login:success', data => {})`
-#### `channel.on('account:login:error', error => {})`
 
 #### `channel.send({ event: 'account:logout' })`
-#### `channel.on('account:logout:success', () => {})`
-#### `channel.on('account:logout:error', error => {})`
 
 ### Mailbox API
+#### `channel.send({ event: 'mailbox:register', payload })`
 
-### Messages API
+```js
+const payload = {
+    account_key,
+    addr: 'alice@telios.io'
+  }
+```
+
+#### `channel.send({ event: 'mailbox:getNewMailMeta' })`
+
+#### `channel.send({ event: 'mailbox:markArrayAsSynced', payload })`
+
+```js
+const payload = {
+  msgArray: ['emailId1', 'emailId2']
+}
+```
+
+#### `channel.send({ event: 'mailbox:getMailboxes' })`
+
+#### `channel.send({ event: 'mailbox:saveMailbox', payload })`
+
+```js
+const payload = {
+  address: 'bob@telios.io'
+}
+```
+
+### Email API
 
 ### Contacts API
 
-### Files API
+### Folder API

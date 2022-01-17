@@ -43,20 +43,24 @@ class Channel extends EventEmitter {
 
 module.exports = Channel
 
+module.exports.OpenChannel = () => {
+  const channel = new Channel(path.join(__dirname, 'Drive'))
 
-// process.stderr.on('data', data => {
-//   console.log(data.toString())
-// })
-
-// process.stderr.on('error', data => {
-//   t.fail(data.toString())
-// })
-
-// process.on('message', m => {
-//   console.log('MESSAGE', m)
-//   const { error, data } = m
-
-//   if(error) return t.fail(m.error.stacktrace)
+  return new Promise((resolve, reject) => {
+    channel.send({
+      event: 'account:login',
+      payload: {
+        email: 'bob@telios.io',
+        password: 'letmein123'
+      }
+    })
   
-//   t.ok(data)
-// })
+    channel.on('account:login:error', error => {
+      reject(error)
+    })
+  
+    channel.on('account:login:success', data => {
+      resolve(channel)
+    })
+  })
+}

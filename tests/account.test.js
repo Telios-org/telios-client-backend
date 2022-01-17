@@ -26,10 +26,10 @@ test('create account', async t => {
   channel.send({
     event: 'account:create', 
     payload: {
-      email: 'alice@telios.io',
+      email: 'bob@telios.io',
       password: 'letmein123',
       vcode: 'testcode123',
-      recoveryEmail: 'alice@mail.com'
+      recoveryEmail: 'bob@mail.com'
     }
   })
 
@@ -57,7 +57,7 @@ test('account login success', async t => {
   channel.send({
     event: 'account:login',
     payload: {
-      email: 'alice@telios.io',
+      email: 'bob@telios.io',
       password: 'letmein123'
     }
   })
@@ -84,7 +84,7 @@ test('account login error', async t => {
   channel.send({
     event: 'account:login',
     payload: {
-      email: 'alice@telios.io',
+      email: 'bob@telios.io',
       password: 'wrongpassword'
     }
   })

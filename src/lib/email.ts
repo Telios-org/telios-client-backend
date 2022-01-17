@@ -641,4 +641,35 @@ export default async (props: EmailOpts) => {
       })
     }
   }
+
+
+  /*************************************************
+   *  SEARCH MAILBOX
+   ************************************************/
+  if (event === 'email:searchMailbox' ) {
+    const { searchQuery } = payload
+
+    try {
+      if (searchQuery) {
+        const emailModel = new EmailModel(store)
+        const Email = await emailModel.ready()
+
+        const results: EmailSchema[] = await Email.search(searchQuery)
+
+        channel.send({
+          event: 'email:searchMailbox:success',
+          data: results
+        });
+      }
+    } catch(e: any) {
+      channel.send({
+        event: 'email:searchMailbox:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
 }
