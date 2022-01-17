@@ -4,4 +4,4 @@ export default {
   test: 'http://localhost:3000',
   prodMail: 'telios.io',
   devMail: 'dev.telios.io',
-};
+}
