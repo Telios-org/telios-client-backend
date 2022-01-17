@@ -77,6 +77,7 @@ test('save mailbox', async t => {
 
   
   channel.on('mailbox:saveMailbox:success', data => {
+    console.log(data)
     t.ok(data, 'Got new mail metadata')
   })
 
@@ -93,6 +94,7 @@ test('get mailboxes', async t => {
 
 
   channel.on('mailbox:getMailboxes:success', data => {
+    console.log('GOT MAILBOXES', data)
     t.ok(data, 'Got mailboxes')
   })
 

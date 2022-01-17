@@ -13,44 +13,6 @@ export default async (props: AliasOpts) => {
 
   const Mailbox = store.sdk.mailbox
 
-
-  /*************************************************
-   *  GET MAILBOXE NAMESPACES
-   ************************************************/
-  if (event === 'alias:getMailboxNamespaces') {
-    try {
-      const aliasNamespaceModel = new AliasNamespaceModel(store)
-      const AliasNamespace = await aliasNamespaceModel.ready()
-
-      const namespaces: AliasNamespaceSchema[] = await AliasNamespace.find({ mailboxId: payload.id }).sort('name', 1)
-
-      for (const namespace of namespaces) {
-        const keypair = {
-          publicKey: namespace.publicKey,
-          privateKey: namespace.privateKey
-        };
-
-        store.setKeypair(keypair)
-      }
-
-      channel.send({
-        event: 'alias:getMailboxNamespaces:success',
-        data: namespaces
-      });
-    } catch(e: any) {
-      channel.send({
-        event: 'alias:getMailboxNamespaces:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
   /*************************************************
    *  REGISTER ALIAS NAMESPACE
    ************************************************/
@@ -102,37 +64,31 @@ export default async (props: AliasOpts) => {
 
 
   /*************************************************
-   *  GET MAILBOX ALIASES
+   *  GET MAILBOX NAMESPACES
    ************************************************/
-  if (event === 'alias:getMailboxAliases') {
+  if (event === 'alias:getMailboxNamespaces') {
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const aliasNamespaceModel = new AliasNamespaceModel(store)
+      const AliasNamespace = await aliasNamespaceModel.ready()
 
-      const aliases = await Alias.find({ 
-        namespaceKey: { 
-          $in: payload.namespaceKeys 
-        } 
-      }).sort('createdAt', -1)
+      const namespaces: AliasNamespaceSchema[] = await AliasNamespace.find({ mailboxId: payload.id }).sort('name', 1)
 
-      const outputAliases = aliases.map((a: AliasSchema) => {
-        return {
-          ...a,
-          fwdAddresses:
-            (a.fwdAddresses && a.fwdAddresses.length) > 0
-              ? a.fwdAddresses.split(',')
-              : [],
-          createdAt: new Date(a.createdAt)
-        }
-      })
+      for (const namespace of namespaces) {
+        const keypair = {
+          publicKey: namespace.publicKey,
+          privateKey: namespace.privateKey
+        };
+
+        store.setKeypair(keypair)
+      }
 
       channel.send({
-        event: 'alias:getMailboxAliases:success',
-        data: outputAliases
-      })
+        event: 'alias:getMailboxNamespaces:success',
+        data: namespaces
+      });
     } catch(e: any) {
       channel.send({
-        event: 'alias:getMailboxAliases:error',
+        event: 'alias:getMailboxNamespaces:error',
         error: {
           name: e.name,
           message: e.message,
@@ -143,11 +99,10 @@ export default async (props: AliasOpts) => {
   }
 
 
-
   /*************************************************
    *  REGISTER ALIAS ADDRESS
    ************************************************/
-  if (event === 'alias:registerAliasAddress') {
+   if (event === 'alias:registerAliasAddress') {
     const {
       namespaceName,
       domain,
@@ -186,6 +141,49 @@ export default async (props: AliasOpts) => {
     } catch(e: any) {
       channel.send({
         event: 'alias:registerAliasAddress:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
+
+
+
+  /*************************************************
+   *  GET ALIAS ADDRESS
+   ************************************************/
+  if (event === 'alias:getMailboxAliases') {
+    try {
+      const aliasModel = new AliasModel(store)
+      const Alias = await aliasModel.ready()
+
+      const aliases = await Alias.find({ 
+        namespaceKey: { 
+          $in: payload.namespaceKeys 
+        } 
+      }).sort('createdAt', -1)
+
+      const outputAliases = aliases.map((a: AliasSchema) => {
+        return {
+          ...a,
+          fwdAddresses:
+            (a.fwdAddresses && a.fwdAddresses.length) > 0
+              ? a.fwdAddresses.split(',')
+              : [],
+          createdAt: new Date(a.createdAt)
+        }
+      })
+
+      channel.send({
+        event: 'alias:getMailboxAliases:success',
+        data: outputAliases
+      })
+    } catch(e: any) {
+      channel.send({
+        event: 'alias:getMailboxAliases:error',
         error: {
           name: e.name,
           message: e.message,

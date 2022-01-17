@@ -8,18 +8,21 @@ import {
   EmailSchema,
   MailboxSchema} from '../schemas'
 
+const BSON = require('bson')
+const { ObjectID } = BSON
+
 export default async (props: MailboxOpts) => {
   const { channel, msg, store } = props 
   const { event, payload } = msg
 
-  const Mailbox = store.sdk.mailbox
+  const MailboxSDK = store.sdk.mailbox
   
   /***************************************
    *  REGISTER MAILBOX
    **************************************/
   if (event === 'mailbox:register') {
     try {
-      await Mailbox.registerMailbox(payload)
+      await MailboxSDK.registerMailbox(payload)
       channel.send({ event: 'mailbox:register:success', data: payload })
     } catch(e: any) {
       console.log('ERROR', e)
@@ -40,7 +43,7 @@ export default async (props: MailboxOpts) => {
       channel.send({ event: 'mailbox:info', data: { account } })
       let meta = {}
 
-      meta = await Mailbox.getNewMailMeta(
+      meta = await MailboxSDK.getNewMailMeta(
         account.secretBoxPrivKey,
         account.secretBoxPubKey
       )
@@ -67,7 +70,7 @@ export default async (props: MailboxOpts) => {
  ************************************************/
   if (event === 'mailbox:markArrayAsSynced') {
     try {
-      await Mailbox.markAsSynced(payload.msgArray)
+      await MailboxSDK.markAsSynced(payload.msgArray)
       channel.send({ event: 'mailbox:markArrayAsSynced:success', data: payload.msgArray })
     } catch(e: any) {
       channel.send({
@@ -91,9 +94,9 @@ export default async (props: MailboxOpts) => {
       const mailboxModel = new MailboxModel(store)
       const Mailbox = await mailboxModel.ready()
 
-      const mailboxes = await Mailbox.findOne()
+      const mailbox: MailboxSchema = await Mailbox.findOne()
       
-      channel.send({ event: 'mailbox:getMailboxes:success', data: mailboxes })
+      channel.send({ event: 'mailbox:getMailboxes:success', data: mailbox })
     } catch(e: any) {
       channel.send({
         event: 'mailbox:getMailboxes:error',
@@ -112,7 +115,7 @@ export default async (props: MailboxOpts) => {
    *  SAVE MAILBOX
    ************************************************/
   if (event === 'mailbox:saveMailbox') {
-    const { address } = payload
+    let { address, mailboxId } = payload
 
     try {
       const folderModel = new FolderModel(store)
@@ -121,7 +124,13 @@ export default async (props: MailboxOpts) => {
       const Mailbox = await mailboxModel.ready()
       const Folder = await folderModel.ready()
 
-      const mailbox: MailboxSchema = await Mailbox.insert({ address })
+      const _id = new ObjectID()
+
+      if(!mailboxId) {
+        mailboxId = _id.toString('hex')
+      }
+
+      const mailbox: MailboxSchema = await Mailbox.insert({ _id, address, mailboxId })
 
       for (const folder of DefaultFolders) {
         let _folder: any = { ...folder }
