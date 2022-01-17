@@ -109,7 +109,9 @@ export default async (props: AliasOpts) => {
       address,
       description,
       fwdAddresses,
-      disabled
+      disabled,
+      createdAt,
+      updatedAt
     } = payload
 
     try {
@@ -131,7 +133,9 @@ export default async (props: AliasOpts) => {
         description,
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
-        whitelisted: 1
+        whitelisted: 1,
+        createdAt,
+        updatedAt
       })
 
       channel.send({
@@ -258,9 +262,7 @@ export default async (props: AliasOpts) => {
       const Alias = await aliasModel.ready()
 
       await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
-
-      // TODO: Add a delete methods for Hyperbeedeebee
-      await Alias.deleteOne({ aliasId: `${namespaceName}#${address}` })
+      await Alias.delete({ aliasId: `${namespaceName}#${address}` })
 
       channel.send({ event: 'alias:removeAliasAddress:success', data: null })
     } catch(e: any) {
@@ -287,13 +289,9 @@ export default async (props: AliasOpts) => {
       const aliasModel = new AliasModel(store)
       const Alias = await aliasModel.ready()
 
-      if (amount > 0) {
-        await Alias.update({ aliasId: id }, { $inc: { count: amount } })
-      } else {
-        await Alias.update({ aliasId: id }, { $inc: { count: Math.abs(amount) } })
-      }
+      await Alias.update({ aliasId: id }, { $inc: { count: amount } })
 
-      channel.send({ event: 'alias:updateFolderCount:success', updated: true })
+      channel.send({ event: 'alias:updateAliasCount:success', updated: true })
     } catch(e: any) {
       channel.send({
         event: 'alias:updateAliasCount:error',
