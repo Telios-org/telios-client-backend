@@ -15,26 +15,29 @@ test('register new alias namespace', async t => {
 
 
   channel.on('mailbox:getMailboxes:success', data => {
-    console.log('GOT MAILBOX', data)
+
     
     channel.send({
-      event: 'mailbox:registerAliasNamespace',
+      event: 'alias:registerAliasNamespace',
       payload: {
         mailboxId: data.mailboxId,
         namespace: 'alice2022'
       }
     })
   
-    channel.on('mailbox:registerAliasNamespace:success', data => {
+    channel.on('alias:registerAliasNamespace:success', data => {
+      console.log(data)
       t.ok(data, 'Registered new alias namespace')
     })
   
-    channel.on('mailbox:registerAliasNamespace:error', error => {
+    channel.on('alias:registerAliasNamespace:error', error => {
+      console.log('ERROR', error.stack)
       t.fail(error.stack)
     })
   })
 
-  channel.on('mailbox:getMailboxes:error', error => {
+  channel.on('alias:getMailboxes:error', error => {
+    console.log(error.stack)
     t.fail(error.stack)
     channel.kill()
   })

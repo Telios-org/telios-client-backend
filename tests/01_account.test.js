@@ -35,6 +35,8 @@ test('create account', async t => {
   })
 
   channel.on('account:create:success', data => {
+    console.log('SUCCESS :: ', data)
+
     t.ok(data.uid)
 
     channel.send({ event: 'account:logout' })
@@ -65,6 +67,8 @@ test('account login success', async t => {
   })
 
   channel.on('account:login:success', data => {
+    console.log('SUCCESS :: ', data)
+
     t.ok(data.uid)
   })
 

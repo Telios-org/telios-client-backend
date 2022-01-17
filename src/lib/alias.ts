@@ -47,7 +47,7 @@ export default async (props: AliasOpts) => {
 
       channel.send({
         event: 'alias:registerAliasNamespace:success',
-        data: output.dataValues
+        data: output
       })
     } catch(e: any) {
       channel.send({

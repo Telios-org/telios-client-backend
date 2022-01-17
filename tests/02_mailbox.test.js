@@ -20,6 +20,7 @@ test('register new mailbox', async t => {
   })
 
   channel.on('mailbox:register:success', data => {
+    console.log('SUCCESS :: ', data)
     t.ok(data, 'Created new mailbox')
   })
 
@@ -77,7 +78,7 @@ test('save mailbox', async t => {
 
   
   channel.on('mailbox:saveMailbox:success', data => {
-    console.log(data)
+    console.log('SUCCESS :: ', data)
     t.ok(data, 'Got new mail metadata')
   })
 
@@ -92,9 +93,8 @@ test('get mailboxes', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-
   channel.on('mailbox:getMailboxes:success', data => {
-    console.log('GOT MAILBOXES', data)
+    console.log(data)
     t.ok(data, 'Got mailboxes')
   })
 
