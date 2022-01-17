@@ -148,8 +148,61 @@ const payload = {
 }
 ```
 
+### Alias API
+### `channel.send({ event: 'alias:registerAliasNamespace', payload })`
+```js
+const payload = {
+  mailboxId: mailboxId,
+  namespace: 'alice2022'
+}
+```
+
+### `channel.send({ event: 'alias:getMailboxNamespaces', payload })`
+```js
+const payload = { 
+  id: mailboxId 
+} 
+```
+
+### `channel.send({ event: 'alias:getMailboxAliases', payload })`
+```js
+const payload = {
+  namespaceKeys: ['alice2022']
+}
+```
+
+### `channel.send({ event: 'alias:updateAliasAddress', payload })`
+```js
+const payload = {
+  namespaceName: 'alice2022',
+  domain: 'dev,telios.io',
+  address: 'netflix',
+  description: 'Updated description',
+  fwdAddresses: ['alice@mail.com', 'alice@somemail.com'],
+  disabled: true,
+  updatedAt: new Date().toISOString()
+}
+```
+
+### `channel.send({ event: 'alias:updateAliasCount', payload })`
+```js
+const payload = { 
+  id: 'alice2022#netflix' , 
+  amount: 1 // Use a negative integer to decrement count
+}
+```
+
+### `channel.send({ event: 'alias:removeAliasAddress', payload })`
+```js
+const payload = {
+  namespaceName: 'alice2022',
+  domain: 'dev,telios.io',
+  address: 'netflix'
+}
+```
+
+### Folder API
+
 ### Email API
 
 ### Contacts API
-
-### Folder API
