@@ -14,7 +14,6 @@ test('register new alias namespace', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-
   channel.on('mailbox:getMailboxes:success', data => {
     
     mailboxId = data.mailboxId
