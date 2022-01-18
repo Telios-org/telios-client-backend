@@ -91,12 +91,13 @@ channel.on('account:create:success', data => {
 })
 ```
 
-### Drive API
+## Drive API
+
 #### `channel.on('drive:network:updated', data => {})`
 
-### Account API
-#### `channel.send({ event: 'account:create', payload })`
+## Account API
 
+#### `channel.send({ event: 'account:create', payload })`
 ```js
 const payload = {
   email: 'alice@telios.io',
@@ -107,7 +108,6 @@ const payload = {
 ```
 
 #### `channel.send({ event: 'account:login', payload })`
-
 ```js
 const payload = {
   email: 'alice@telios.io',
@@ -117,20 +117,19 @@ const payload = {
 
 #### `channel.send({ event: 'account:logout' })`
 
-### Mailbox API
-#### `channel.send({ event: 'mailbox:register', payload })`
+## Mailbox API
 
+#### `channel.send({ event: 'mailbox:register', payload })`
 ```js
 const payload = {
-    account_key,
-    addr: 'alice@telios.io'
-  }
+  account_key,
+  addr: 'alice@telios.io'
+}
 ```
 
 #### `channel.send({ event: 'mailbox:getNewMailMeta' })`
 
 #### `channel.send({ event: 'mailbox:markArrayAsSynced', payload })`
-
 ```js
 const payload = {
   msgArray: ['emailId1', 'emailId2']
@@ -140,14 +139,14 @@ const payload = {
 #### `channel.send({ event: 'mailbox:getMailboxes' })`
 
 #### `channel.send({ event: 'mailbox:saveMailbox', payload })`
-
 ```js
 const payload = {
   address: 'bob@telios.io'
 }
 ```
 
-### Alias API
+## Alias API
+
 #### `channel.send({ event: 'alias:registerAliasNamespace', payload })`
 ```js
 const payload = {
@@ -200,8 +199,52 @@ const payload = {
 }
 ```
 
-### Folder API
+## Folder API
 
-### Email API
+#### `channel.send({ event: 'folder:createFolder', payload })`
+```js
+const payload = {
+  mailboxId: mailboxId,
+  folderId: 6,
+  name: 'Test',
+  type: 'default',
+  icon: 'trash-o',
+  seq: 6,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+}
+```
 
-### Contacts API
+#### `channel.send({ event: 'folder:updateFolder', payload })`
+```js
+const payload = {
+  folderId: 6,
+  name: 'Foo Folder'
+}
+```
+
+#### `channel.send({ event: 'folder:updateFolderCount', payload })`
+```js
+const payload = {
+  id: 6,
+  amount: 1 // use a negative integer to decrement count
+}
+```
+
+#### `channel.send({ event: 'folder:getMailboxFolders', payload })`
+```js
+const payload = { 
+  id: mailboxId 
+}
+```
+
+#### `channel.send({ event: 'folder:deleteFolder', payload })`
+```js
+const payload = { 
+  id: mailboxId 
+}
+```
+
+## Email API
+
+## Contacts API

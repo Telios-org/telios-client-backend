@@ -14,7 +14,7 @@ test('register new alias namespace', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.on('mailbox:getMailboxes:success', data => {
+  channel.once('mailbox:getMailboxes:success', data => {
     
     mailboxId = data.mailboxId
 
@@ -40,7 +40,6 @@ test('register new alias namespace', async t => {
   channel.on('alias:getMailboxes:error', error => {
     console.log(error.stack)
     t.fail(error.stack)
-    channel.kill()
   })
 })
 
@@ -56,7 +55,6 @@ test('get alias namespaces', async t => {
 
   channel.once('alias:getMailboxNamespaces:error', error => {
     t.fail(error.stack)
-    channel.kill()
   })
 })
 
@@ -214,8 +212,8 @@ test('remove alias address', async t => {
     t.fail(error.stack)
     channel.kill()
   })
-})
 
-test.onFinish(async () => {
-  channel.kill()
+  t.teardown(() => {
+    channel.kill()
+  })
 })

@@ -1,10 +1,11 @@
 import { FolderModel } from '../models/folder.model'
+import { MailboxModel } from '../models/mailbox.model'
 
 import { FolderOpts } from '../types'
-import { FolderSchema } from '../schemas'
+import { FolderSchema, MailboxSchema } from '../schemas'
 
 export default async (props: FolderOpts) => {
-  const { channel, userDataPath, msg, store } = props 
+  const { channel, msg, store } = props 
   const { event, payload } = msg
 
   /*************************************************
@@ -57,13 +58,15 @@ export default async (props: FolderOpts) => {
         folderId: payload.folderId || folderId,
         mailboxId: payload.mailboxId,
         name: payload.name,
-        type: payload.type,
-        icon: payload.icon,
-        color: payload.color,
-        seq: payload.seq
+        type: payload.type || null,
+        icon: payload.icon || null,
+        color: payload.color || null,
+        seq: payload.seq,
+        createdAt: payload.createdAt || new Date().toISOString(),
+        updatedAt: payload.updatedAt || new Date().toISOString()
       })
 
-      folder.id = folder.folderId
+      // folder.id = folder.folderId
       channel.send({ event: 'folder:createFolder:success', data: folder })
     } catch(e: any) {
       channel.send({
@@ -86,9 +89,9 @@ export default async (props: FolderOpts) => {
       const folderModel = new FolderModel(store)
       const Folder = await folderModel.ready()
 
-      await Folder.update({ folderId: payload.folderId }, { name: payload.name })
+      const data = await Folder.update({ folderId: payload.folderId }, { name: payload.name })
 
-      channel.send({ event: 'updateFolder', data: payload })
+      channel.send({ event: 'folder:updateFolder:success', data })
     } catch(e: any) {
       channel.send({
         event: 'folder:updateFolder:error',
@@ -112,11 +115,7 @@ export default async (props: FolderOpts) => {
       const folderModel = new FolderModel(store)
       const Folder = await folderModel.ready()
 
-      if (amount > 0) {
-        await Folder.update({ folderId: id }, { $inc: { count: amount } })
-      } else {
-        await Folder.update({ folderId: id }, { $inc: { count: Math.abs(amount) } })
-      }
+      await Folder.update({ folderId: id }, { $inc: { count: amount } })
 
       channel.send({ event: 'folder:updateFolderCount:success', updated: true })
     } catch(e: any) {
@@ -135,34 +134,24 @@ export default async (props: FolderOpts) => {
   /*************************************************
    *  DELETE FOLDERS
    ************************************************/
-  // if (event === 'folder:deleteFolder') {
-  //   try {
-  //     const folderModel = new FolderModel(store)
-  //     const Folder = await folderModel.ready()
+  if (event === 'folder:deleteFolder') {
+    try {
+      const folderModel = new FolderModel(store)
+      const Folder = await folderModel.ready()
 
-  //     await Folder.destroy({
-  //       where: {
-  //         folderId: payload.folderId
-  //       },
-  //       individualHooks: true
-  //     });
+      const doc = await Folder.remove({ folderId: 6 })
 
-  //     await Email.destroy({
-  //       where: { folderId: payload.folderId },
-  //       individualHooks: true
-  //     });
+      channel.send({ event: 'folder:deleteFolder:success', data: doc });
 
-  //     channel.send({ event: 'deleteFolder', data: {} });
-
-  //   } catch(e: any) {
-  //     channel.send({
-  //       event: 'folder:deleteFolder:error',
-  //       error: {
-  //         name: e.name,
-  //         message: e.message,
-  //         stacktrace: e.stack
-  //       }
-  //     })
-  //   }
-  // }
+    } catch(e: any) {
+      channel.send({
+        event: 'folder:deleteFolder:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
 }

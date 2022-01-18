@@ -47,12 +47,7 @@ test('get new mail metadata from api server', async t => {
 
   // channel.on('mailbox:getNewMailMeta:error', error => {
   //   t.fail(error)
-  //   channel.kill()
   // })
-
-  // setTimeout(() => {
-  //   channel.kill()
-  // }, 10000)
 })
 
 test('mark messages as synced', async t => {
@@ -67,7 +62,6 @@ test('mark messages as synced', async t => {
 
   channel.once('mailbox:markArrayAsSynced:error', error => {
     t.fail(error.stack)
-    channel.kill()
   })
 })
 
@@ -84,7 +78,6 @@ test('save mailbox', async t => {
 
   channel.once('mailbox:saveMailbox:error', error => {
     t.fail(error.stack)
-    channel.kill()
   })
 })
 
@@ -100,7 +93,6 @@ test('get mailboxes', async t => {
 
   channel.once('mailbox:getMailboxes:error', error => {
     t.fail(error.stack)
-    channel.kill()
   })
   
   t.teardown(async () => {

@@ -13,7 +13,7 @@ export class FolderModel {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('Folder')
 
-    await this._collection.createIndex(['seq', 'folderId', 'createdAt', 'updatedAt'])
+    await this._collection.createIndex(['seq', 'folderId', 'createdAt', 'updatedAt', 'mailboxId'])
     return this._collection
   }
 
@@ -36,38 +36,53 @@ export class FolderModel {
 
 export const DefaultFolders = [
   {
-    id: 1,
+    folderId: 1,
     name: 'Inbox',
     type: 'default',
     icon: 'inbox',
-    seq: 1
+    seq: 1,
+    count: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
-    id: 2,
+    folderId: 2,
     name: 'Drafts',
     type: 'default',
     icon: 'pencil',
-    seq: 2
+    seq: 2,
+    count: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
-    id: 3,
+    folderId: 3,
     name: 'Sent',
     type: 'default',
     icon: 'send-o',
-    seq: 3
+    seq: 3,
+    count: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
-    id: 4,
+    folderId: 4,
     name: 'Trash',
     type: 'default',
     icon: 'trash-o',
-    seq: 4
+    seq: 4,
+    count: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   },
   {
-    id: 5,
+    folderId: 5,
     name: 'Alias',
     type: 'hidden',
     icon: null,
-    seq: 5
+    seq: 5,
+    count: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ]
