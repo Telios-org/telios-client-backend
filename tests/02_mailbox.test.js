@@ -19,12 +19,12 @@ test('register new mailbox', async t => {
     }
   })
 
-  channel.on('mailbox:register:success', data => {
+  channel.once('mailbox:register:success', data => {
     console.log('SUCCESS :: ', data)
     t.ok(data, 'Created new mailbox')
   })
 
-  channel.on('mailbox:register:error', error => {
+  channel.once('mailbox:register:error', error => {
     t.fail(error.stack)
   })
 })
@@ -61,11 +61,11 @@ test('mark messages as synced', async t => {
 
   channel.send({ event: 'mailbox:markArrayAsSynced', payload: { msgArray: ['abc123defffd', '0011aa00bbcc'] }})
 
-  channel.on('mailbox:markArrayAsSynced:success', data => {
+  channel.once('mailbox:markArrayAsSynced:success', data => {
     t.ok(data.length > 0, 'Mark message array as synced')
   })
 
-  channel.on('mailbox:markArrayAsSynced:error', error => {
+  channel.once('mailbox:markArrayAsSynced:error', error => {
     t.fail(error.stack)
     channel.kill()
   })
@@ -77,12 +77,12 @@ test('save mailbox', async t => {
   channel.send({ event: 'mailbox:saveMailbox', payload: { address: 'bob@telios.io' } })
 
   
-  channel.on('mailbox:saveMailbox:success', data => {
+  channel.once('mailbox:saveMailbox:success', data => {
     console.log('SUCCESS :: ', data)
     t.ok(data, 'Got new mail metadata')
   })
 
-  channel.on('mailbox:saveMailbox:error', error => {
+  channel.once('mailbox:saveMailbox:error', error => {
     t.fail(error.stack)
     channel.kill()
   })
@@ -93,12 +93,12 @@ test('get mailboxes', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.on('mailbox:getMailboxes:success', data => {
+  channel.once('mailbox:getMailboxes:success', data => {
     console.log(data)
     t.ok(data, 'Got mailboxes')
   })
 
-  channel.on('mailbox:getMailboxes:error', error => {
+  channel.once('mailbox:getMailboxes:error', error => {
     t.fail(error.stack)
     channel.kill()
   })

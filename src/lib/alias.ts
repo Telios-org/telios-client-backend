@@ -262,7 +262,7 @@ export default async (props: AliasOpts) => {
       const Alias = await aliasModel.ready()
 
       await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
-      await Alias.delete({ aliasId: `${namespaceName}#${address}` })
+      await Alias.remove({ aliasId: `${namespaceName}#${address}` })
 
       channel.send({ event: 'alias:removeAliasAddress:success', data: null })
     } catch(e: any) {

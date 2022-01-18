@@ -30,11 +30,11 @@ test('create account', async t => {
     }
   })
 
-  channel.on('account:create:error', error => {
+  channel.once('account:create:error', error => {
     t.fail(error)
   })
 
-  channel.on('account:create:success', data => {
+  channel.once('account:create:success', data => {
     console.log('SUCCESS :: ', data)
 
     t.ok(data.uid)
@@ -42,7 +42,7 @@ test('create account', async t => {
     channel.send({ event: 'account:logout' })
   })
 
-  channel.on('account:logout:success', () => {
+  channel.once('account:logout:success', () => {
     channel.send({ event: 'account:exit' }) // for good measure
     t.ok(1, 'Logged out of account.')
   })
@@ -61,12 +61,12 @@ test('account login success', async t => {
     }
   })
 
-  channel.on('account:login:error', error => {
+  channel.once('account:login:error', error => {
     console.log(error)
     t.fail(error)
   })
 
-  channel.on('account:login:success', data => {
+  channel.once('account:login:success', data => {
     console.log('SUCCESS :: ', data)
 
     t.ok(data.uid)
@@ -90,7 +90,7 @@ test('account login error', async t => {
     }
   })
 
-  channel.on('account:login:error', error => {
+  channel.once('account:login:error', error => {
     if (
       error &&
       error.message &&

@@ -149,7 +149,7 @@ const payload = {
 ```
 
 ### Alias API
-### `channel.send({ event: 'alias:registerAliasNamespace', payload })`
+#### `channel.send({ event: 'alias:registerAliasNamespace', payload })`
 ```js
 const payload = {
   mailboxId: mailboxId,
@@ -157,21 +157,21 @@ const payload = {
 }
 ```
 
-### `channel.send({ event: 'alias:getMailboxNamespaces', payload })`
+#### `channel.send({ event: 'alias:getMailboxNamespaces', payload })`
 ```js
 const payload = { 
   id: mailboxId 
 } 
 ```
 
-### `channel.send({ event: 'alias:getMailboxAliases', payload })`
+#### `channel.send({ event: 'alias:getMailboxAliases', payload })`
 ```js
 const payload = {
   namespaceKeys: ['alice2022']
 }
 ```
 
-### `channel.send({ event: 'alias:updateAliasAddress', payload })`
+#### `channel.send({ event: 'alias:updateAliasAddress', payload })`
 ```js
 const payload = {
   namespaceName: 'alice2022',
@@ -184,7 +184,7 @@ const payload = {
 }
 ```
 
-### `channel.send({ event: 'alias:updateAliasCount', payload })`
+#### `channel.send({ event: 'alias:updateAliasCount', payload })`
 ```js
 const payload = { 
   id: 'alice2022#netflix' , 
@@ -192,7 +192,7 @@ const payload = {
 }
 ```
 
-### `channel.send({ event: 'alias:removeAliasAddress', payload })`
+#### `channel.send({ event: 'alias:removeAliasAddress', payload })`
 ```js
 const payload = {
   namespaceName: 'alice2022',
