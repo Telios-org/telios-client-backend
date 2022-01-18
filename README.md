@@ -62,7 +62,6 @@ Mobile example:
 
 ```js
 const bridge = require('rn-bridge')
-const { ClientBackend } = require('telios-client-backend')
 const { ClientBackend } = require('@telios/telios-client-backend');
 
 const channel = bridge.channel
