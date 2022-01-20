@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -23,8 +23,8 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^4.0.1",
-    "@telios/nebula": "^1.2.2",
+    "@telios/client-sdk": "^5.0.0",
+    "@telios/nebula": "^1.4.2",
     "file-type": "^16.5.3",
     "memorystream": "^0.3.1",
     "remove-markdown": "^0.3.0",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@types/node": "^17.0.8",
     "cross-env": "^7.0.3",
+    "del": "^6.0.0",
     "tap-spec": "^5.0.0",
     "tape": "^5.4.0",
     "tape-promise": "^4.0.0",

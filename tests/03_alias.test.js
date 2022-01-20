@@ -32,14 +32,12 @@ test('register new alias namespace', async t => {
     })
   
     channel.on('alias:registerAliasNamespace:error', error => {
-      console.log('ERROR', error.stack)
-      t.fail(error.stack)
+      t.fail(error.message)
     })
   })
 
   channel.on('alias:getMailboxes:error', error => {
-    console.log(error.stack)
-    t.fail(error.stack)
+    t.fail(error.message)
   })
 })
 
@@ -54,7 +52,7 @@ test('get alias namespaces', async t => {
   })
 
   channel.once('alias:getMailboxNamespaces:error', error => {
-    t.fail(error.stack)
+    t.fail(error.message)
   })
 })
 
@@ -82,8 +80,7 @@ test('register new alias address', async t => {
   })
 
   channel.once('alias:registerAliasAddress:error', error => {
-    t.fail(error.stack)
-    channel.kill()
+    t.fail(error.message)
   })
 })
 
@@ -103,8 +100,7 @@ test('get alias addresses', async t => {
   })
 
   channel.once('alias:getMailboxAliases:error', error => {
-    t.fail(error.stack)
-    channel.kill()
+    t.fail(error.message)
   })
 })
 
@@ -130,8 +126,7 @@ test('update alias address', async t => {
   })
 
   channel.once('alias:updateAliasAddress:error', error => {
-    t.fail(error.stack)
-    channel.kill()
+    t.fail(error.message)
   })
 })
 
@@ -156,7 +151,6 @@ test('increment alias message count', async t => {
 
   channel.once('alias:updateAliasCount:error', error => {
     console.log(JSON.stringify(error))
-    channel.kill()
   })
 })
 
@@ -180,8 +174,7 @@ test('decrement alias message count', async t => {
   })
 
   channel.once('alias:updateAliasCount:error', error => {
-    t.fail(error.stack)
-    channel.kill()
+    t.fail(error.message)
   })
 })
 
@@ -198,7 +191,7 @@ test('remove alias address', async t => {
 
   channel.once('alias:removeAliasAddress:success', data => {
     const payload = {
-      namespaceName: 'alice2022'
+      namespaceKeys: ['alice2022']
     }
   
     channel.send({ event: 'alias:getMailboxAliases', payload })
@@ -209,8 +202,7 @@ test('remove alias address', async t => {
   })
 
   channel.once('alias:removeAliasAddress:error', error => {
-    t.fail(error.stack)
-    channel.kill()
+    t.fail(error.message)
   })
 
   t.teardown(() => {

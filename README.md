@@ -247,4 +247,107 @@ const payload = {
 
 ## Email API
 
+#### `channel.send({ event: 'email:sendEmail', payload })`
+```js
+const payload = { 
+  email: {
+    from: [{"name":"Bob Kinderly","address":"bob@telios.io"}],
+    to: [{"name":"Alice Drumpf","address":"alice@telios.io"}],
+    subject: 'Subject-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    date: '2022-01-20T18:21:33.062Z',
+    cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
+    bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
+    text_body: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    html_body: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    attachments: [{
+      filename: 'image.png',
+      content: 'b64EncodedString',
+      mimetype: 'image/png',
+      size: 1024// bytes
+    }]
+  } 
+}
+```
+
+#### `channel.send({ event: 'email:saveMessageToDB', payload })`
+```js
+const payload = {
+  type: 'Incoming' | 'Draft',
+  messages: [{
+    from: [{"name":"Bob Kinderly","address":"bob@telios.io"}],
+    to: [{"name":"Alice Drumpf","address":"alice@telios.io"}],
+    subject: 'Subject-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    date: '2022-01-20T18:21:33.062Z',
+    cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
+    bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
+    text_body: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    html_body: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    attachments: [{
+      filename: 'image.png',
+      content: 'b64EncodedString',
+      mimetype: 'image/png',
+      size: 1024// bytes
+    }]
+  }] 
+}
+```
+
+#### `channel.send({ event: 'email:getMessagesByFolderId', payload })`
+```js
+const payload = {
+  id: 5 
+}
+```
+
+#### `channel.send({ event: 'email:getMessagesByAliasId', payload })`
+```js
+const payload = {
+  id: 'alice2022#existing' 
+}
+```
+
+#### `channel.send({ event: 'email:moveMessages', payload })`
+```js
+const emails = emailArr.map(msg => {
+  return {
+    ...msg,
+    folder: { // Add this object to each email with the ID of the folder the email is moving to
+      toId: 1
+    }
+  }
+})
+
+  const payload = {
+    messages: emails
+  }
+```
+
+#### `channel.send({ event: 'email:getMessageById', payload })`
+```js
+const payload = {
+  id: emailId 
+}
+```
+
+#### `channel.send({ event: 'email:markAsUnread', payload })`
+```js
+const payload = {
+  id: emailId 
+}
+```
+
+#### `channel.send({ event: 'email:removeMessages', payload })`
+```js
+const payload = {
+  messageIds: [emailId]
+}
+```
+
+#### `channel.send({ event: 'email:searchMailbox', payload })`
+```js
+const payload = {
+  searchQuery: 'Alice tax returns'
+}
+```
+
 ## Contacts API

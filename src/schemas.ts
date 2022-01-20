@@ -106,6 +106,7 @@ export interface FileSchema {
   hash: string
   feed?: string
   discoveryKey?: any
+  discovery_key?: any
   // Timestamps
   createdAt: string
   updatedAt: string

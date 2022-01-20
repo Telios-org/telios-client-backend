@@ -58,6 +58,11 @@ export interface AliasMessage {
   payload: any
 }
 
+export interface FileMessage {
+  event: 'file:saveFile' | 'alias:getFile'
+  payload: any
+}
+
 export interface AccountOpts {
   channel: any
   userDataPath: string,
@@ -76,6 +81,13 @@ export interface FolderOpts {
   channel: any
   userDataPath: string,
   msg: FolderMessage,
+  store: any
+}
+
+export interface FileOpts {
+  channel: any
+  userDataPath: string,
+  msg: FileMessage,
   store: any
 }
 
@@ -138,7 +150,9 @@ export interface Attachment {
   content?: string
   filename?: string
   contentType?: string
+  localPath?: string
   mimetype?: string
+  extension?: string
   size: number
   discoveryKey?: string
   hash?: string

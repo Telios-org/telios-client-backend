@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
 
 import { EmailModel } from '../models/email.model'
@@ -17,144 +17,77 @@ import {
   EmailSchema,
   FileSchema } from '../schemas'
 
+const removeMd = require('remove-markdown')
+
 export default async (props: EmailOpts) => {
   const { channel, msg, store } = props 
   const { event, payload } = msg
 
   const Mailbox = store.sdk.mailbox
 
-
-  /*************************************************
-   *  GET EMAILS BY FOLDER ID
-   ************************************************/
-  if (event === 'email:getMessagesByFolderId') {
-    try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
-
-      const messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
-
-      channel.send({
-        event: 'MAIL_WORKER::getMessagesByFolderId',
-        data: messages
-      })
-    } catch(e: any) {
-      channel.send({
-        event: 'email:getMessagesByFolderId:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
-  /*************************************************
-   *  GET MESSAGES BY ALIAS ID
-   ************************************************/
-  if (event === 'email:getMessagesByAliasId') {
-    try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
-
-      const messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
-        .sort('date', -1)
-        .skip(payload.offset)
-        .limit(payload.limit)
-
-      channel.send({
-        event: 'email:getMessagesByAliasId:success',
-        data: messages
-      })
-    } catch(e: any) {
-      channel.send({
-        event: 'email:getMessagesByAliasId:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
-  /*************************************************
-   *  GET EMAIL MESSAGES BY ID
-   ************************************************/
-  if (event === 'email:getMessageById') {
-    try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
-
-      const email: EmailSchema = await Email.findOne({ emailId: payload.id })
-        
-        email.attachments = JSON.parse(email.attachments)
-
-        if (email.unread) {
-          await Email.update({ emailId: email.emailId })
-
-          email.unread = 0
-        }
-
-        channel.send({ event: 'email:getMessageById:success', data: { id: email.emailId, ...email } })
-    } catch(e: any) {
-      channel.send({
-        event: 'email:getMessageById:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
-  /*************************************************
-   *  MARK EMAIL AS UNREAD
-   ************************************************/
-  if (event === 'email:markAsUnread') {
-    try {
-      const { id } = payload;
-
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
-
-      await Email.update({ emailId: id }, { unread: 1 })
-
-      channel.send({ event: 'email:markAsUnread:success', data: null })
-    } catch(e: any) {
-      channel.send({
-        event: 'email:markAsUnread:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-  
-  
   /*************************************************
    *  SEND EMAIL
    ************************************************/
   if (event === 'email:sendEmail') {
     try {
+      let { email } = payload
       const account: AccountSchema = store.getAccount()
       const drive = store.getDrive()
       const emailFilename = uuidv4()
       const emailDest = `/email/${emailFilename}.json`
 
-      let res = await Mailbox.send(payload.email, {
-        owner: payload.email.from[0].address,
+      const Email = new EmailModel(store)
+      await Email.ready()
+
+      const fileModel = new FileModel(store)
+      const File = await fileModel.ready()
+      
+      let _attachments: Attachment[] = []
+      let attachments: Attachment[] = email?.attachments
+      let totalAttachmentSize = 0
+
+      // 1. Save individual attachments to local disk
+      if(attachments?.length) {
+        for(let attachment of attachments) {
+          await new Promise((resolve, reject) => {
+            try {
+              totalAttachmentSize += attachment.size
+
+              // Don't send file data if size is over 25mb
+              if(totalAttachmentSize > 25600000) {
+                FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
+                  _attachments.push({
+                    filename: attachment.filename,
+                    contentType: file.contentType,
+                    size: file.size,
+                    discoveryKey: file.discovery_key,
+                    hash: file.hash,
+                    path: file.path,
+                    header: file.header,
+                    key: file.key
+                  })
+  
+                  resolve(file)
+                }).catch((e: any) => {
+                  reject(e)
+                })
+              } else {
+                _attachments.push(attachment)
+                resolve(attachment)
+              }
+              
+            } catch(e) {
+              reject(e)
+            }
+          })
+        }
+  
+        email.attachments = _attachments
+      }
+
+      // 2. send then save email file on drive
+      let res = await Mailbox.send(email, {
+        owner: email.from[0].address,
         keypairs: {
           secretBoxKeypair: {
             publicKey: account.secretBoxPubKey,
@@ -169,9 +102,28 @@ export default async (props: EmailOpts) => {
         dest: emailDest
       })
 
-      res = { name: emailFilename, email: payload.email, ...res }
+      // 3. Save email in DB
+      let _email = {
+        ...email,
+        emailId: uuidv4(),
+        path: res.path,
+        folderId: 3, // Sent folder
+        subject: email.subject ? email.subject : '(no subject)',
+        fromJSON: JSON.stringify(email.from),
+        toJSON: JSON.stringify(email.to),
+        ccJSON: JSON.stringify(email.cc),
+        bccJSON: JSON.stringify(email.bcc),
+        bodyAsText: removeMd(email.text_body),
+        bodyAsHtml: email.html_body,
+        attachments: JSON.stringify(email.attachments),
+        date: email.date || new Date().toISOString(),
+        createdAt: email.createdAt || new Date().toISOString(),
+        updatedAt: email.updatedAt || new Date().toISOString()
+      }
 
-      channel.send({ event: 'email:sendEmail:success', data: res })
+      const doc = await Email.insert(_email)
+
+      channel.send({ event: 'email:sendEmail:success', data: doc })
     } catch(e: any) {
       channel.send({
         event: 'email:sendEmail:error',
@@ -185,81 +137,6 @@ export default async (props: EmailOpts) => {
   }
 
 
-
-  /*************************************************
-   *  SAVE SENT EMAIL TO DATABASE
-   ************************************************/
-  if (event === 'email:saveSentMessageToDB') {
-    try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
-
-      const drive = store.getDrive()
-
-      const { messages } = payload
-      const msg = messages[0]
-
-      let email = {
-        ...msg,
-        emailId: uuidv4(),
-        path: `/email/${uuidv4()}.json`,
-        folderId: 3,
-        subject: msg.subject ? msg.subject : '(no subject)',
-        fromJSON: JSON.stringify(msg.from),
-        toJSON: JSON.stringify(msg.to),
-        ccJSON: JSON.stringify(msg.cc),
-        bccJSON: JSON.stringify(msg.bcc)
-      }
-
-      if (email.attachments && email.attachments.length) {
-        email.attachments = email.attachments.map((file: Attachment) => {
-          const fileId = file.fileId || uuidv4();
-          return {
-            id: fileId,
-            emailId: email.id,
-            filename: file.name || file.filename,
-            contentType: file.contentType || file.mimetype,
-            size: file.size,
-            discoveryKey: file.discoveryKey,
-            hash: file.hash,
-            header: file.header,
-            key: file.key,
-            path: file.path
-          }
-        })
-      } else {
-        email.attachments = []
-      }
-
-      email.attachments = JSON.stringify(email.attachments)
-
-      const file : FileSchema = await FileUtil.saveEmailToDrive({ email, drive })
-
-      const _f = await FileUtil.readFile(email.path, { drive, type: 'email' })
-
-      email = {
-        ...email,
-        encKey: file.key,
-        encHeader: file.header
-      };
-
-      Email.insert(email);
-
-      channel.send({ event: 'email:saveSentMessageToDB:success', data: email })
-    } catch(e: any) {
-      channel.send({
-        event: 'email:saveSentMessageToDB:error',
-        error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
-        }
-      })
-    }
-  }
-
-
-
   /*************************************************
    *  SAVE INCOMING EMAIL TO DATABASE
    ************************************************/
@@ -267,12 +144,12 @@ export default async (props: EmailOpts) => {
     try {
       const drive = store.getDrive()
       
-      const emailModel = new EmailModel(store)
+      const Email = new EmailModel(store)
       const aliasNamespaceModel = new AliasNamespaceModel(store)
       const aliasModel = new AliasModel(store)
       const fileModel = new FileModel(store)
       
-      const Email = await emailModel.ready()
+      await Email.ready()
       const AliasNamespace = await aliasNamespaceModel.ready()
       const Alias = await aliasModel.ready()
       const File = await fileModel.ready()
@@ -506,6 +383,124 @@ export default async (props: EmailOpts) => {
   }
 
 
+  /*************************************************
+   *  GET EMAILS BY FOLDER ID
+   ************************************************/
+  if (event === 'email:getMessagesByFolderId') {
+    try {
+      const emailModel = new EmailModel(store)
+      const Email = await emailModel.ready()
+
+      const messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
+
+      channel.send({
+        event: 'email:getMessagesByFolderId:success',
+        data: messages
+      })
+    } catch(e: any) {
+      channel.send({
+        event: 'email:getMessagesByFolderId:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
+
+
+
+  /*************************************************
+   *  GET MESSAGES BY ALIAS ID
+   ************************************************/
+  if (event === 'email:getMessagesByAliasId') {
+    try {
+      const emailModel = new EmailModel(store)
+      const Email = await emailModel.ready()
+
+      const messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
+        .sort('date', -1)
+        .skip(payload.offset)
+        .limit(payload.limit)
+
+      channel.send({
+        event: 'email:getMessagesByAliasId:success',
+        data: messages
+      })
+    } catch(e: any) {
+      channel.send({
+        event: 'email:getMessagesByAliasId:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
+
+
+
+  /*************************************************
+   *  GET EMAIL MESSAGES BY ID
+   ************************************************/
+  if (event === 'email:getMessageById') {
+    try {
+      const Email = new EmailModel(store)
+      await Email.ready()
+
+      const email: EmailSchema = await Email.findOne({ emailId: payload.id })
+        
+        email.attachments = JSON.parse(email.attachments)
+
+        if (email.unread) {
+          await Email.update({ emailId: email.emailId }, { unread: 0 })
+
+          email.unread = 0
+        }
+
+        channel.send({ event: 'email:getMessageById:success', data: { id: email.emailId, ...email } })
+    } catch(e: any) {
+      channel.send({
+        event: 'email:getMessageById:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
+
+
+
+  /*************************************************
+   *  MARK EMAIL AS UNREAD
+   ************************************************/
+  if (event === 'email:markAsUnread') {
+    try {
+      const { id } = payload;
+
+      const Email = new EmailModel(store)
+      await Email.ready()
+
+      await Email.update({ emailId: id }, { unread: 1 })
+
+      channel.send({ event: 'email:markAsUnread:success', data: null })
+    } catch(e: any) {
+      channel.send({
+        event: 'email:markAsUnread:error',
+        error: {
+          name: e.name,
+          message: e.message,
+          stacktrace: e.stack
+        }
+      })
+    }
+  }
+
+
 
   /*************************************************
    *  REMOVE EMAILS
@@ -514,28 +509,26 @@ export default async (props: EmailOpts) => {
     try {
       const drive = store.getDrive()
 
-      const emailModel = new EmailModel(store)
+      const Email = new EmailModel(store)
       const fileModel = new FileModel(store)
       
-      const Email = await emailModel.ready()
+      await Email.ready()
       const File = await fileModel.ready()
 
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
-      // TODO:
-      // Email.deleteMany
-
-      msgArr.forEach(async (msg: EmailSchema) => {
+      for(const msg of msgArr) {
+        await Email.remove({ emailId: msg.emailId })
+        
         drive.unlink(msg.path)
+
         const files: FileSchema[] = await File.find({ emailId: msg.emailId })
 
-        // TODO:
-        // File.deleteMany()
-
-        files.forEach(async (file: FileSchema) => {
-          drive.unlink(file.path)
-        })
-      })
+        for(const file of files) {
+          await File.remove({ fileId: file.fileId})
+          drive.unlink(file.path)          
+        }
+      }
 
       channel.send({ event: 'email:removeMessages:success', data: null })
     } catch(e: any) {
@@ -559,8 +552,8 @@ export default async (props: EmailOpts) => {
     const { messages } = payload
 
     try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
+      const Email = new EmailModel(store)
+      await Email.ready()
 
       const toFolder = messages[0].folder.toId
 
@@ -612,7 +605,6 @@ export default async (props: EmailOpts) => {
         attachments.map(async (attachment: any)  => {
           const writeStream = fs.createWriteStream(filepath)
 
-          // TODO: This may not work...
           let file: FileSchema = await File.find({ _id: attachment._id })
 
           if (!file) {
@@ -672,4 +664,77 @@ export default async (props: EmailOpts) => {
       })
     }
   }
+
+
+  /*************************************************
+   *  DEPRECATED - SAVE SENT EMAIL TO DATABASE
+   ************************************************/
+  // if (event === 'email:saveSentMessageToDB') {
+  //   try {
+  //     const emailModel = new EmailModel(store)
+  //     const Email = await emailModel.ready()
+
+  //     const drive = store.getDrive()
+
+  //     const { messages } = payload
+  //     const msg = messages[0]
+
+  //     let email = {
+  //       ...msg,
+  //       emailId: uuidv4(),
+  //       path: `/email/${uuidv4()}.json`,
+  //       folderId: 3,
+  //       subject: msg.subject ? msg.subject : '(no subject)',
+  //       fromJSON: JSON.stringify(msg.from),
+  //       toJSON: JSON.stringify(msg.to),
+  //       ccJSON: JSON.stringify(msg.cc),
+  //       bccJSON: JSON.stringify(msg.bcc)
+  //     }
+
+  //     if (email.attachments && email.attachments.length) {
+  //       email.attachments = email.attachments.map((file: Attachment) => {
+  //         const fileId = file.fileId || uuidv4();
+  //         return {
+  //           id: fileId,
+  //           emailId: email.id,
+  //           filename: file.name || file.filename,
+  //           contentType: file.contentType || file.mimetype,
+  //           size: file.size,
+  //           discoveryKey: file.discoveryKey,
+  //           hash: file.hash,
+  //           header: file.header,
+  //           key: file.key,
+  //           path: file.path
+  //         }
+  //       })
+  //     } else {
+  //       email.attachments = []
+  //     }
+
+  //     email.attachments = JSON.stringify(email.attachments)
+
+  //     const file : FileSchema = await FileUtil.saveEmailToDrive({ email, drive })
+
+  //     const _f = await FileUtil.readFile(email.path, { drive, type: 'email' })
+
+  //     email = {
+  //       ...email,
+  //       encKey: file.key,
+  //       encHeader: file.header
+  //     };
+
+  //     Email.insert(email)
+
+  //     channel.send({ event: 'email:saveSentMessageToDB:success', data: email })
+  //   } catch(e: any) {
+  //     channel.send({
+  //       event: 'email:saveSentMessageToDB:error',
+  //       error: {
+  //         name: e.name,
+  //         message: e.message,
+  //         stacktrace: e.stack
+  //       }
+  //     })
+  //   }
+  // }
 }

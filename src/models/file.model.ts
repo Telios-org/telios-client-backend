@@ -11,9 +11,10 @@ export class FileModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Email')
+    this._collection = await this._drive.db.collection('Files')
 
-    await this._collection.createIndex(['emailId', 'folderId', 'filename'])
+    await this._collection.createIndex(['createdAt', 'filename'])
+    await this._collection.createIndex(['updatedAt'])
 
     return this._collection
   }

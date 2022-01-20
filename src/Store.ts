@@ -76,7 +76,8 @@ export class Store {
         server: true,
         client: true,
         acl: [this.teliosPubKey, ...acl]
-      }
+      },
+      fullTextSearch: true
     });
     
     return this.drive;
