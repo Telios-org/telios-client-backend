@@ -23,7 +23,7 @@ export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any })
   });
 };
 
-export const saveFileToDrive = async (File: any, opts: { file: any, content?: string, drive: any }) : Promise<FileSchema> => {
+export const saveFileToDrive = async (File: any, opts: { file: any, content?: string, drive: any }) => {
   return new Promise(async (resolve, reject) => {
     let readStream;
 
@@ -67,10 +67,6 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
           opts.file.discovery_key = file.discovery_key;
 
           try {
-
-            opts.file.createdAt = new Date().toISOString()
-            opts.file.updatedAt = new Date().toISOString()
-
             const doc: FileSchema = await File.insert(opts.file)
             resolve(doc)
           } catch(err: any) {

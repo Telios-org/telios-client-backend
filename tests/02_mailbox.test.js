@@ -25,7 +25,7 @@ test('register new mailbox', async t => {
   })
 
   channel.once('mailbox:register:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -61,7 +61,7 @@ test('mark messages as synced', async t => {
   })
 
   channel.once('mailbox:markArrayAsSynced:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -77,7 +77,7 @@ test('save mailbox', async t => {
   })
 
   channel.once('mailbox:saveMailbox:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -92,7 +92,7 @@ test('get mailboxes', async t => {
   })
 
   channel.once('mailbox:getMailboxes:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
   
   t.teardown(async () => {

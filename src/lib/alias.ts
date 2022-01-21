@@ -134,8 +134,8 @@ export default async (props: AliasOpts) => {
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
         whitelisted: 1,
-        createdAt: createdAt || new Date().toISOString(),
-        updatedAt: updatedAt || new Date().toISOString()
+        createdAt,
+        updatedAt
       })
 
       channel.send({

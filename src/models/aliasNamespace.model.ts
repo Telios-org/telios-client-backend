@@ -13,7 +13,7 @@ export class AliasNamespaceModel {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('AliasNamespace')
 
-    await this._collection.createIndex(['name', 'mailboxId'])
+    await this._collection.createIndex(['mailboxId', 'name'])
     
     return this._collection
   }

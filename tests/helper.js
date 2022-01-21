@@ -2,8 +2,6 @@ const EventEmitter = require('events')
 const path = require('path')
 const fs = require('fs')
 const { fork } = require('child_process')
-const { v4: uuidv4 } = require('uuid')
-const b64EncodedAttachment = require('./attachment')
 
 class Channel extends EventEmitter {
   constructor(dirPath) {
@@ -65,46 +63,4 @@ module.exports.OpenChannel = () => {
       resolve(channel)
     })
   })
-}
-
-module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread }) => {
-  const uuid = uuidv4()
-
-  const _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io' } ]
-  const _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io' } ]
-  const _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io' } ]
-  const _bcc = [ { name: 'Albus Dumbeldore', address: 'albus.dumbeldore@howgwarts.edu' } ]
-
-  if(to) _to.push(to)
-  if(from) _to.push(from)
-  if(cc) _to.push(cc)
-  if(bcc) _to.push(bcc)
-
-  return {
-    emailId,
-    folderId,
-    aliasId,
-    subject: subject || `Subject-${uuid}`,
-    unread,
-    date: new Date().toISOString(),
-    to: _to,
-    from: _from,
-    cc: _cc,
-    bcc: _bcc,
-    text_body: `This is a test message-${uuid}`,
-    bodyAsText: `This is a test message-${uuid}`,
-    html_body: `<div>This is a test message-${uuid}</div>`,
-    bodyAsHtml: `<div>This is a test message-${uuid}</div>`,
-    attachments: [{
-      filename: 'test_image.png',
-      extension: '.png',
-      contentType: 'image/png',
-      size: 280000000,
-      content: b64EncodedAttachment
-    }],
-    path: null,
-    // Timestamps
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
 }

@@ -31,7 +31,7 @@ test('create account', async t => {
   })
 
   channel.once('account:create:error', error => {
-    t.fail(error.message)
+    t.fail(error)
   })
 
   channel.once('account:create:success', data => {
@@ -62,7 +62,8 @@ test('account login success', async t => {
   })
 
   channel.once('account:login:error', error => {
-    t.fail(error.message)
+    console.log(error)
+    t.fail(error)
   })
 
   channel.once('account:login:success', data => {

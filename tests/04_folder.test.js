@@ -33,7 +33,7 @@ test('create folder', async t => {
     })
 
     channel.once('folder:createFolder:error', error => {
-      t.fail(error.message)
+      t.fail(error.stack)
     })
   })
 })
@@ -54,7 +54,7 @@ test('update folder', async t => {
   })
 
   channel.once('folder:updateFolder:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -73,7 +73,7 @@ test('increment folder count', async t => {
   })
 
   channel.once('folder:updateFolderCount:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -92,7 +92,7 @@ test('decrement folder count', async t => {
   })
 
   channel.once('folder:updateFolderCount:error', error => {
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 })
 
@@ -115,7 +115,7 @@ test('get mailbox folders', async t => {
     })
 
     channel.once('folder:getMailboxFolders:error', error => {
-      t.fail(error.message)
+      t.fail(error.stack)
     })
   })
 })
@@ -140,13 +140,12 @@ test('remove folder', async t => {
     })
 
     channel.once('folder:getMailboxFolders:error', error => {
-      t.fail(error.message)
+      t.fail(error.stack)
     })
   })
 
   channel.once('folder:deleteFolder:error', error => {
-    console.log(JSON.stringify(error))
-    t.fail(error.message)
+    t.fail(error.stack)
   })
 
   t.teardown(() => {
