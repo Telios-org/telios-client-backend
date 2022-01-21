@@ -10,15 +10,16 @@ export interface StoreSchema {
   encryptionKey: any
   teliosPubKey: string
   acctPath: string
-  new(env: 'development' | 'production' | 'test'): any
   setDrive(props: setDriveOpts): any
   getDrive(): any
   setAccount(account: AccountSchema): void
   getAccount(): AccountSchema | undefined
   setAccountSecrets(secrets: AccountSecrets): void
-  getAccountSecrets(): AccountSecrets
+  getAccountSecrets(): AccountSecrets | undefined
   setAuthPayload(payload: AuthPayload): void
   getAuthPayload(): AuthPayload | undefined
+  setKeypair(keypair: { publicKey: string, privateKey: string }): void
+  getKeypairs(): { publicKey: string, privateKey: string }
 }
 
 export interface AccountSchema {
@@ -106,6 +107,7 @@ export interface FileSchema {
   hash: string
   feed?: string
   discoveryKey?: any
+  discovery_key?: any
   // Timestamps
   createdAt: string
   updatedAt: string
@@ -128,6 +130,7 @@ export interface FolderSchema {
 }
 
 export interface ContactSchema {
+  _id: any
   contactId: number
   name: string
   givenName?: string

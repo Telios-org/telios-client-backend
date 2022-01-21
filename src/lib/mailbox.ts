@@ -25,7 +25,6 @@ export default async (props: MailboxOpts) => {
       await MailboxSDK.registerMailbox(payload)
       channel.send({ event: 'mailbox:register:success', data: payload })
     } catch(e: any) {
-      console.log('ERROR', e)
       channel.send({
         event: 'mailbox:register:error',
         error: JSON.stringify(e) })

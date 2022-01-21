@@ -13,7 +13,10 @@ export class FolderModel {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('Folder')
 
-    await this._collection.createIndex(['seq', 'folderId', 'createdAt', 'updatedAt', 'mailboxId'])
+    await this._collection.createIndex(['createdAt', 'folderId', 'mailboxId'])
+    await this._collection.createIndex(['updatedAt'])
+    await this._collection.createIndex(['seq'])
+    
     return this._collection
   }
 

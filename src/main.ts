@@ -4,13 +4,16 @@ import Mailbox from './lib/mailbox'
 import Alias from './lib/alias'
 import Email from './lib/email'
 import Folder from './lib/folder'
-// import Contacts from './lib/contacts'
+import MessageHandler from './lib/messageHandler'
+import Contact from './lib/contact'
 
 import { MainOpts } from './types'
+import { StoreSchema } from './schemas'
 
 export = (props: MainOpts) => {
   const { channel, userDataPath, env } = props
-  const store = new Store(env)
+  const store: StoreSchema = new Store(env)
+  const messageHandler = new MessageHandler(channel, store)
 
   channel.on('message', (msg: any) => {
     Account({ channel, userDataPath, msg, store })
@@ -18,6 +21,7 @@ export = (props: MainOpts) => {
     Alias({ channel, userDataPath, msg, store })
     Email({ channel, userDataPath, msg, store })
     Folder({ channel, userDataPath, msg, store })
-    // Contacts({ channel, userDataPath, msg, store })
+    Contact({ channel, userDataPath, msg, store })
+    messageHandler.listen(msg)
   })
 }

@@ -58,6 +58,29 @@ export interface AliasMessage {
   payload: any
 }
 
+export interface ContactMessage {
+  event: 'contact:createContacts'
+        | 'contact:getContactById'
+        | 'contact:updateContact'
+        | 'contact:searchContact'
+        | 'contact:removeContact'
+        | 'contact:getAllContacts'
+  payload: any
+}
+
+export interface MsgHelperMessage {
+  event: 'messageHandler:initMessageListener'
+        | 'messageHandler:newMessageBatch'
+        | 'messageHandler:newMessage'
+        | 'messageHandler:retryMessageBatch'
+  payload: any
+}
+
+export interface FileMessage {
+  event: 'file:saveFile' | 'alias:getFile'
+  payload: any
+}
+
 export interface AccountOpts {
   channel: any
   userDataPath: string,
@@ -79,6 +102,13 @@ export interface FolderOpts {
   store: any
 }
 
+export interface FileOpts {
+  channel: any
+  userDataPath: string,
+  msg: FileMessage,
+  store: any
+}
+
 export interface AliasOpts {
   channel: any
   userDataPath: string,
@@ -90,6 +120,13 @@ export interface EmailOpts {
   channel: any
   userDataPath: string,
   msg: EmailMessage,
+  store: any
+}
+
+export interface ContactOpts {
+  channel: any
+  userDataPath: string,
+  msg: ContactMessage,
   store: any
 }
 
@@ -138,7 +175,9 @@ export interface Attachment {
   content?: string
   filename?: string
   contentType?: string
+  localPath?: string
   mimetype?: string
+  extension?: string
   size: number
   discoveryKey?: string
   hash?: string
