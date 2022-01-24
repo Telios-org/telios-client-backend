@@ -16,7 +16,7 @@ test('register new alias namespace', async t => {
 
   channel.once('mailbox:getMailboxes:success', data => {
     
-    mailboxId = data.mailboxId
+    mailboxId = data[0].mailboxId
 
     channel.send({
       event: 'alias:registerAliasNamespace',

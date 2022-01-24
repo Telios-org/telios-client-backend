@@ -15,7 +15,7 @@ test('create folder', async t => {
 
   channel.once('mailbox:getMailboxes:success', data => {
     const payload = {
-      mailboxId: data.mailboxId,
+      mailboxId: data[0].mailboxId,
       folderId: 6,
       name: 'Test',
       type: 'default',
@@ -103,7 +103,7 @@ test('get mailbox folders', async t => {
 
   channel.once('mailbox:getMailboxes:success', data => {
     
-    mailboxId = data.mailboxId
+    mailboxId = data[0].mailboxId
     
     const payload = { id: mailboxId }
 
