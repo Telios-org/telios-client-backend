@@ -7,6 +7,9 @@ import { AccountModel } from '../models/account.model'
 import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
 
+const BSON = require('bson')
+const { ObjectID } = BSON
+
 export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
@@ -84,8 +87,12 @@ export default async (props: AccountOpts) => {
 
       const { _sig: serverSig } = await Account.register(registerPayload) // Register account with API server
 
+      const _id = new ObjectID()
+
       // Save account to drive's Account collection
       const acctDoc = await accountModel.insert({
+        _id,
+        accountId: _id.toString('hex'),
         uid: accountUID,
         secretBoxPubKey: secretBoxKeypair.publicKey,
         secretBoxPrivKey: secretBoxKeypair.privateKey,
@@ -193,6 +200,67 @@ export default async (props: AccountOpts) => {
     } catch (err: any) {
       channel.send({
         event: 'account:login:error',
+        error: { name: err.name, message: err.message, stack: err.stack },
+      })
+    }
+  }
+
+  /**
+   * UPDATE ACCOUNT
+   */
+  if (event === 'account:update') {
+    const { accountId, displayName, avatar } = payload
+
+    try {
+      const accountModel = new AccountModel(store)
+      const Account = await accountModel.ready()
+
+      const account = Account.update({ accountId }, { displayName, avatar })
+      channel.send({ event: 'account:update:success', data: account })
+    } catch (err: any) {
+      channel.send({
+        event: 'account:update:error',
+        error: { name: err.name, message: err.message, stack: err.stack },
+      })
+    }
+  }
+
+  /**
+   * GET ACCOUNT STATS
+   */
+  if (event === 'account:retrieveStats') {
+    try {
+      const accountModel = new AccountModel(store)
+      const Account = await accountModel.ready()
+
+      const { uid } = store.getAccount()
+      const account = store.sdk.account
+
+      const stats = await account.retrieveStats()
+
+      const stringStats = JSON.stringify(stats)
+
+      await Account.update({ uid },{ stats: stringStats })
+
+      const finalPayload = {
+        plan: stats.plan,
+        dailyEmailUsed: stats.daily_email_used,
+        dailyEmailResetDate: stats.daily_email_reset_date,
+        namespaceUsed: stats.namespace_used,
+        aliasesUsed: stats.aliases_used,
+        storageSpaceUsed: stats.storage_space_used,
+        lastUpdated: stats.last_updated,
+        maxOutgoingEmails: stats.maxOutgoingEmails,
+        maxAliasNames: stats.maxAliasNames,
+        maxAliasAddresses: stats.maxAliasAddresses,
+        maxGBCloudStorage: stats.maxGBCloudStorage,
+        maxGBBandwidth: stats.maxGBBandwidth
+      }
+
+      channel.send({ event: 'account:retrieveStats:success', data: finalPayload })
+    } catch (err: any) {
+      channel.send({
+        event: 'account:retrieveStats:error',
         error: { name: err.name, message: err.message, stack: err.stack },
       })
     }

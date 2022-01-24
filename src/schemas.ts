@@ -23,6 +23,10 @@ export interface StoreSchema {
 }
 
 export interface AccountSchema {
+  _id?: any,
+  accountId?: string,
+  displayName?: string,
+  avatar?: string,
   uid: string
   driveEncryptionKey: string
   secretBoxPubKey: string

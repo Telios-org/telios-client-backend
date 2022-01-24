@@ -18,6 +18,8 @@ export class AccountModel {
   public async ready() {
     this._drive = this._store.getDrive()
     this._collection = await this._drive.db.collection('Account')
+
+    return this._collection
   }
 
   public async insert(doc: AccountSchema): Promise<AccountSchema> {

@@ -115,6 +115,10 @@ const payload = {
 }
 ```
 
+#### `channel.send({ event: 'account:update', payload })`
+
+#### `channel.send({ event: 'account:retrieveStats' })`
+
 #### `channel.send({ event: 'account:logout' })`
 
 #### `channel.send({ event: 'account:refreshToken' })`

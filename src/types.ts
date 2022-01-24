@@ -7,11 +7,16 @@ export interface MainOpts {
 export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
-        | 'account:remove' 
+        | 'account:remove'
+        | 'account:update'
+        | 'account:retrieveStats' 
         | 'account:logout' 
         | 'account:exit'
         | 'account:refreshToken'
   payload: {
+    accountId: string,
+    displayName: string,
+    avatar: string,
     email: string
     password: string
     recoveryEmail: string

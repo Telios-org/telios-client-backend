@@ -5,6 +5,9 @@ const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
 
+let _channel
+let _account
+
 test('create account', async t => {
   t.plan(4)
 
@@ -51,9 +54,9 @@ test('create account', async t => {
 test('account login success', async t => {
   t.plan(1)
 
-  const channel = new Channel(path.join(__dirname, 'Drive'))
+  _channel = new Channel(path.join(__dirname, 'Drive'))
 
-  channel.send({
+  _channel.send({
     event: 'account:login',
     payload: {
       email: 'bob@telios.io',
@@ -61,18 +64,56 @@ test('account login success', async t => {
     }
   })
 
-  channel.once('account:login:error', error => {
+  _channel.once('account:login:error', error => {
     t.fail(error.message)
   })
 
-  channel.once('account:login:success', data => {
+  _channel.once('account:login:success', data => {
     console.log('SUCCESS :: ', data)
-
+    _account = data
     t.ok(data.uid)
   })
 
+  // t.teardown(async () => {
+  //   channel.kill()
+  // })
+})
+
+test('update account', async t => {
+  t.plan(1)
+
+  _channel.send({
+    event: 'account:update',
+    payload: {
+      avatar: 'somebase64encodedtext'
+    }
+  })
+
+  _channel.on('account:update:error', error => {
+    t.fail(error.message)
+  })
+
+  _channel.on('account:update:success', data => {
+    t.ok(data)
+  })
+})
+
+test('retrieve account stats', async t => {
+  t.plan(1)
+
+  _channel.send({ event: 'account:retrieveStats'})
+
+  _channel.on('account:retrieveStats:error', error => {
+    t.fail(error.message)
+  })
+
+  _channel.on('account:retrieveStats:success', data => {
+    console.log('SUCESS ::', data)
+    t.ok(data)
+  })
+
   t.teardown(async () => {
-    channel.kill()
+    _channel.kill()
   })
 })
 
