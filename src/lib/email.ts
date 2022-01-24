@@ -105,6 +105,7 @@ export default async (props: EmailOpts) => {
       // 3. Save email in DB
       let _email = {
         ...email,
+        aliasId: null,
         emailId: uuidv4(),
         path: res.path,
         folderId: 3, // Sent folder
