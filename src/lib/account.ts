@@ -328,15 +328,15 @@ async function handleDriveMessages(
       // Service is telling client it has a new email to sync
       if (msg.type === 'newMail') {
         channel.send({
-          event: 'newMessage',
+          event: 'account:newMessage',
           data: { meta: msg.meta, account, async: true },
         })
       }
     } else {
       channel.send({
-        event: 'socketMessageErr',
+        event: 'account:newMessage:error',
         error: {
-          name: 'socketMessageErr',
+          name: 'account:newMessage:error',
           message: 'Could not connect to peer',
           stacktrace: '',
         },

@@ -91,9 +91,9 @@ export default async (props: MailboxOpts) => {
       const mailboxModel = new MailboxModel(store)
       const Mailbox = await mailboxModel.ready()
 
-      const mailbox: MailboxSchema = await Mailbox.findOne()
+      const mailboxes: MailboxSchema[] = await Mailbox.find()
       
-      channel.send({ event: 'mailbox:getMailboxes:success', data: mailbox })
+      channel.send({ event: 'mailbox:getMailboxes:success', data: mailboxes })
     } catch(e: any) {
       channel.send({
         event: 'mailbox:getMailboxes:error',
