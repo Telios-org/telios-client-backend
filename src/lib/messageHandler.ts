@@ -50,6 +50,7 @@ export default class MesssageHandler {
   async fetchBatch(files: any[], account?: AccountSchema) {
     this.mailbox = this.store.sdk.mailbox
     const keyPairs: any = this.store.getKeypairs()
+    this.drive = this.store.getDrive()
 
     files = files.map(f => {
       if (account) {
