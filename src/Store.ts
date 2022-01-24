@@ -16,7 +16,7 @@ export class Store {
   }
   
   private _teliosSDK: any
-  private _account: AccountSchema | undefined
+  private _account: AccountSchema | any
   private _authPayload: AuthPayload | undefined
   private _accountSecrets: AccountSecrets | undefined
   private _keyPairs: any
@@ -90,7 +90,7 @@ export class Store {
   public setAccount(account: AccountSchema) {
     this._account = account
   }
-
+  
   public getAccount() : AccountSchema | undefined{
     return this._account
   }
@@ -118,6 +118,17 @@ export class Store {
 
   public getKeypairs() {
     return this._keyPairs;
+  }
+
+  public refreshToken() {
+    const payload = {
+      account_key: this._account.secretBoxPubKey,
+      device_signing_key: this._account.deviceSigningPubKey,
+      device_id: this._account.deviceId,
+      sig: this._account.serverSig
+    }
+
+    return this.sdk.account.createAuthToken(payload, this._account.deviceSigningPrivKey);
   }
 
   // setNewDraft(draft) {

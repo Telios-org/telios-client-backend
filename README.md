@@ -117,6 +117,8 @@ const payload = {
 
 #### `channel.send({ event: 'account:logout' })`
 
+#### `channel.send({ event: 'account:refreshToken' })`
+
 ## Mailbox API
 
 #### `channel.send({ event: 'mailbox:register', payload })`

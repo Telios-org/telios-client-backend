@@ -153,11 +153,6 @@ export default async (props: AccountOpts) => {
       const { drive_encryption_key: encryptionKey, keyPair } =
         accountModel.getVault(payload.password, 'vault')
 
-      channel.send({
-        event: 'account:log:info',
-        data: { encryptionKey, keyPair },
-      })
-
       // Initialize drive
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
@@ -225,7 +220,19 @@ export default async (props: AccountOpts) => {
         channel.kill(channel.pid)
       }
     } catch (e: any) {
-      channel.send({ event: 'account:logout:error', error: e.message })
+      channel.send({ event: 'account:logout:error', error: { message: e.message } })
+    }
+
+    return 'loggedOut'
+  }
+
+  if (event === 'account:refreshToken') {
+    try {
+      const token = store.refreshToken()
+
+      channel.send({ event: 'account:refreshToken:success', data: token })
+    } catch (e: any) {
+      channel.send({ event: 'account:refreshToken:error', error: { message: e.message } })
     }
 
     return 'loggedOut'

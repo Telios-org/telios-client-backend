@@ -36,10 +36,6 @@ test('get new mail metadata from api server', async t => {
 
   // channel.send({ event: 'mailbox:getNewMailMeta' })
 
-  // channel.on('mailbox:info', data => {
-  //   console.log('INFO::', data)
-  // })
-
   // channel.on('mailbox:getNewMailMeta:success', data => {
   //   console.log(data)
   //   t.ok(data, 'Got new mail metadata')

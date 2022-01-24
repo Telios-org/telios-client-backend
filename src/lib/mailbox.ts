@@ -39,15 +39,13 @@ export default async (props: MailboxOpts) => {
   if (event === 'mailbox:getNewMailMeta') {
     try {
       const account: AccountSchema = store.getAccount()
-      channel.send({ event: 'mailbox:info', data: { account } })
+
       let meta = {}
 
       meta = await MailboxSDK.getNewMailMeta(
         account.secretBoxPrivKey,
         account.secretBoxPubKey
       )
-
-      channel.send({ event: 'mailbox:info', data: { meta } })
 
       channel.send({ event: 'mailbox:getNewMailMeta:success', data: { meta, account } })
     } catch(e: any) {
