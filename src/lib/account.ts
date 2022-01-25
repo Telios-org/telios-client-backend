@@ -43,7 +43,7 @@ export default async (props: AccountOpts) => {
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
-        keyPair: driveKeyPair,
+        keyPair: driveKeyPair
       })
 
       handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
@@ -353,6 +353,7 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on(
     'network-updated',
     (network: { internet: boolean; drive: boolean }) => {
+      channel.send({ event: 'drive:info', data: { network } })
       channel.send({ event: 'drive:network:updated', data: { network } })
     },
   )
