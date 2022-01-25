@@ -157,8 +157,12 @@ export default async (props: AccountOpts) => {
 
     try {
       // Retrieve drive encryption key and keyPair from vault using master password
-      const { drive_encryption_key: encryptionKey, keyPair } =
-        accountModel.getVault(payload.password, 'vault')
+      const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
+
+      if(encryptionKey && keyPair) {
+        // Notify the receiver the master password has been authenticated
+        channel.send({ event: 'account:authorized' })
+      }
 
       // Initialize drive
       const drive = store.setDrive({
