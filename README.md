@@ -265,8 +265,8 @@ const payload = {
     date: '2022-01-20T18:21:33.062Z',
     cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
     bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
-    text_body: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
-    html_body: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    bodyAsText: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    bodyAsHTML: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
     attachments: [{
       filename: 'image.png',
       content: 'b64EncodedString',
@@ -288,8 +288,8 @@ const payload = {
     date: '2022-01-20T18:21:33.062Z',
     cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
     bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
-    text_body: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
-    html_body: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    bodyAsText: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
+    bodyAsHTML: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
     attachments: [{
       filename: 'image.png',
       content: 'b64EncodedString',
