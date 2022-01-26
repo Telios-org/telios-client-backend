@@ -97,7 +97,7 @@ export interface AliasNamespaceSchema {
 }
 
 export interface FileSchema {
-  _id: any
+  _id?: any
   fileId?: string
   emailId: string
   folderId: number

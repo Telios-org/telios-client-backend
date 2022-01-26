@@ -19,6 +19,9 @@ import {
 
 const removeMd = require('remove-markdown')
 
+const BSON = require('bson')
+const { ObjectID } = BSON
+
 export default async (props: EmailOpts) => {
   const { channel, msg, store } = props 
   const { event, payload } = msg
@@ -57,6 +60,7 @@ export default async (props: EmailOpts) => {
               if(totalAttachmentSize > 25600000) {
                 FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
                   _attachments.push({
+                    _id: file._id,
                     filename: attachment.filename,
                     contentType: file.contentType,
                     size: file.size,
@@ -187,6 +191,7 @@ export default async (props: EmailOpts) => {
           msg.email.attachments.forEach((file: Attachment) => {
             const fileId = file.fileId || uuidv4()
             const fileObj = {
+              _id: new ObjectID(),
               id: fileId,
               emailId: msg.email.emailId || msg._id,
               filename: file.filename || file.name,

@@ -179,6 +179,7 @@ export interface AccountSecrets {
 }
 
 export interface Attachment {
+  _id?: any
   fileId?: string
   emailId?: string
   name?: string
