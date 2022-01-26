@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [

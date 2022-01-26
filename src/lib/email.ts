@@ -604,22 +604,28 @@ export default async (props: EmailOpts) => {
 
       await Promise.all(
         attachments.map(async (attachment: any)  => {
-          const writeStream = fs.createWriteStream(filepath)
-
-          let file: FileSchema = await File.find({ _id: attachment._id })
-
-          if (!file) {
-            file = attachment
+          if(attachment.content) {
+            fs.writeFileSync(filepath, Buffer.from(attachment.content, 'base64'))
           }
 
-          await FileUtil.saveFileFromEncryptedStream(writeStream, {
-            drive,
-            key: file.key,
-            hash: file.hash,
-            header: file.header,
-            discoveryKey: file.discoveryKey,
-            filename: file.filename
-          })
+          if(attachment._id) {
+            const writeStream = fs.createWriteStream(filepath)
+
+            let file: FileSchema = await File.find({ _id: attachment._id })
+
+            if (!file) {
+              file = attachment
+            }
+
+            await FileUtil.saveFileFromEncryptedStream(writeStream, {
+              drive,
+              key: file.key,
+              hash: file.hash,
+              header: file.header,
+              discoveryKey: file.discoveryKey,
+              filename: file.filename
+            })
+          }
         })
       )
       channel.send({ event: 'email:saveFiles:success', data: 'success' })

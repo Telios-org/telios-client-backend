@@ -69,6 +69,8 @@ test('update contact', async t => {
     givenName: 'Snape'
   }
 
+  console.log('CONTACT PAYLOAD :: ', payload)
+
   channel.send({ event: 'contact:updateContact', payload })
 
   channel.once('contact:updateContact:success', data => {
