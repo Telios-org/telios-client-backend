@@ -615,7 +615,9 @@ export default async (props: EmailOpts) => {
           if(attachment._id) {
             const writeStream = fs.createWriteStream(filepath)
 
-            let file: FileSchema = await File.findOne({ _id: attachment._id })
+            let file: FileSchema = await File.findOne({ path: attachment.path })
+
+            channel.send({ event: 'debug:file', data: file })
 
             if (!file) {
               file = attachment
