@@ -34,7 +34,7 @@ export class ContactModel {
     return this._collection.remove(doc, opts)
   }
  
-  public async update(doc:any, props: any, opts:any) {
+  public async update(doc:any, props: any, opts?:any) {
     const result = await this._collection.update(doc, props, opts)
     this._collection.ftsIndex(['name', 'email'])
     return result

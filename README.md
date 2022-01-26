@@ -375,7 +375,7 @@ const payload = {
       address: '123 Any St.',
       website: 'https://hogwarts.edu',
       notes: 'Lorem ipsum dolar sit amet...',
-      organization: 'Hogwarts Inc'
+      organization: [ { name: 'Hogwarts Inc' } ]
     }]
   }
 ```

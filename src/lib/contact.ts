@@ -25,6 +25,12 @@ export default async (props: ContactOpts) => {
         contact._id = _id
       }
 
+      if(contact.givenName || contact.familyName) {
+        contact.name = `${contact.givenName} ${contact.familyName}` 
+      } else {
+        contact.name = ''
+      }
+
       return contact
     })
 
@@ -80,12 +86,13 @@ export default async (props: ContactOpts) => {
    *  UPDATE CONTACT
    **************************************/
   if (event === 'contact:updateContact') {
-    const { id } = payload
-    const contactModel = new ContactModel(store)
-    const Contact = await contactModel.ready()
+    const Contact = new ContactModel(store)
+    await Contact.ready()
+
+    if(payload._id) delete payload._id
 
     try {
-      await Contact.update({ _id: id }, payload.updated)
+      await Contact.update({ contactId: payload.contactId }, payload)
       channel.send({ event: 'contact:updateContact:success', data: null })
     } catch(e: any) {
       channel.send({

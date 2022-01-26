@@ -13,7 +13,6 @@ test('create contacts', async t => {
 
   const payload = {
     contactList: [{
-      name: 'Albus Dumbeldore',
       givenName: 'Albus',
       familyName: 'Dumbeldore',
       nickname: 'Dumbeldorf',
@@ -67,14 +66,17 @@ test('update contact', async t => {
 
   const payload = {
     ...contact,
-    id: contact.contactId,
     givenName: 'Snape'
   }
 
   channel.send({ event: 'contact:updateContact', payload })
 
   channel.once('contact:updateContact:success', data => {
-    t.ok(true)
+    channel.send({ event: 'contact:getContactById', payload: { id: contact.contactId} })
+
+    channel.once('contact:getContactById:success', data => {
+      t.equals(data.givenName, 'Snape')
+    })
   })
 
   channel.once('contact:updateContact:error', error => {
@@ -89,7 +91,6 @@ test('search contact', async t => {
     searchQuery: 'albus'
   }
   
-
   channel.send({ event: 'contact:searchContact', payload })
 
   channel.once('contact:searchContact:success', data => {
