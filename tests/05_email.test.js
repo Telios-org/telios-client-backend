@@ -3,6 +3,8 @@ const _test = require('tape-promise').default
 const test = _test(tape)
 const { OpenChannel } = require('./helper')
 const { MockEmail } = require('./helper')
+const path = require('path')
+const fs = require('fs')
 
 let channel
 let __email
@@ -90,6 +92,29 @@ test('save incoming alias email', async t => {
     channel.once('email:saveMessageToDB:error', error => {
       t.fail(error.message)
     })
+  })
+})
+
+test('save email attachments', async t => {
+  t.plan(1)
+
+  const payload = {
+    filepath: __dirname + '/test.png',
+    attachments: JSON.parse(__email.attachments)
+  }
+
+  channel.send({ event: 'email:saveFiles', payload })
+
+  channel.once('email:saveFiles:success', data => {
+    t.ok(true)
+  })
+
+  channel.once('email:saveFiles:error', error => {
+    t.fail(error.message)
+  })
+
+  t.teardown(() => {
+    fs.unlinkSync(__dirname + '/test.png')
   })
 })
 

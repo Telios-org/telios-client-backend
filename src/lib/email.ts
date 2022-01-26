@@ -601,7 +601,6 @@ export default async (props: EmailOpts) => {
 
       const { filepath, attachments } = payload
 
-
       const fileModel = new FileModel(store)
       const File = await fileModel.ready()
 
@@ -616,7 +615,7 @@ export default async (props: EmailOpts) => {
           if(attachment._id) {
             const writeStream = fs.createWriteStream(filepath)
 
-            let file: FileSchema = await File.find({ _id: attachment._id })
+            let file: FileSchema = await File.findOne({ _id: attachment._id })
 
             if (!file) {
               file = attachment
