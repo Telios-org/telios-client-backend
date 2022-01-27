@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
+const path = require('path')
 
 import { EmailModel } from '../models/email.model'
 import { AliasModel } from '../models/alias.model'
@@ -607,9 +608,17 @@ export default async (props: EmailOpts) => {
 
       await Promise.all(
         attachments.map(async (attachment: any)  => {
-          let _filepath = filepath
+          let _filepath = filepath.replace(/\\/g, '/').split('/')
 
-          if(attachments.length > 1) _filepath = `${filepath}/${attachment.filename}`
+          if(_filepath[_filepath.length-1].indexOf('.') > -1) {
+            _filepath.pop()
+          }
+
+          _filepath = _filepath.join('/')
+
+          fs.mkdirSync(_filepath, { recursive: true })
+
+          _filepath = path.join(_filepath, attachment.filename)
 
           if(attachment.content) {
             fs.writeFileSync(_filepath, Buffer.from(attachment.content, 'base64'))
@@ -617,6 +626,7 @@ export default async (props: EmailOpts) => {
 
           if(attachment._id) {
             let file;
+
             const writeStream = fs.createWriteStream(_filepath)
 
             try {

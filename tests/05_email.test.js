@@ -99,7 +99,7 @@ test('save email attachments', async t => {
   t.plan(1)
 
   const payload = {
-    filepath: __dirname + '/test.png',
+    filepath: __dirname + '\\newDir\\test.png',
     attachments: JSON.parse(__email.attachments)
   }
 
@@ -114,7 +114,7 @@ test('save email attachments', async t => {
   })
 
   t.teardown(() => {
-    fs.unlinkSync(__dirname + '/test.png')
+    fs.rmSync(__dirname + '/newDir', { recursive: true })
   })
 })
 
