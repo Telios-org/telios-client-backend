@@ -607,21 +607,23 @@ export default async (props: EmailOpts) => {
 
       await Promise.all(
         attachments.map(async (attachment: any)  => {
+          let _filepath = filepath
+
+          if(attachments.length > 1) _filepath = `${filepath}/${attachment.filename}`
+
           if(attachment.content) {
-            fs.writeFileSync(filepath, Buffer.from(attachment.content, 'base64'))
+            fs.writeFileSync(_filepath, Buffer.from(attachment.content, 'base64'))
           }
 
           if(attachment._id) {
             let file;
-            const writeStream = fs.createWriteStream(filepath)
+            const writeStream = fs.createWriteStream(_filepath)
 
             try {
               file = await File.findOne({ _id: attachment._id })
             } catch(err) {
               // no file found
             }
-
-            channel.send({ event: 'debug:file', data: file })
 
             if (!file) {
               file = attachment
