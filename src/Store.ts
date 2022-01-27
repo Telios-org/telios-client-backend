@@ -117,7 +117,12 @@ export class Store {
   }
 
   public getKeypairs() {
-    return this._keyPairs;
+    let keyPairs:any = {}
+
+    for(let entry of this._keyPairs) {
+      keyPairs[entry[0]] = entry[1]
+    }
+    return keyPairs;
   }
 
   public refreshToken() {
