@@ -52,10 +52,14 @@ export default class MesssageHandler {
     const keyPairs: any = this.store.getKeypairs()
     this.drive = this.store.getDrive()
 
+    this.channel.send({ event: 'debug:info', data: { keyPairs } })
+
     files = files.map(f => {
       if (account) {
         let publicKey
         let privateKey
+
+        this.channel.send({ event: 'debug:info', data: { file: f } })
 
         if (account.secretBoxPubKey === f.account_key) {
           publicKey = account.secretBoxPubKey
@@ -65,11 +69,15 @@ export default class MesssageHandler {
           privateKey = keyPairs[f.account_key] && keyPairs[f.account_key].privateKey ? keyPairs[f.account_key].privateKey : null
         }
 
+        this.channel.send({ event: 'debug:info', data: { publicKey, privateKey } })
+
         const fileMeta = this.mailbox._decryptMailMeta(
           f,
           privateKey,
           publicKey
         )
+
+        this.channel.send({ event: 'debug:info', data: { fileMeta } })
 
         f = { _id: f._id, ...fileMeta }
       }
