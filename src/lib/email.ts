@@ -532,7 +532,7 @@ export default async (props: EmailOpts) => {
 
         for(const file of files) {
           await File.remove({ fileId: file.fileId})
-          drive.unlink(file.path)          
+          drive.unlink(file.path)
         }
       }
 
@@ -613,9 +613,14 @@ export default async (props: EmailOpts) => {
           }
 
           if(attachment._id) {
+            let file;
             const writeStream = fs.createWriteStream(filepath)
 
-            let file: FileSchema = await File.findOne({ path: attachment.path })
+            try {
+              file = await File.findOne({ _id: attachment.id })
+            } catch(err) {
+              // no file found
+            }
 
             channel.send({ event: 'debug:file', data: file })
 

@@ -25,7 +25,7 @@ export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any })
 
 export const saveFileToDrive = async (File: any, opts: { file: any, content?: string, drive: any }) : Promise<FileSchema> => {
   return new Promise(async (resolve, reject) => {
-    let readStream;
+    let readStream
 
     // When file is over 25mb create readstream from file path
     if(opts.file.localPath) {
@@ -34,7 +34,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
     }
     
     if(opts.content) {
-      readStream = new MemoryStream();
+      readStream = new MemoryStream()
       readStream.end(Buffer.from(opts.content, 'base64'));
 
       if(!opts.file.path) {
@@ -52,19 +52,20 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
     if(readStream) {
       readStream.on('error', (e: any) => {
-        reject(e);
+        reject(e)
       })
 
       opts.drive.writeFile(opts.file.path, readStream, { encrypted: true })
         .then(async (file: any) => {
           if(!opts.file.contentType && file.mimetype) {
-            opts.file.contentType = file.mimetype;
+            opts.file.contentType = file.mimetype
           }
           
-          opts.file.key = file.key.toString('hex');
-          opts.file.header = file.header.toString('hex');
-          opts.file.hash = file.hash;
-          opts.file.discovery_key = file.discovery_key;
+          opts.file.key = file.key.toString('hex')
+          opts.file.header = file.header.toString('hex')
+          opts.file.hash = file.hash
+          opts.file.discovery_key = file.discovery_key
+          opts.file.path = file.path
 
           try {
 
@@ -92,43 +93,43 @@ export const saveFileFromEncryptedStream = async (writeStream: any, opts: { disc
       opts.drive.fetchFileByDriveHash(opts.discoveryKey, opts.hash, { key: opts.key, header: opts.header })
         .then((stream: any) => {
           stream.on('error', (e: any) => {
-            reject(e);
+            reject(e)
           });
     
           stream.on('data', (chunk: any) => {
-            writeStream.write(chunk);
+            writeStream.write(chunk)
           });
     
           stream.on('end', () => {
-            writeStream.end();
+            writeStream.end()
           });
     
           writeStream.on('finish', () => {
-            resolve();
+            resolve()
           });
         })
         .catch((err: any) => {
-          reject(err);
-          throw err;
+          reject(err)
+          throw err
         });
     } else {
       opts.drive.readFile(`/file/${opts.filename}`, { key: opts.key, header: opts.header })
         .then((stream: any) => {
           stream.on('data', (chunk: any) => {
-            writeStream.write(chunk);
+            writeStream.write(chunk)
           });
 
           stream.on('end', () => {
-            writeStream.end();
+            writeStream.end()
           });
 
           writeStream.on('finish', () => {
-            resolve();
+            resolve()
           });
         })
         .catch((err: any) => {
-          reject(err);
-          throw err;
+          reject(err)
+          throw err
         });
     }
   });
@@ -136,32 +137,32 @@ export const saveFileFromEncryptedStream = async (writeStream: any, opts: { disc
 
 export const readFile = (path: string, opts: { drive: any, type: string }) => {
   return new Promise((resolve, reject) => {
-    let content = '';
+    let content = ''
     
     opts.drive.readFile(path)
       .then((stream: any) => {
         stream.on('data', (chunk: any) => {
           if (opts.type === 'email') {
-            content += chunk.toString('utf8');
+            content += chunk.toString('utf8')
           } else {
-            content += chunk.toString('base64');
+            content += chunk.toString('base64')
           }
         });
 
         stream.on('end', (data: any) => {
-          resolve(content);
+          resolve(content)
         });
 
         stream.on('error', (err: any) => {
-          reject(err);
+          reject(err)
         });
       })
       .catch((err: any) => {
-        reject(err);
+        reject(err)
       });
   });
 }
 
 export const decodeB64 = (base64: string) => {
-  return Buffer.from(base64, 'base64');
+  return Buffer.from(base64, 'base64')
 }
