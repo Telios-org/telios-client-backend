@@ -65,7 +65,6 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
           opts.file.header = file.header.toString('hex')
           opts.file.hash = file.hash
           opts.file.discovery_key = file.discovery_key
-          opts.file.path = file.path
 
           try {
 

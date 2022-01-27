@@ -198,7 +198,6 @@ export default async (props: EmailOpts) => {
               contentType: file.contentType,
               size: file.size,
               discoveryKey: file.discoveryKey || drive.discoveryKey,
-              path: `/file/${fileId}.file`,
               hash: file.hash,
               header: file.header,
               key: file.key
