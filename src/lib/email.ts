@@ -617,7 +617,7 @@ export default async (props: EmailOpts) => {
             const writeStream = fs.createWriteStream(filepath)
 
             try {
-              file = await File.findOne({ _id: attachment.id })
+              file = await File.findOne({ _id: attachment._id })
             } catch(err) {
               // no file found
             }
