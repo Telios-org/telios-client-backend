@@ -15,7 +15,8 @@ test('create account', async t => {
 
   const channel = new Channel(path.join(__dirname, 'Drive'))
 
-  channel.on('drive:network:updated', data => {
+  channel.on('drive:network:updated', cb => {
+    const { data } = cb
     const { network } = data
 
     connectedCount += 1
@@ -37,17 +38,17 @@ test('create account', async t => {
     }
   })
 
-  channel.once('account:create:error', error => {
-    t.fail(error.message)
-  })
+  channel.once('account:create:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
 
-  channel.once('account:create:success', data => {
     console.log('SUCCESS :: ', data)
 
     t.ok(data.uid)
   })
 
-  channel.once('account:logout:success', () => {
+  channel.once('account:logout:callback', () => {
     channel.send({ event: 'account:exit' }) // for good measure
     t.ok(1, 'Logged out of account.')
   })
@@ -70,11 +71,11 @@ test('account login success', async t => {
     }
   })
 
-  _channel.once('account:login:error', error => {
-    t.fail(error.message)
-  })
+  _channel.once('account:login:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
 
-  _channel.once('account:login:success', data => {
     console.log('SUCCESS :: ', data)
     _account = data
     t.ok(data.uid)
@@ -91,11 +92,11 @@ test('update account', async t => {
     }
   })
 
-  _channel.on('account:update:error', error => {
-    t.fail(error.message)
-  })
+  _channel.on('account:update:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
 
-  _channel.on('account:update:success', data => {
     t.ok(data)
   })
 })
@@ -105,11 +106,11 @@ test('retrieve account stats', async t => {
 
   _channel.send({ event: 'account:retrieveStats'})
 
-  _channel.on('account:retrieveStats:error', error => {
-    t.fail(error.message)
-  })
+  _channel.on('account:retrieveStats:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
 
-  _channel.on('account:retrieveStats:success', data => {
     console.log('SUCESS ::', data)
     t.ok(data)
   })
@@ -132,7 +133,9 @@ test('account login error', async t => {
     }
   })
 
-  channel.once('account:login:error', error => {
+  channel.once('account:login:callback', cb => {
+    const { error } = cb
+
     if (
       error &&
       error.message &&
@@ -160,15 +163,19 @@ test('get account refresh token', async t => {
     }
   })
 
-  channel.on('account:login:success', data => {
+  channel.on('account:login:callback', cb => {
+    const { error } = cb
+    
+    if(error) t.fail(error.message)
+
     channel.send({ event: 'account:refreshToken' })
 
-    channel.on('account:refreshToken:success', token => {
-      t.ok(token)
-    })
+    channel.on('account:refreshToken:callback', cb => {
+      const { error, data } = cb
+    
+      if(error) t.fail(error.message)
 
-    channel.on('account:refreshToken:error', error => {
-      t.fail(error.message)
+      t.ok(data)
     })
 
     t.teardown(async () => {

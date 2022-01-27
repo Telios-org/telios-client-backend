@@ -23,11 +23,16 @@ export default async (props: MailboxOpts) => {
   if (event === 'mailbox:register') {
     try {
       await MailboxSDK.registerMailbox(payload)
-      channel.send({ event: 'mailbox:register:success', data: payload })
-    } catch(e: any) {
+      channel.send({ event: 'mailbox:register:callback', data: payload })
+    } catch(err: any) {
       channel.send({
-        event: 'mailbox:register:error',
-        error: JSON.stringify(e) })
+        event: 'mailbox:register:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        }
+      })
     }
   }
 
@@ -47,14 +52,14 @@ export default async (props: MailboxOpts) => {
         account.secretBoxPubKey
       )
 
-      channel.send({ event: 'mailbox:getNewMailMeta:success', data: { meta, account } })
-    } catch(e: any) {
+      channel.send({ event: 'mailbox:getNewMailMeta:callback', data: { meta, account } })
+    } catch(err: any) {
       channel.send({
-        event: 'mailbox:getNewMailMeta:error',
+        event: 'mailbox:getNewMailMeta:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -68,14 +73,14 @@ export default async (props: MailboxOpts) => {
   if (event === 'mailbox:markArrayAsSynced') {
     try {
       await MailboxSDK.markAsSynced(payload.msgArray)
-      channel.send({ event: 'mailbox:markArrayAsSynced:success', data: payload.msgArray })
-    } catch(e: any) {
+      channel.send({ event: 'mailbox:markArrayAsSynced:callback', data: payload.msgArray })
+    } catch(err: any) {
       channel.send({
-        event: 'mailbox:markArrayAsSynced:error',
+        event: 'mailbox:markArrayAsSynced:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -93,14 +98,14 @@ export default async (props: MailboxOpts) => {
 
       const mailboxes: MailboxSchema[] = await Mailbox.find()
       
-      channel.send({ event: 'mailbox:getMailboxes:success', data: mailboxes })
-    } catch(e: any) {
+      channel.send({ event: 'mailbox:getMailboxes:callback', data: mailboxes })
+    } catch(err: any) {
       channel.send({
-        event: 'mailbox:getMailboxes:error',
+        event: 'mailbox:getMailboxes:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -135,14 +140,14 @@ export default async (props: MailboxOpts) => {
         await Folder.insert(_folder)
       }
 
-      channel.send({ event: 'mailbox:saveMailbox:success', data: mailbox })
-    } catch(e: any) {
+      channel.send({ event: 'mailbox:saveMailbox:callback', data: mailbox })
+    } catch(err: any) {
       channel.send({
-        event: 'mailbox:saveMailbox:error',
+        event: 'mailbox:saveMailbox:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }

@@ -19,13 +19,14 @@ test('register new mailbox', async t => {
     }
   })
 
-  channel.once('mailbox:register:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data, 'Created new mailbox')
-  })
+  channel.once('mailbox:register:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('mailbox:register:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+
+    t.ok(data, 'Created new mailbox')
   })
 })
 
@@ -36,7 +37,7 @@ test('get new mail metadata from api server', async t => {
 
   // channel.send({ event: 'mailbox:getNewMailMeta' })
 
-  // channel.on('mailbox:getNewMailMeta:success', data => {
+  // channel.on('mailbox:getNewMailMeta:callback', cb => {
   //   console.log(data)
   //   t.ok(data, 'Got new mail metadata')
   // })
@@ -52,12 +53,12 @@ test('mark messages as synced', async t => {
 
   channel.send({ event: 'mailbox:markArrayAsSynced', payload: { msgArray: ['abc123defffd', '0011aa00bbcc'] }})
 
-  channel.once('mailbox:markArrayAsSynced:success', data => {
-    t.ok(data.length > 0, 'Mark message array as synced')
-  })
+  channel.once('mailbox:markArrayAsSynced:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('mailbox:markArrayAsSynced:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(data.length > 0, 'Mark message array as synced')
   })
 })
 
@@ -67,13 +68,14 @@ test('save mailbox', async t => {
   channel.send({ event: 'mailbox:saveMailbox', payload: { address: 'bob@telios.io' } })
 
   
-  channel.once('mailbox:saveMailbox:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data, 'Got new mail metadata')
-  })
+  channel.once('mailbox:saveMailbox:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('mailbox:saveMailbox:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+
+    t.ok(data, 'Got new mail metadata')
   })
 })
 
@@ -82,13 +84,14 @@ test('get mailboxes', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.once('mailbox:getMailboxes:success', data => {
-    console.log(data)
-    t.ok(data, 'Got mailboxes')
-  })
+  channel.once('mailbox:getMailboxes:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('mailbox:getMailboxes:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log(data)
+
+    t.ok(data, 'Got mailboxes')
   })
   
   t.teardown(async () => {

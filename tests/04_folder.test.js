@@ -13,7 +13,11 @@ test('create folder', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.once('mailbox:getMailboxes:success', data => {
+  channel.once('mailbox:getMailboxes:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     const payload = {
       mailboxId: data[0].mailboxId,
       folderId: 6,
@@ -27,13 +31,14 @@ test('create folder', async t => {
 
     channel.send({ event: 'folder:createFolder', payload })
 
-    channel.once('folder:createFolder:success', data => {
-      console.log('SUCCESS :: ', data)
-      t.ok(data)
-    })
+    channel.once('folder:createFolder:callback', cb => {
+      const { error, data } = cb
 
-    channel.once('folder:createFolder:error', error => {
-      t.fail(error.message)
+      if(error) t.fail(error.message)
+
+      console.log('SUCCESS :: ', data)
+      
+      t.ok(data)
     })
   })
 })
@@ -48,13 +53,14 @@ test('update folder', async t => {
 
   channel.send({ event: 'folder:updateFolder', payload })
 
-  channel.once('folder:updateFolder:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data.nModified)
-  })
+  channel.once('folder:updateFolder:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('folder:updateFolder:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.ok(data.nModified)
   })
 })
 
@@ -68,12 +74,12 @@ test('increment folder count', async t => {
 
   channel.send({ event: 'folder:updateFolderCount', payload })
 
-  channel.once('folder:updateFolderCount:success', data => {
-    t.ok(true)
-  })
+  channel.once('folder:updateFolderCount:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('folder:updateFolderCount:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 })
 
@@ -87,12 +93,12 @@ test('decrement folder count', async t => {
 
   channel.send({ event: 'folder:updateFolderCount', payload })
 
-  channel.once('folder:updateFolderCount:success', data => {
-    t.ok(true)
-  })
+  channel.once('folder:updateFolderCount:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('folder:updateFolderCount:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 })
 
@@ -101,21 +107,25 @@ test('get mailbox folders', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.once('mailbox:getMailboxes:success', data => {
-    
+  channel.once('mailbox:getMailboxes:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     mailboxId = data[0].mailboxId
     
     const payload = { id: mailboxId }
 
     channel.send({ event: 'folder:getMailboxFolders', payload })
 
-    channel.once('folder:getMailboxFolders:success', data => {
-      console.log('SUCCESS :: ', data)
-      t.ok(data)
-    })
+    channel.once('folder:getMailboxFolders:callback', cb => {
+      const { error, data } = cb
 
-    channel.once('folder:getMailboxFolders:error', error => {
-      t.fail(error.message)
+      if(error) t.fail(error.message)
+
+      console.log('SUCCESS :: ', data)
+      
+      t.ok(data)
     })
   })
 })
@@ -129,24 +139,24 @@ test('remove folder', async t => {
 
   channel.send({ event: 'folder:deleteFolder', payload })
 
-  channel.once('folder:deleteFolder:success', data => {
+  channel.once('folder:deleteFolder:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     const payload = { id: mailboxId }
 
     channel.send({ event: 'folder:getMailboxFolders', payload })
 
-    channel.once('folder:getMailboxFolders:success', data => {
+    channel.once('folder:getMailboxFolders:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data)
+      
       t.equals(data.length, 5)
     })
-
-    channel.once('folder:getMailboxFolders:error', error => {
-      t.fail(error.message)
-    })
-  })
-
-  channel.once('folder:deleteFolder:error', error => {
-    console.log(JSON.stringify(error))
-    t.fail(error.message)
   })
 
   t.teardown(() => {

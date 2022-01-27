@@ -46,16 +46,16 @@ export default async (props: AliasOpts) => {
       store.setKeypair(keypair);
 
       channel.send({
-        event: 'alias:registerAliasNamespace:success',
+        event: 'alias:registerAliasNamespace:callback',
         data: output
       })
-    } catch(e: any) {
+    } catch(err:any) {
       channel.send({
-        event: 'alias:registerAliasNamespace:error',
+        event: 'alias:registerAliasNamespace:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -83,16 +83,16 @@ export default async (props: AliasOpts) => {
       }
 
       channel.send({
-        event: 'alias:getMailboxNamespaces:success',
+        event: 'alias:getMailboxNamespaces:callback',
         data: namespaces
       });
-    } catch(e: any) {
+    } catch(err:any) {
       channel.send({
-        event: 'alias:getMailboxNamespaces:error',
+        event: 'alias:getMailboxNamespaces:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -139,16 +139,16 @@ export default async (props: AliasOpts) => {
       })
 
       channel.send({
-        event: 'alias:registerAliasAddress:success',
+        event: 'alias:registerAliasAddress:callback',
         data: { ...output, fwdAddresses }
       })
-    } catch(e: any) {
+    } catch(err:any) {
       channel.send({
-        event: 'alias:registerAliasAddress:error',
+        event: 'alias:registerAliasAddress:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -182,16 +182,16 @@ export default async (props: AliasOpts) => {
       })
 
       channel.send({
-        event: 'alias:getMailboxAliases:success',
+        event: 'alias:getMailboxAliases:callback',
         data: outputAliases
       })
-    } catch(e: any) {
+    } catch(err:any) {
       channel.send({
-        event: 'alias:getMailboxAliases:error',
+        event: 'alias:getMailboxAliases:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -234,16 +234,16 @@ export default async (props: AliasOpts) => {
       )
 
       channel.send({
-        event: 'alias:updateAliasAddress:success',
+        event: 'alias:updateAliasAddress:callback',
         data: output
       })
-    } catch(e: any) {
+    } catch(err:any) {
       channel.send({
-        event: 'alias:updateAliasAddress:error',
+        event: 'alias:updateAliasAddress:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -264,14 +264,14 @@ export default async (props: AliasOpts) => {
       await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
       await Alias.remove({ aliasId: `${namespaceName}#${address}` })
 
-      channel.send({ event: 'alias:removeAliasAddress:success', data: null })
-    } catch(e: any) {
+      channel.send({ event: 'alias:removeAliasAddress:callback', data: null })
+    } catch(err:any) {
       channel.send({
-        event: 'alias:removeAliasAddress:error',
+        event: 'alias:removeAliasAddress:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -291,14 +291,14 @@ export default async (props: AliasOpts) => {
 
       await Alias.update({ aliasId: id }, { $inc: { count: amount } })
 
-      channel.send({ event: 'alias:updateAliasCount:success', updated: true })
-    } catch(e: any) {
+      channel.send({ event: 'alias:updateAliasCount:callback', updated: true })
+    } catch(err:any) {
       channel.send({
-        event: 'alias:updateAliasCount:error',
+        event: 'alias:updateAliasCount:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }

@@ -44,14 +44,14 @@ export default async (props: ContactOpts) => {
         if(result.nUpserted) upserted.push(contact)
       }
 
-      channel.send({ event: 'contact:createContacts:success', data: upserted })
-    } catch(e: any) {
+      channel.send({ event: 'contact:createContacts:callback', data: upserted })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:createContacts:error',
+        event: 'contact:createContacts:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }
@@ -68,14 +68,14 @@ export default async (props: ContactOpts) => {
 
     try {
       const contact = await Contact.findOne({ contactId: id })
-      channel.send({ event: 'contact:getContactById:success', data: contact })
-    } catch(e: any) {
+      channel.send({ event: 'contact:getContactById:callback', data: contact })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:getContactById:error',
+        event: 'contact:getContactById:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }
@@ -93,14 +93,14 @@ export default async (props: ContactOpts) => {
 
     try {
       await Contact.update({ contactId: payload.contactId }, payload)
-      channel.send({ event: 'contact:updateContact:success', data: null })
-    } catch(e: any) {
+      channel.send({ event: 'contact:updateContact:callback', data: null })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:updateContact:error',
+        event: 'contact:updateContact:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }
@@ -117,14 +117,14 @@ export default async (props: ContactOpts) => {
 
     try {
       const contacts: ContactSchema[] = await Contact.search(searchQuery)
-      channel.send({ event: 'contact:searchContact:success', data: contacts })
-    } catch(e: any) {
+      channel.send({ event: 'contact:searchContact:callback', data: contacts })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:searchContact:error',
+        event: 'contact:searchContact:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }
@@ -141,14 +141,14 @@ export default async (props: ContactOpts) => {
 
     try {
       await Contact.remove({ contactId: id })
-      channel.send({ event: 'contact:removeContact:success', data: null })
-    } catch(e: any) {
+      channel.send({ event: 'contact:removeContact:callback', data: null })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:removeContact:error',
+        event: 'contact:removeContact:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }
@@ -164,14 +164,14 @@ export default async (props: ContactOpts) => {
 
     try {
       const contacts: ContactSchema[] = await Contact.find()
-      channel.send({ event: 'contact:getAllContacts:success', data: contacts })
-    } catch(e: any) {
+      channel.send({ event: 'contact:getAllContacts:callback', data: contacts })
+    } catch(err: any) {
       channel.send({
-        event: 'contact:getAllContacts:error',
+        event: 'contact:getAllContacts:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         } 
       })
     }

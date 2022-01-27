@@ -122,7 +122,7 @@ export default async (props: AccountOpts) => {
       store.setAuthPayload(auth)
 
       channel.send({
-        event: 'account:create:success',
+        event: 'account:create:callback',
         data: {
           uid: accountUID,
           deviceId: account.device_id,
@@ -131,16 +131,17 @@ export default async (props: AccountOpts) => {
           signingKeypair,
           mnemonic,
           sig: serverSig,
-        },
+        }
       })
-    } catch (e: any) {
+    } catch (err: any) {
       channel.send({
-        event: 'account:create:error',
+        event: 'account:create:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack,
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
         },
+        data: null
       })
     }
   }
@@ -200,11 +201,16 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      channel.send({ event: 'account:login:success', data: fullAcct })
+      channel.send({ event: 'account:login:callback', error: null, data: fullAcct })
     } catch (err: any) {
       channel.send({
-        event: 'account:login:error',
-        error: { name: err.name, message: err.message, stack: err.stack },
+        event: 'account:login:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
       })
     }
   }
@@ -220,11 +226,16 @@ export default async (props: AccountOpts) => {
       const Account = await accountModel.ready()
 
       const account = Account.update({ accountId }, { displayName, avatar })
-      channel.send({ event: 'account:update:success', data: account })
+      channel.send({ event: 'account:update:callback', data: account })
     } catch (err: any) {
       channel.send({
-        event: 'account:update:error',
-        error: { name: err.name, message: err.message, stack: err.stack },
+        event: 'account:update:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
       })
     }
   }
@@ -261,11 +272,16 @@ export default async (props: AccountOpts) => {
         maxGBBandwidth: stats.maxGBBandwidth
       }
 
-      channel.send({ event: 'account:retrieveStats:success', data: finalPayload })
+      channel.send({ event: 'account:retrieveStats:callback', error: null, data: finalPayload })
     } catch (err: any) {
       channel.send({
-        event: 'account:retrieveStats:error',
-        error: { name: err.name, message: err.message, stack: err.stack },
+        event: 'account:retrieveStats:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
       })
     }
   }
@@ -286,13 +302,21 @@ export default async (props: AccountOpts) => {
       store.setAccountSecrets({ email: undefined, password: undefined })
       store.setAccount(null)
 
-      channel.send({ event: 'account:logout:success', data: null })
+      channel.send({ event: 'account:logout:callback', error: null, data: null })
 
       if (channel.pid) {
         channel.kill(channel.pid)
       }
-    } catch (e: any) {
-      channel.send({ event: 'account:logout:error', error: { message: e.message } })
+    } catch (err: any) {
+      channel.send({ 
+        event: 'account:logout:callback', 
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
+        }, 
+        data: null 
+      })
     }
 
     return 'loggedOut'
@@ -302,9 +326,17 @@ export default async (props: AccountOpts) => {
     try {
       const token = store.refreshToken()
 
-      channel.send({ event: 'account:refreshToken:success', data: token })
-    } catch (e: any) {
-      channel.send({ event: 'account:refreshToken:error', error: { message: e.message } })
+      channel.send({ event: 'account:refreshToken:callback', error: null, data: token })
+    } catch (err: any) {
+      channel.send({ 
+        event: 'account:refreshToken:callback', 
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
+        }, 
+        data: null 
+      })
     }
 
     return 'loggedOut'
@@ -338,9 +370,9 @@ async function handleDriveMessages(
       }
     } else {
       channel.send({
-        event: 'account:newMessage:error',
+        event: 'account:newMessage:callback',
         error: {
-          name: 'account:newMessage:error',
+          name: 'account:newMessage:callback',
           message: 'Could not connect to peer',
           stacktrace: '',
         },

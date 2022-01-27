@@ -73,8 +73,8 @@ export default async (props: EmailOpts) => {
                   })
   
                   resolve(file)
-                }).catch((e: any) => {
-                  reject(e)
+                }).catch((err: any) => {
+                  reject(err)
                 })
               } else {
                 _attachments.push(attachment)
@@ -129,14 +129,14 @@ export default async (props: EmailOpts) => {
 
       const doc = await Email.insert(_email)
 
-      channel.send({ event: 'email:sendEmail:success', data: doc })
-    } catch(e: any) {
+      channel.send({ event: 'email:sendEmail:callback', data: doc })
+    } catch(err: any) {
       channel.send({
-        event: 'email:sendEmail:error',
+        event: 'email:sendEmail:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -333,8 +333,8 @@ export default async (props: EmailOpts) => {
                       reject(err);
                     })
                 })
-                .catch((e: any) => {
-                  reject(e);
+                .catch((err: any) => {
+                  reject(err);
                 })
             })
           )
@@ -358,7 +358,7 @@ export default async (props: EmailOpts) => {
           })
 
           return channel.send({
-            event: 'email:saveMessageToDB:success',
+            event: 'email:saveMessageToDB:callback',
             data: {
               msgArr,
               newAliases
@@ -367,7 +367,7 @@ export default async (props: EmailOpts) => {
         })
         .catch(e => {
           channel.send({
-            event: 'email:saveMessageToDB:error',
+            event: 'email:saveMessageToDB:callback',
             error: {
               name: e.name,
               message: e.message,
@@ -376,13 +376,13 @@ export default async (props: EmailOpts) => {
           })
           throw e
         })
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'email:saveMessageToDB:error',
+        event: 'email:saveMessageToDB:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -400,16 +400,16 @@ export default async (props: EmailOpts) => {
       const messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
 
       channel.send({
-        event: 'email:getMessagesByFolderId:success',
+        event: 'email:getMessagesByFolderId:callback',
         data: messages
       })
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'email:getMessagesByFolderId:error',
+        event: 'email:getMessagesByFolderId:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -431,16 +431,16 @@ export default async (props: EmailOpts) => {
         .limit(payload.limit)
 
       channel.send({
-        event: 'email:getMessagesByAliasId:success',
+        event: 'email:getMessagesByAliasId:callback',
         data: messages
       })
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'email:getMessagesByAliasId:error',
+        event: 'email:getMessagesByAliasId:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -466,14 +466,14 @@ export default async (props: EmailOpts) => {
           email.unread = 0
         }
 
-        channel.send({ event: 'email:getMessageById:success', data: { id: email.emailId, ...email } })
-    } catch(e: any) {
+        channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
+    } catch(err: any) {
       channel.send({
-        event: 'email:getMessageById:error',
+        event: 'email:getMessageById:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -493,14 +493,14 @@ export default async (props: EmailOpts) => {
 
       await Email.update({ emailId: id }, { unread: 1 })
 
-      channel.send({ event: 'email:markAsUnread:success', data: null })
-    } catch(e: any) {
+      channel.send({ event: 'email:markAsUnread:callback', data: null })
+    } catch(err: any) {
       channel.send({
-        event: 'email:markAsUnread:error',
+        event: 'email:markAsUnread:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -536,14 +536,14 @@ export default async (props: EmailOpts) => {
         }
       }
 
-      channel.send({ event: 'email:removeMessages:success', data: null })
-    } catch(e: any) {
+      channel.send({ event: 'email:removeMessages:callback', data: null })
+    } catch(err: any) {
       channel.send({
-        event: 'email:removeMessages:error',
+        event: 'email:removeMessages:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -577,14 +577,14 @@ export default async (props: EmailOpts) => {
           }
         )
       }
-      channel.send({ event: 'email:moveMessages:success', data: null });
-    } catch(e: any) {
+      channel.send({ event: 'email:moveMessages:callback', data: null });
+    } catch(err: any) {
       channel.send({
-        event: 'email:moveMessages:error',
+        event: 'email:moveMessages:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -650,14 +650,14 @@ export default async (props: EmailOpts) => {
           }
         })
       )
-      channel.send({ event: 'email:saveFiles:success', data: 'success' })
-    } catch(e: any) {
+      channel.send({ event: 'email:saveFiles:callback', data: 'success' })
+    } catch(err: any) {
       channel.send({
-        event: 'email:saveFiles:error',
+        event: 'email:saveFiles:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -678,17 +678,17 @@ export default async (props: EmailOpts) => {
         const results: EmailSchema[] = await Email.search(searchQuery)
 
         channel.send({
-          event: 'email:searchMailbox:success',
+          event: 'email:searchMailbox:callback',
           data: results
         });
       }
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'email:searchMailbox:error',
+        event: 'email:searchMailbox:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -754,10 +754,10 @@ export default async (props: EmailOpts) => {
 
   //     Email.insert(email)
 
-  //     channel.send({ event: 'email:saveSentMessageToDB:success', data: email })
-  //   } catch(e: any) {
+  //     channel.send({ event: 'email:saveSentMessageToDB:callback', data: email })
+  //   } catch(err: any) {
   //     channel.send({
-  //       event: 'email:saveSentMessageToDB:error',
+  //       event: 'email:saveSentMessageToDB:callback',
   //       error: {
   //         name: e.name,
   //         message: e.message,

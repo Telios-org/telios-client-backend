@@ -30,14 +30,15 @@ test('create contacts', async t => {
 
   channel.send({ event: 'contact:createContacts', payload })
 
-  channel.once('contact:createContacts:success', data => {
+  channel.once('contact:createContacts:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     console.log('SUCCESS :: ', data)
+    
     contact = data[0]
     t.ok(data.length > 0)
-  })
-
-  channel.once('contact:createContacts:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -51,13 +52,14 @@ test('get contact by ID', async t => {
 
   channel.send({ event: 'contact:getContactById', payload })
 
-  channel.once('contact:getContactById:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data.contactId)
-  })
+  channel.once('contact:getContactById:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('contact:getContactById:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.ok(data.contactId)
   })
 })
 
@@ -69,20 +71,22 @@ test('update contact', async t => {
     givenName: 'Snape'
   }
 
-  console.log('CONTACT PAYLOAD :: ', payload)
-
   channel.send({ event: 'contact:updateContact', payload })
 
-  channel.once('contact:updateContact:success', data => {
+  channel.once('contact:updateContact:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     channel.send({ event: 'contact:getContactById', payload: { id: contact.contactId} })
 
-    channel.once('contact:getContactById:success', data => {
+    channel.once('contact:getContactById:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       t.equals(data.givenName, 'Snape')
     })
-  })
-
-  channel.once('contact:updateContact:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -95,13 +99,14 @@ test('search contact', async t => {
   
   channel.send({ event: 'contact:searchContact', payload })
 
-  channel.once('contact:searchContact:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data.length > 0)
-  })
+  channel.once('contact:searchContact:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('contact:searchContact:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.ok(data.length > 0)
   })
 })
 
@@ -110,13 +115,14 @@ test('get all contacts', async t => {
 
   channel.send({ event: 'contact:getAllContacts' })
 
-  channel.once('contact:getAllContacts:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data.length > 0)
-  })
+  channel.once('contact:getAllContacts:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('contact:getAllContacts:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.ok(data.length > 0)
   })
 })
 
@@ -129,12 +135,12 @@ test('remove contact', async t => {
 
   channel.send({ event: 'contact:removeContact', payload })
 
-  channel.once('contact:removeContact:success', data => {
-    t.ok(true)
-  })
+  channel.once('contact:removeContact:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('contact:removeContact:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 
   t.teardown(() => {

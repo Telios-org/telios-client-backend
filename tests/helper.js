@@ -21,11 +21,9 @@ class Channel extends EventEmitter {
     this.pid = this.process.pid
 
     this.process.on('message', m => {
-      const { event, data, error } = m
-
-      if(error) this.emit(event, error)
+      const { event } = m
       
-      this.emit(event, data)
+      this.emit(event, m)
     })
 
     this.process.stderr.on('error', data => {
@@ -57,11 +55,11 @@ module.exports.OpenChannel = () => {
       }
     })
   
-    channel.on('account:login:error', error => {
-      reject(error)
-    })
-  
-    channel.on('account:login:success', data => {
+    channel.on('account:login:callback', data => {
+      const { error } = data
+
+      if(error) return reject(error)
+
       resolve(channel)
     })
   })

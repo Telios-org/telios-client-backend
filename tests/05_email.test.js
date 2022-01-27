@@ -21,14 +21,14 @@ test('send email', async t => {
 
   channel.send({ event: 'email:sendEmail', payload })
 
-  channel.once('email:sendEmail:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.ok(data.emailId)
-  })
+  channel.once('email:sendEmail:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:sendEmail:error', error => {
-    console.log(JSON.stringify(error))
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.ok(data.emailId)
   })
 })
 
@@ -44,13 +44,14 @@ test('save sent email to database', async t => {
 
   channel.send({ event: 'email:saveMessageToDB', payload })
 
-  channel.once('email:saveMessageToDB:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.equals(data.msgArr.length, 1)
-  })
+  channel.once('email:saveMessageToDB:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:saveMessageToDB:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data.msgArr.length, 1)
   })
 })
 
@@ -71,7 +72,11 @@ test('save incoming alias email', async t => {
 
   channel.send({ event: 'alias:registerAliasAddress', payload })
 
-  channel.once('alias:registerAliasAddress:success', alias => {
+  channel.once('alias:registerAliasAddress:callback', cb => {
+
+    const { error, data: alias } = cb
+
+    if(error) t.fail(error.message)
 
     const mockEmail = MockEmail({ to: { address: 'alice2022#existing@telios.io' }, unread: 0 })
 
@@ -82,15 +87,16 @@ test('save incoming alias email', async t => {
 
     channel.send({ event: 'email:saveMessageToDB', payload })
 
-    channel.once('email:saveMessageToDB:success', data => {
+    channel.once('email:saveMessageToDB:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data)
+      
       __email = data.msgArr[0]
       t.equals(data.msgArr.length, 1)
       t.equals(data.msgArr[0].aliasId, alias.aliasId)
-    })
-
-    channel.once('email:saveMessageToDB:error', error => {
-      t.fail(error.message)
     })
   })
 })
@@ -105,12 +111,12 @@ test('save email attachments', async t => {
 
   channel.send({ event: 'email:saveFiles', payload })
 
-  channel.once('email:saveFiles:success', data => {
-    t.ok(true)
-  })
+  channel.once('email:saveFiles:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:saveFiles:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 
   t.teardown(() => {
@@ -129,15 +135,16 @@ test('generate new aliases for on-the-fly email', async t => {
 
     channel.send({ event: 'email:saveMessageToDB', payload })
 
-    channel.once('email:saveMessageToDB:success', data => {
+    channel.once('email:saveMessageToDB:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data)
+      
       __emailArr = data.msgArr
       t.equals(data.msgArr.length, 1)
       t.equals(data.newAliases.length, 1)
-    })
-
-    channel.once('email:saveMessageToDB:error', error => {
-      t.fail(error.message)
     })
 })
 
@@ -153,14 +160,15 @@ test('save email as draft', async t => {
 
   channel.send({ event: 'email:saveMessageToDB', payload })
 
-  channel.once('email:saveMessageToDB:success', data => {
+  channel.once('email:saveMessageToDB:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     console.log('SUCCESS :: ', data)
+    
     t.equals(data.msgArr.length, 1)
     t.equals(data.msgArr[0].folderId, 2)
-  })
-
-  channel.once('email:saveMessageToDB:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -173,12 +181,12 @@ test('get emails by folder ID', async t => {
 
   channel.send({ event: 'email:getMessagesByFolderId', payload })
 
-  channel.once('email:getMessagesByFolderId:success', data => {
-    t.equals(data.length, 2)
-  })
+  channel.once('email:getMessagesByFolderId:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:getMessagesByFolderId:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.equals(data.length, 2)
   })
 })
 
@@ -191,12 +199,12 @@ test('get messages by alias ID', async t => {
 
   channel.send({ event: 'email:getMessagesByAliasId', payload })
 
-  channel.once('email:getMessagesByAliasId:success', data => {
-    t.equals(data.length, 1)
-  })
+  channel.once('email:getMessagesByAliasId:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:getMessagesByAliasId:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.equals(data.length, 1)
   })
 })
 
@@ -218,8 +226,11 @@ test('move emails to another folder', async t => {
 
   channel.send({ event: 'email:moveMessages', payload })
 
-  channel.once('email:moveMessages:success', data => {
-    
+  channel.once('email:moveMessages:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     // Verify emails correctly moved
     const payload = {
       id: 1
@@ -227,15 +238,15 @@ test('move emails to another folder', async t => {
   
     channel.send({ event: 'email:getMessagesByFolderId', payload })
 
-    channel.once('email:getMessagesByFolderId:success', emails => {
+    channel.once('email:getMessagesByFolderId:callback', cb => {
+      const { error, data: emails } = cb
+
+      if(error) t.fail(error.message)
+
       for(const email of emails) {
         t.equals(email.folderId, 1)
       }
     })
-  })
-
-  channel.once('email:moveMessages:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -248,12 +259,12 @@ test('get email by ID', async t => {
 
   channel.send({ event: 'email:getMessageById', payload })
 
-  channel.once('email:getMessageById:success', data => {
-    t.equals(data.emailId, __email.emailId)
-  })
+  channel.once('email:getMessageById:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:getMessageById:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.equals(data.emailId, __email.emailId)
   })
 })
 
@@ -266,12 +277,12 @@ test('mark email as unread', async t => {
 
   channel.send({ event: 'email:markAsUnread', payload })
 
-  channel.once('email:markAsUnread:success', data => {
-    t.ok(true)
-  })
+  channel.once('email:markAsUnread:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:markAsUnread:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 })
 
@@ -284,12 +295,12 @@ test('remove emails from DB and file system', async t => {
 
   channel.send({ event: 'email:removeMessages', payload })
 
-  channel.once('email:removeMessages:success', data => {
-    t.ok(true)
-  })
+  channel.once('email:removeMessages:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:removeMessages:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(true)
   })
 })
 
@@ -302,13 +313,12 @@ test('email full text search', async t => {
 
   channel.send({ event: 'email:searchMailbox', payload })
 
-  channel.once('email:searchMailbox:success', data => {
-    t.ok(data.length > 0)
-  })
+  channel.once('email:searchMailbox:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('email:searchMailbox:error', error => {
-    console.log(JSON.stringify(error))
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    t.ok(data.length > 0)
   })
 
   t.teardown(() => {

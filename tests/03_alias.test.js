@@ -14,8 +14,11 @@ test('register new alias namespace', async t => {
 
   channel.send({ event: 'mailbox:getMailboxes' })
 
-  channel.once('mailbox:getMailboxes:success', data => {
-    
+  channel.once('mailbox:getMailboxes:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     mailboxId = data[0].mailboxId
 
     channel.send({
@@ -26,18 +29,15 @@ test('register new alias namespace', async t => {
       }
     })
   
-    channel.on('alias:registerAliasNamespace:success', data => {
+    channel.on('alias:registerAliasNamespace:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data)
+      
       t.ok(data, 'Registered new alias namespace')
     })
-  
-    channel.on('alias:registerAliasNamespace:error', error => {
-      t.fail(error.message)
-    })
-  })
-
-  channel.on('alias:getMailboxes:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -46,13 +46,14 @@ test('get alias namespaces', async t => {
 
   channel.send({ event: 'alias:getMailboxNamespaces', payload: { id: mailboxId }  })
 
-  channel.once('alias:getMailboxNamespaces:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.equals(data[0].mailboxId, mailboxId)
-  })
+  channel.once('alias:getMailboxNamespaces:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('alias:getMailboxNamespaces:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data[0].mailboxId, mailboxId)
   })
 })
 
@@ -74,13 +75,14 @@ test('register new alias address', async t => {
   channel.send({ event: 'alias:registerAliasAddress', payload })
 
   
-  channel.once('alias:registerAliasAddress:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.equals(data.aliasId, 'alice2022#netflix')
-  })
+  channel.once('alias:registerAliasAddress:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('alias:registerAliasAddress:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data.aliasId, 'alice2022#netflix')
   })
 })
 
@@ -94,13 +96,14 @@ test('get alias addresses', async t => {
   channel.send({ event: 'alias:getMailboxAliases', payload })
 
 
-  channel.once('alias:getMailboxAliases:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.equals(data[0].aliasId, 'alice2022#netflix')
-  })
+  channel.once('alias:getMailboxAliases:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('alias:getMailboxAliases:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data[0].aliasId, 'alice2022#netflix')
   })
 })
 
@@ -120,13 +123,14 @@ test('update alias address', async t => {
   channel.send({ event: 'alias:updateAliasAddress', payload })
 
 
-  channel.once('alias:updateAliasAddress:success', data => {
-    console.log('SUCCESS :: ', data)
-    t.equals(data.nModified, 1)
-  })
+  channel.once('alias:updateAliasAddress:callback', cb => {
+    const { error, data } = cb
 
-  channel.once('alias:updateAliasAddress:error', error => {
-    t.fail(error.message)
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data.nModified, 1)
   })
 })
 
@@ -137,20 +141,24 @@ test('increment alias message count', async t => {
 
   channel.send({ event: 'alias:updateAliasCount', payload })
 
-  channel.once('alias:updateAliasCount:success', data => {
+  channel.once('alias:updateAliasCount:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
 
     channel.send({ event: 'alias:getMailboxAliases', payload: {
       namespaceKeys: ['alice2022']
     } })
   
-    channel.once('alias:getMailboxAliases:success', data => {
+    channel.once('alias:getMailboxAliases:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data[0])
+      
       t.equals(data[0].count, 1)
     })
-  })
-
-  channel.once('alias:updateAliasCount:error', error => {
-    console.log(JSON.stringify(error))
   })
 })
 
@@ -161,20 +169,24 @@ test('decrement alias message count', async t => {
 
   channel.send({ event: 'alias:updateAliasCount', payload })
 
-  channel.once('alias:updateAliasCount:success', data => {
+  channel.once('alias:updateAliasCount:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
 
     channel.send({ event: 'alias:getMailboxAliases', payload: {
       namespaceKeys: ['alice2022']
     } })
   
-    channel.once('alias:getMailboxAliases:success', data => {
+    channel.once('alias:getMailboxAliases:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       console.log('SUCCESS :: ', data[0])
+      
       t.equals(data[0].count, 0)
     })
-  })
-
-  channel.once('alias:updateAliasCount:error', error => {
-    t.fail(error.message)
   })
 })
 
@@ -189,20 +201,24 @@ test('remove alias address', async t => {
 
   channel.send({ event: 'alias:removeAliasAddress', payload })
 
-  channel.once('alias:removeAliasAddress:success', data => {
+  channel.once('alias:removeAliasAddress:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
     const payload = {
       namespaceKeys: ['alice2022']
     }
   
     channel.send({ event: 'alias:getMailboxAliases', payload })
   
-    channel.once('alias:getMailboxAliases:success', data => {
+    channel.once('alias:getMailboxAliases:callback', cb => {
+      const { error, data } = cb
+
+      if(error) t.fail(error.message)
+
       t.equals(data.length, 0)
     })
-  })
-
-  channel.once('alias:removeAliasAddress:error', error => {
-    t.fail(error.message)
   })
 
   t.teardown(() => {

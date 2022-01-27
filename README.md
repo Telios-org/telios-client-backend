@@ -34,11 +34,9 @@ const child = fork(filePath, [userDataPath, 'development'], {
 
 // listen for channel events
 child.on('message', m => {
-  const { event, data, error } = m
-
-  if(error) this.emit(event, error)
+  const { event } = m
   
-  this.emit(event, data)
+  this.emit(event, m)
 })
 
 child.stderr.on('error', data => {
@@ -82,13 +80,10 @@ channel.send({
   }
 })
 
-channel.on('account:create:error', error => {
-  // handle error
+channel.on('account:create:callback', cb => {
+  const { error, data } = cb
 })
 
-channel.on('account:create:success', data => {
-  // handle success
-})
 ```
 
 ## Drive API

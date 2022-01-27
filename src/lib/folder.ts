@@ -19,16 +19,16 @@ export default async (props: FolderOpts) => {
       const folders: FolderSchema[] = await Folder.find({ mailboxId: payload.id }).sort('seq', 1)
 
       channel.send({
-        event: 'folder:getMailboxFolders:success',
+        event: 'folder:getMailboxFolders:callback',
         data: folders
       });
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'folder:getMailboxFolders:error',
+        event: 'folder:getMailboxFolders:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -67,14 +67,14 @@ export default async (props: FolderOpts) => {
       })
 
       // folder.id = folder.folderId
-      channel.send({ event: 'folder:createFolder:success', data: folder })
-    } catch(e: any) {
+      channel.send({ event: 'folder:createFolder:callback', data: folder })
+    } catch(err: any) {
       channel.send({
-        event: 'folder:createFolder:error',
+        event: 'folder:createFolder:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -91,14 +91,14 @@ export default async (props: FolderOpts) => {
 
       const data = await Folder.update({ folderId: payload.folderId }, { name: payload.name })
 
-      channel.send({ event: 'folder:updateFolder:success', data })
-    } catch(e: any) {
+      channel.send({ event: 'folder:updateFolder:callback', data })
+    } catch(err: any) {
       channel.send({
-        event: 'folder:updateFolder:error',
+        event: 'folder:updateFolder:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -117,14 +117,14 @@ export default async (props: FolderOpts) => {
 
       await Folder.update({ folderId: id }, { $inc: { count: amount } })
 
-      channel.send({ event: 'folder:updateFolderCount:success', updated: true })
-    } catch(e: any) {
+      channel.send({ event: 'folder:updateFolderCount:callback', updated: true })
+    } catch(err: any) {
       channel.send({
-        event: 'folder:updateFolderCount:error',
+        event: 'folder:updateFolderCount:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
@@ -141,15 +141,15 @@ export default async (props: FolderOpts) => {
 
       const doc = await Folder.remove({ folderId: 6 })
 
-      channel.send({ event: 'folder:deleteFolder:success', data: doc });
+      channel.send({ event: 'folder:deleteFolder:callback', data: doc });
 
-    } catch(e: any) {
+    } catch(err: any) {
       channel.send({
-        event: 'folder:deleteFolder:error',
+        event: 'folder:deleteFolder:callback',
         error: {
-          name: e.name,
-          message: e.message,
-          stacktrace: e.stack
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
         }
       })
     }
