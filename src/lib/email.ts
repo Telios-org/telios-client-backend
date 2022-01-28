@@ -256,7 +256,9 @@ export default async (props: EmailOpts) => {
                     count: 0,
                     disabled: false,
                     fwdAddresses: null,
-                    whitelisted: 1
+                    whitelisted: 1,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
                   })
 
                   aliasId = alias.aliasId

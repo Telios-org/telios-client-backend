@@ -125,14 +125,14 @@ test('save email attachments', async t => {
 })
 
 test('generate new aliases for on-the-fly email', async t => {
-  t.plan(2)
+  t.plan(3)
     const mockEmail = MockEmail({ to: { address: 'alice2022#onthefly@telios.io' }, unread: 0 })
 
     const payload = {
       type: 'Incoming',
       messages: [mockEmail],
     }
-
+    
     channel.send({ event: 'email:saveMessageToDB', payload })
 
     channel.once('email:saveMessageToDB:callback', cb => {
@@ -145,6 +145,19 @@ test('generate new aliases for on-the-fly email', async t => {
       __emailArr = data.msgArr
       t.equals(data.msgArr.length, 1)
       t.equals(data.newAliases.length, 1)
+
+      channel.send({ event: 'alias:getMailboxAliases', payload: { namespaceKeys: ['alice2022'] }})
+
+      channel.on('alias:getMailboxAliases:callback', cb => {
+        const { error, data } = cb
+        if(error) t.fail(error.message)
+        
+        for(const alias of data) {
+          if(alias.aliasId === 'alice2022#onthefly') {
+            t.ok(true)
+          }
+        }
+      })
     })
 })
 

@@ -385,7 +385,6 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on(
     'network-updated',
     (network: { internet: boolean; drive: boolean }) => {
-      channel.send({ event: 'drive:info', data: { network } })
       channel.send({ event: 'drive:network:updated', data: { network } })
     },
   )
