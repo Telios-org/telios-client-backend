@@ -609,8 +609,10 @@ export default async (props: EmailOpts) => {
       await Promise.all(
         attachments.map(async (attachment: any)  => {
           let _filepath = filepath.replace(/\\/g, '/').split('/')
+          let filename
 
           if(_filepath[_filepath.length-1].indexOf('.') > -1) {
+            filename = _filepath[_filepath.length-1]
             _filepath.pop()
           }
 
@@ -618,7 +620,11 @@ export default async (props: EmailOpts) => {
 
           fs.mkdirSync(_filepath, { recursive: true })
 
-          _filepath = path.join(_filepath, attachment.filename)
+          if(attachments.length === 1) {
+            _filepath = path.join(_filepath, filename)
+          } else {
+            _filepath = path.join(_filepath, attachment.filename)
+          }
 
           if(attachment.content) {
             fs.writeFileSync(_filepath, Buffer.from(attachment.content, 'base64'))
