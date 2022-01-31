@@ -56,31 +56,23 @@ export default async (props: EmailOpts) => {
           await new Promise((resolve, reject) => {
             try {
               totalAttachmentSize += attachment.size
-
-              // Don't send file data if size is over 25mb
-              if(totalAttachmentSize > 25600000) {
-                FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
-                  _attachments.push({
-                    _id: file._id,
-                    filename: attachment.filename,
-                    contentType: file.contentType,
-                    size: file.size,
-                    discoveryKey: file.discovery_key,
-                    hash: file.hash,
-                    path: file.path,
-                    header: file.header,
-                    key: file.key
-                  })
-  
-                  resolve(file)
-                }).catch((err: any) => {
-                  reject(err)
+              FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
+                _attachments.push({
+                  _id: file._id,
+                  filename: attachment.filename,
+                  contentType: file.contentType,
+                  size: file.size,
+                  discoveryKey: file.discovery_key,
+                  hash: file.hash,
+                  path: file.path,
+                  header: file.header,
+                  key: file.key
                 })
-              } else {
-                _attachments.push(attachment)
-                resolve(attachment)
-              }
-              
+
+                resolve(file)
+              }).catch((err: any) => {
+                reject(err)
+              })              
             } catch(e) {
               reject(e)
             }
@@ -399,7 +391,12 @@ export default async (props: EmailOpts) => {
       const emailModel = new EmailModel(store)
       const Email = await emailModel.ready()
 
-      const messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
+      let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
+
+      messages = messages.map((email: any) => {
+        delete email.bodyAsHtml
+        return email
+      })
 
       channel.send({
         event: 'email:getMessagesByFolderId:callback',
@@ -427,10 +424,15 @@ export default async (props: EmailOpts) => {
       const emailModel = new EmailModel(store)
       const Email = await emailModel.ready()
 
-      const messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
+      let messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
         .sort('date', -1)
         .skip(payload.offset)
         .limit(payload.limit)
+      
+      messages = messages.map((email: any) => {
+        delete email.bodyAsHtml
+        return email
+      })
 
       channel.send({
         event: 'email:getMessagesByAliasId:callback',
@@ -683,7 +685,12 @@ export default async (props: EmailOpts) => {
         const emailModel = new EmailModel(store)
         const Email = await emailModel.ready()
 
-        const results: EmailSchema[] = await Email.search(searchQuery)
+        let results: EmailSchema[] = await Email.search(searchQuery)
+
+        results = results.map((email: any) => {
+          delete email.bodyAsHtml
+          return email
+        })
 
         channel.send({
           event: 'email:searchMailbox:callback',
