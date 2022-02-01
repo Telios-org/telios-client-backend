@@ -65,7 +65,7 @@ export class AccountModel {
   ): { drive_encryption_key: any; keyPair: any } {
     const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
 
-    if (!fs.existsSync(vaultPath)) throw `${type} file not found.`
+    if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }
 
     const cipher = fs.readFileSync(vaultPath)
 

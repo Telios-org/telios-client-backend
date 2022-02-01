@@ -3,9 +3,11 @@ const path = require('path')
 const { randomBytes } = require('crypto')
 
 import { AccountModel } from '../models/account.model'
+import { MigrateModel } from '../models/migrate.model'
 
 import { AccountOpts } from '../types'
-import { StoreSchema } from '../schemas'
+import { StoreSchema, MigrateSchema } from '../schemas'
+import { Store } from '../Store'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -21,11 +23,11 @@ export default async (props: AccountOpts) => {
   if (event === 'account:create') {
     try {
       const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
-      const parentAccountsDir = path.join(userDataPath, `/Accounts`)
+      const parentAccountsDir = path.join(userDataPath)
       if (!fs.existsSync(parentAccountsDir)) {
         fs.mkdirSync(parentAccountsDir)
       }
-      const acctPath = path.join(userDataPath, `/Accounts/${payload.email}`)
+      const acctPath = path.join(userDataPath, `/${payload.email}`)
       store.acctPath = acctPath
 
       fs.mkdirSync(acctPath)
@@ -36,7 +38,7 @@ export default async (props: AccountOpts) => {
       const encryptionKey = Crypto.generateAEDKey()
       const driveKeyPair = {
         publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-        secretKey: Buffer.from(signingKeypair.privateKey, 'hex'),
+        secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
       }
 
       // Create account Nebula drive
@@ -51,7 +53,10 @@ export default async (props: AccountOpts) => {
       await drive.ready()
 
       const accountModel = new AccountModel(store)
+      const migrateModel = new MigrateModel(store)
+
       await accountModel.ready() // Initialize account db from within drive
+      const Migrate = await migrateModel.ready()
 
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
@@ -105,6 +110,8 @@ export default async (props: AccountOpts) => {
         updatedAt: new Date().toISOString(),
       })
 
+      await runMigrate(acctPath, '/Drive', null, store)
+
       handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
       store.setAccount(acctDoc)
@@ -150,39 +157,109 @@ export default async (props: AccountOpts) => {
    * GET ACCOUNT / LOGIN
    */
   if (event === 'account:login') {
-    const acctPath = `${userDataPath}/Accounts/${payload.email}`
+    const acctPath = `${userDataPath}/${payload.email}`
     store.acctPath = acctPath
-
-    // Initialize account collection
-    const accountModel = new AccountModel(store)
+    
+    let mnemonic
+    let encryptionKey
+    let keyPair
+    let drive
 
     try {
-      // Retrieve drive encryption key and keyPair from vault using master password
-      const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
+      // Initialize account collection
+      const accountModel = new AccountModel(store)
 
-      if(encryptionKey && keyPair) {
-        // Notify the receiver the master password has been authenticated
-        channel.send({ event: 'account:authorized' })
+      try {
+        // Retrieve drive encryption key and keyPair from vault using master password
+        const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
+
+        channel.send({
+          event: 'debug:info',
+          data: {
+            message: 'GET VAULT',
+            encryptionKey,
+            keyPair
+          }
+        })
+
+        if(encryptionKey && keyPair) {
+          // Notify the receiver the master password has been authenticated
+          channel.send({ event: 'account:authorized' })
+        }
+
+        // Initialize drive
+        drive = store.setDrive({
+          name: `${acctPath}/Drive`,
+          encryptionKey,
+          keyPair: {
+            publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+            secretKey: Buffer.from(keyPair.secretKey, 'hex'),
+          },
+        })
+
+        handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+        await drive.ready()
+      } catch(err: any) {
+
+        channel.send({
+          event: 'debug:info',
+          error: { 
+            name: 'VAULTERROR', 
+            message: err.message, 
+            stack: err.stack 
+          }
+        })
+        
+        if(err?.type !== 'VAULTERROR') {
+          return channel.send({
+            event: 'account:login:callback',
+            error: { 
+              name: err.name, 
+              message: err.message, 
+              stack: err.stack 
+            }
+          })
+        }
+
+        try {
+          const data = await runMigrate(acctPath, '/Drive', payload.password, store)
+    
+          mnemonic = data?.mnemonic
+          encryptionKey = data?.encryptionKey
+          keyPair = data?.keyPair
+          drive = data?.drive
+    
+          // channel.send({
+          //   event: 'debug:info',
+          //   data
+          // })
+    
+        } catch(err:any) {
+          return channel.send({
+            event: 'account:login:callback',
+            error: { 
+              name: err.name, 
+              message: err.message, 
+              stack: err.stack 
+            }
+          })
+        }
       }
 
-      // Initialize drive
-      const drive = store.setDrive({
-        name: `${acctPath}/Drive`,
-        encryptionKey,
-        keyPair: {
-          publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-          secretKey: Buffer.from(keyPair.secretKey, 'hex'),
-        },
+      channel.send({
+        event: 'debug:info',
+        data: 'DRIVE SET'
       })
 
-      handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
-
-      await drive.ready()
       await accountModel.ready() // Initialize account db from within drive
 
       // Get account
-      const fullAcct = await accountModel.findOne({
-        driveEncryptionKey: encryptionKey,
+      const fullAcct = await accountModel.findOne()
+
+      channel.send({
+        event: 'debug:info',
+        data: { fullAcct }
       })
 
       handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
@@ -290,7 +367,7 @@ export default async (props: AccountOpts) => {
    * REMOVE ACCOUNT
    */
   if (event === 'account:remove') {
-    const acctPath = path.join(userDataPath, `/Accounts/${payload.email}`)
+    const acctPath = path.join(userDataPath, `/${payload.email}`)
     fs.rmSync(acctPath, { force: true, recursive: true })
   }
 
@@ -382,10 +459,102 @@ async function handleDriveMessages(
 }
 
 function handleDriveNetworkEvents(drive: any, channel: any) {
-  drive.on(
-    'network-updated',
-    (network: { internet: boolean; drive: boolean }) => {
+  drive.on('network-updated', (network: { internet: boolean; drive: boolean }) => {
       channel.send({ event: 'drive:network:updated', data: { network } })
-    },
+    }
   )
+}
+
+async function runMigrate(rootdir:string, drivePath: string, password: any, store: StoreSchema) {
+  try {
+    const migrateModel = new MigrateModel(store)
+    const Migrate = await migrateModel.ready()
+
+    let migrations: any[] = await Migrate.find()
+
+    // Get previously ran migrations from DB
+    migrations = migrations.map((item: any) => {
+      return item.name
+    })
+
+    // Check migrations directory for migration files
+    const files = fs.readdirSync(path.join(__dirname, '../../src', 'migrations'))
+
+    // If no migrations have run add all migrations to migrate collection. 
+    // This case should run when creating a fresh new account.
+    if(migrations.length === 0) {
+      for(const file of files) {
+        await Migrate.insert({ name: file })  
+      }
+    } else {
+      // Get an array of files that have not been ran
+      const difference = files.filter((item:any) => migrations.includes(item))
+
+      // Run migrations
+      for(const file of difference) {
+        const filePath = `${path.join(__dirname, '../../src', 'migrations')}/${file}`
+        const Script = require(filePath)
+        await Script.up({ rootdir, drivePath, password })
+        await Migrate.insert({ name: file }) // Save migrated file to DB
+      }
+    }
+  } catch(err:any) {
+    // Migrate from old Hypercore v10 to newer version of v10
+    if(err.message.indexOf('Cannot read property') > -1) {
+      const driveFiles = fs.readdirSync(rootdir)
+      if(driveFiles.indexOf('app.db')) {
+        const filePath = `${path.join(__dirname, '../../src', 'migrations')}/00_initial.js`
+        const Script = require(filePath)
+
+        const { account, mnemonic, encryptionKey, keyPair } = await Script.up({ rootdir, drivePath, password })
+
+        const drive = store.setDrive({
+          name: `${rootdir}/${drivePath}`,
+          encryptionKey,
+          keyPair
+        })
+
+        await drive.ready()
+
+        const accountModel = new AccountModel(store)
+        await accountModel.ready()
+
+        const _id = new ObjectID()
+
+        // Save account to drive's Account collection
+        const acctDoc = await accountModel.insert({
+          _id,
+          accountId: _id.toString('hex'),
+          uid: account.uid,
+          secretBoxPubKey: account.secretBoxPubKey,
+          secretBoxPrivKey: account.secretBoxPrivKey,
+          driveEncryptionKey: encryptionKey,
+          deviceSigningPubKey: account.deviceSigningPubKey,
+          deviceSigningPrivKey: account.deviceSigningPrivKey,
+          serverSig: account.serverSig,
+          deviceId: account.deviceId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+
+        // Create recovery file with master pass
+        await accountModel.setVault(mnemonic, 'recovery', {
+          master_pass: password,
+        })
+
+        // Create vault file with drive enryption key
+        await accountModel.setVault(password, 'vault', {
+          drive_encryption_key: encryptionKey,
+          keyPair
+        })
+
+        return { 
+          mnemonic,
+          encryptionKey,
+          keyPair,
+          drive
+        }
+      }
+    }
+  }
 }

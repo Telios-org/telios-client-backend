@@ -11,8 +11,8 @@ class Channel extends EventEmitter {
 
     this.pid = null
 
-    if(!fs.existsSync(path.join(__dirname, 'Drive/Accounts')))
-      fs.mkdirSync(path.join(__dirname, 'Drive/Accounts'), { recursive: true })
+    if(!fs.existsSync(path.join(__dirname, 'Accounts')))
+      fs.mkdirSync(path.join(__dirname, 'Accounts'), { recursive: true })
 
     this.process = fork('./index', [dirPath, 'development'], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
@@ -44,7 +44,7 @@ class Channel extends EventEmitter {
 module.exports = Channel
 
 module.exports.OpenChannel = () => {
-  const channel = new Channel(path.join(__dirname, 'Drive'))
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
 
   return new Promise((resolve, reject) => {
     channel.send({
