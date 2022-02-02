@@ -78,7 +78,7 @@ export class Store {
         acl: [this.teliosPubKey, ...acl]
       },
       fullTextSearch: true
-    });
+    })
     
     return this.drive;
   }

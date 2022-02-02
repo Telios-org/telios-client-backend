@@ -19,8 +19,6 @@ test('create account', async t => {
     const { data } = cb
     const { network } = data
 
-    console.log('NETWORK', network)
-
     connectedCount += 1
 
     if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
@@ -88,6 +86,7 @@ test('account login success', async t => {
     console.log('SUCCESS :: ', data)
 
     _account = data
+
     t.ok(data.uid)
   })
 })

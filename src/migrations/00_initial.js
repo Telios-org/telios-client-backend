@@ -27,9 +27,7 @@ module.exports = {
       const sdk = new ClientSDK()
       const { mnemonic } = sdk.Account.makeKeys()
 
-      process.send({ event: 'debug:info', data: { name: 'OLD INFO', rootdir, drivePath, encryptionKey, keyPair }})
-
-      await Migrate({ rootdir, drivePath, encryptionKey, keyPair })
+      await Migrate({ rootdir, drivePath, encryptionKey: Buffer.from(encryptionKey, 'hex'), keyPair })
 
       return { 
         mnemonic,

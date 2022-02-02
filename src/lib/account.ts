@@ -158,6 +158,7 @@ export default async (props: AccountOpts) => {
    */
   if (event === 'account:login') {
     const acctPath = `${userDataPath}/${payload.email}`
+
     store.acctPath = acctPath
     
     let mnemonic
@@ -229,11 +230,6 @@ export default async (props: AccountOpts) => {
           encryptionKey = data?.encryptionKey
           keyPair = data?.keyPair
           drive = data?.drive
-    
-          // channel.send({
-          //   event: 'debug:info',
-          //   data
-          // })
     
         } catch(err:any) {
           return channel.send({
@@ -452,7 +448,7 @@ async function handleDriveMessages(
           name: 'account:newMessage:callback',
           message: 'Could not connect to peer',
           stacktrace: '',
-        },
+        }
       })
     }
   })
@@ -552,6 +548,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
           mnemonic,
           encryptionKey,
           keyPair,
+          account: acctDoc,
           drive
         }
       }
