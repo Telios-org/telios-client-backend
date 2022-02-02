@@ -278,11 +278,12 @@ export default async (props: EmailOpts) => {
             folderId = 1
         }
 
-        const msgObj = {
+        let msgObj: EmailSchema = {
           emailId: msg.email.emailId || msg._id,
           unread: folderId === 3 || folderId === 2 ? 0 : 1,
           folderId,
           aliasId,
+          mailboxId: 1,
           fromJSON: JSON.stringify(msg.email.from),
           toJSON: JSON.stringify(msg.email.to),
           subject: msg.email.subject ? msg.email.subject : '(no subject)',
@@ -290,10 +291,7 @@ export default async (props: EmailOpts) => {
           bccJSON: JSON.stringify(msg.email.bcc),
           ccJSON: JSON.stringify(msg.email.cc),
           bodyAsText: msg.email.bodyAsText || msg.email.text_body,
-          bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body,
           attachments: JSON.stringify(attachments),
-          encKey: msg.email.encKey,
-          encHeader: msg.email.encHeader,
           path: msg.email.path,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -308,27 +306,30 @@ export default async (props: EmailOpts) => {
             new Promise((resolve, reject) => {
               // Save email to drive
 
+              // Add bodyAsHtml back to email obj
+              msgObj = { ...msgObj, bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body }
+
               FileUtil
                 .saveEmailToDrive({ email: msgObj, drive })
                 .then((file: FileSchema) => {
+                  delete msgObj.bodyAsHtml
+
                   const _email = {
                     ...msgObj,
-                    encKey: file.key,
-                    encHeader: file.header,
                     path: file.path,
                     size: file.size
                   }
 
                   Email.insert(_email)
                     .then((eml: EmailSchema) => {
-                      resolve(eml);
+                      resolve(eml)
                     })
                     .catch((err: any) => {
-                      reject(err);
+                      reject(err)
                     })
                 })
                 .catch((err: any) => {
-                  reject(err);
+                  reject(err)
                 })
             })
           )
@@ -457,20 +458,19 @@ export default async (props: EmailOpts) => {
    ************************************************/
   if (event === 'email:getMessageById') {
     try {
+      const drive = store.getDrive()
+      let content: string
+
       const Email = new EmailModel(store)
       await Email.ready()
 
-      const email: EmailSchema = await Email.findOne({ emailId: payload.id })
-        
-        email.attachments = JSON.parse(email.attachments)
+      const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
-        if (email.unread) {
-          await Email.update({ emailId: email.emailId }, { unread: 0 })
+      let email: any = await FileUtil.readFile('/'+eml.path, { drive, type: 'email'})
 
-          email.unread = 0
-        }
+      email = JSON.parse(email)
 
-        channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
+      channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
     } catch(err: any) {
       channel.send({
         event: 'email:getMessageById:callback',
@@ -490,7 +490,7 @@ export default async (props: EmailOpts) => {
    ************************************************/
   if (event === 'email:markAsUnread') {
     try {
-      const { id } = payload;
+      const { id } = payload
 
       const Email = new EmailModel(store)
       await Email.ready()
@@ -581,7 +581,7 @@ export default async (props: EmailOpts) => {
           }
         )
       }
-      channel.send({ event: 'email:moveMessages:callback', data: null });
+      channel.send({ event: 'email:moveMessages:callback', data: null })
     } catch(err: any) {
       channel.send({
         event: 'email:moveMessages:callback',
@@ -635,7 +635,7 @@ export default async (props: EmailOpts) => {
           }
 
           if(attachment._id) {
-            let file;
+            let file
 
             const writeStream = fs.createWriteStream(_filepath)
 
@@ -695,7 +695,7 @@ export default async (props: EmailOpts) => {
         channel.send({
           event: 'email:searchMailbox:callback',
           data: results
-        });
+        })
       }
     } catch(err: any) {
       channel.send({
@@ -737,7 +737,7 @@ export default async (props: EmailOpts) => {
 
   //     if (email.attachments && email.attachments.length) {
   //       email.attachments = email.attachments.map((file: Attachment) => {
-  //         const fileId = file.fileId || uuidv4();
+  //         const fileId = file.fileId || uuidv4()
   //         return {
   //           id: fileId,
   //           emailId: email.id,
@@ -765,7 +765,7 @@ export default async (props: EmailOpts) => {
   //       ...email,
   //       encKey: file.key,
   //       encHeader: file.header
-  //     };
+  //     }
 
   //     Email.insert(email)
 

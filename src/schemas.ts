@@ -52,6 +52,7 @@ export interface MailboxSchema {
 export interface EmailSchema {
   emailId: string
   folderId: number
+  mailboxId: number
   aliasId?: string | null
   subject: string
   unread: number
@@ -61,7 +62,7 @@ export interface EmailSchema {
   ccJSON?: string
   bccJSON?: string
   bodyAsText: string
-  bodyAsHtml: string
+  bodyAsHtml?: string
   attachments: string
   path: string
   count?: any
