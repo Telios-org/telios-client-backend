@@ -274,7 +274,7 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      channel.send({ event: 'account:login:callback', error: null, data: fullAcct })
+      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic }})
     } catch (err: any) {
       channel.send({
         event: 'account:login:callback',

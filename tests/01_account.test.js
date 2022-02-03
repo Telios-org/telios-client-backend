@@ -63,10 +63,6 @@ test('account login success', async t => {
 
   _channel = new Channel(path.join(__dirname, 'Accounts'))
 
-  _channel.on('debug:info', data => {
-    console.log('INFO :: ', data)
-  })
-
   _channel.send({
     event: 'account:login',
     payload: {
@@ -133,10 +129,6 @@ test('account login error', async t => {
   t.plan(1)
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
-
-  channel.on('debug:info', data => {
-    console.log('DEBUG :: ', data)
-  })
   
   channel.send({
     event: 'account:login',
