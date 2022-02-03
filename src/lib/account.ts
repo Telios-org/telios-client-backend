@@ -499,7 +499,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
     if(err.message.indexOf('Cannot read property') > -1) {
       const driveFiles = fs.readdirSync(rootdir)
       if(driveFiles.indexOf('app.db')) {
-        const filePath = `${path.join(__dirname, '../../..', 'migrations')}/00_initial.js`
+        const filePath = `${path.join(__dirname, '../../..', 'migrations')}/00_initial.ts`
         const Script = require(filePath)
 
         const { account, mnemonic, encryptionKey, keyPair } = await Script.up({ rootdir, drivePath, password })

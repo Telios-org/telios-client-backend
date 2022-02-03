@@ -3,13 +3,13 @@ const { Sequelize } = require('sequelize')
 const AccountModel = require('./helpers/AccountModel.js')
 const ClientSDK = require("@telios/client-sdk")
 
-module.exports = {
-  up: async ({ rootdir, drivePath, password }) => {
+export default {
+  up: async (props: { rootdir: string, drivePath: string, password: string }) => {
     try {
-      const sequelize = await new Sequelize(null, null, password, {
+      const sequelize = await new Sequelize(null, null, props.password, {
         dialect: 'sqlite',
         dialectModulePath: '@journeyapps/sqlcipher',
-        storage: `${rootdir}/app.db`,
+        storage: `${props.rootdir}/app.db`,
         transactionType: 'IMMEDIATE'
       });
 
@@ -27,7 +27,7 @@ module.exports = {
       const sdk = new ClientSDK()
       const { mnemonic } = sdk.Account.makeKeys()
 
-      await Migrate({ rootdir, drivePath, encryptionKey: Buffer.from(encryptionKey, 'hex'), keyPair })
+      await Migrate({ rootdir: props.rootdir, drivePath: props.drivePath, encryptionKey: Buffer.from(encryptionKey, 'hex'), keyPair })
 
       return { 
         mnemonic,
@@ -35,8 +35,7 @@ module.exports = {
         keyPair,
         account
       }
-    } catch(err) {
-      process.send({ event: 'debug:info', data: { message: err.message, stack: err.stacktrace }})
+    } catch(err:any) {
       throw err
     }
   },
