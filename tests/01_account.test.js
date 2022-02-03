@@ -8,55 +8,55 @@ const Channel = require('./helper')
 let _channel
 let _account
 
-test('create account', async t => {
-  t.plan(4)
-  let connectedCount = 0
-  await cleanup()
+// test('create account', async t => {
+//   t.plan(4)
+//   let connectedCount = 0
+//   await cleanup()
 
-  const channel = new Channel(path.join(__dirname, 'Accounts'))
+//   const channel = new Channel(path.join(__dirname, 'Accounts'))
 
-  channel.on('drive:network:updated', cb => {
-    const { data } = cb
-    const { network } = data
+//   channel.on('drive:network:updated', cb => {
+//     const { data } = cb
+//     const { network } = data
 
-    connectedCount += 1
+//     connectedCount += 1
 
-    if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
+//     if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
 
-    if (network && network.internet) t.equals(network.internet, true) // Drive is connected to the global internet
+//     if (network && network.internet) t.equals(network.internet, true) // Drive is connected to the global internet
 
-    if(connectedCount === 2) channel.send({ event: 'account:logout' })
-  })
+//     if(connectedCount === 2) channel.send({ event: 'account:logout' })
+//   })
 
-  channel.send({
-    event: 'account:create',
-    payload: {
-      email: 'bob@telios.io',
-      password: 'letmein123',
-      vcode: 'testcode123',
-      recoveryEmail: 'bob@mail.com'
-    }
-  })
+//   channel.send({
+//     event: 'account:create',
+//     payload: {
+//       email: 'bob@telios.io',
+//       password: 'letmein123',
+//       vcode: 'testcode123',
+//       recoveryEmail: 'bob@mail.com'
+//     }
+//   })
 
-  channel.once('account:create:callback', cb => {
-    const { error, data } = cb
+//   channel.once('account:create:callback', cb => {
+//     const { error, data } = cb
     
-    if(error) t.fail(error.message)
+//     if(error) t.fail(error.message)
 
-    console.log('SUCCESS :: ', data)
+//     console.log('SUCCESS :: ', data)
 
-    t.ok(data.uid)
-  })
+//     t.ok(data.uid)
+//   })
 
-  channel.once('account:logout:callback', () => {
-    channel.send({ event: 'account:exit' }) // for good measure
-    t.ok(1, 'Logged out of account.')
-  })
+//   channel.once('account:logout:callback', () => {
+//     channel.send({ event: 'account:exit' }) // for good measure
+//     t.ok(1, 'Logged out of account.')
+//   })
 
-  t.teardown(async () => {
-    channel.kill()
-  })
-})
+//   t.teardown(async () => {
+//     channel.kill()
+//   })
+// })
 
 test('account login success', async t => {
   t.plan(1)
