@@ -155,3 +155,8 @@ export interface ContactSchema {
   createdAt: string
   updatedAt: string
 }
+
+export interface MigrateSchema {
+  _id: any
+  name: string
+}

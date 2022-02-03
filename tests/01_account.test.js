@@ -13,7 +13,7 @@ test('create account', async t => {
   let connectedCount = 0
   await cleanup()
 
-  const channel = new Channel(path.join(__dirname, 'Drive'))
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
 
   channel.on('drive:network:updated', cb => {
     const { data } = cb
@@ -61,7 +61,7 @@ test('create account', async t => {
 test('account login success', async t => {
   t.plan(1)
 
-  _channel = new Channel(path.join(__dirname, 'Drive'))
+  _channel = new Channel(path.join(__dirname, 'Accounts'))
 
   _channel.send({
     event: 'account:login',
@@ -74,10 +74,15 @@ test('account login success', async t => {
   _channel.once('account:login:callback', cb => {
     const { error, data } = cb
     
-    if(error) t.fail(error.message)
+    if(error) {
+      t.fail(error.message)
+      _channel.kill()
+    }
 
     console.log('SUCCESS :: ', data)
+
     _account = data
+
     t.ok(data.uid)
   })
 })
@@ -123,8 +128,8 @@ test('retrieve account stats', async t => {
 test('account login error', async t => {
   t.plan(1)
 
-  const channel = new Channel(path.join(__dirname, 'Drive'))
-
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+  
   channel.send({
     event: 'account:login',
     payload: {
@@ -134,8 +139,7 @@ test('account login error', async t => {
   })
 
   channel.once('account:login:callback', cb => {
-    const { error } = cb
-
+    const { error, data } = cb
     if (
       error &&
       error.message &&
@@ -153,7 +157,7 @@ test('account login error', async t => {
 test('get account refresh token', async t => {
   t.plan(1)
 
-  const channel = new Channel(path.join(__dirname, 'Drive'))
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
 
   channel.send({
     event: 'account:login',
@@ -185,7 +189,7 @@ test('get account refresh token', async t => {
 })
 
 async function cleanup() {
-  if (fs.existsSync(path.join(__dirname, '/Drive'))) {
-    fs.rmSync(path.join(__dirname, '/Drive'), { recursive: true })
+  if (fs.existsSync(path.join(__dirname, '/Accounts'))) {
+    fs.rmSync(path.join(__dirname, 'Accounts'), { recursive: true })
   }
 }

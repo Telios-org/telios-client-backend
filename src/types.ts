@@ -86,6 +86,11 @@ export interface MsgHelperMessage {
   payload: any
 }
 
+export interface MigrateMessage {
+  event: 'migrate:up' | 'migrate:down'
+  payload: any
+}
+
 export interface FileMessage {
   event: 'file:saveFile' | 'alias:getFile'
   payload: any
@@ -137,6 +142,13 @@ export interface ContactOpts {
   channel: any
   userDataPath: string,
   msg: ContactMessage,
+  store: any
+}
+
+export interface MigrateOpts {
+  channel: any
+  userDataPath: string,
+  msg: MigrateMessage,
   store: any
 }
 
