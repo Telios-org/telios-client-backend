@@ -488,7 +488,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
 
       // Run migrations
       for(const file of difference) {
-        const filePath = `${path.join(__dirname, '../../src', 'migrations')}/${file}`
+        const filePath = `${path.join(__dirname, '../../..', 'migrations')}/${file}`
         const Script = require(filePath)
         await Script.up({ rootdir, drivePath, password })
         await Migrate.insert({ name: file }) // Save migrated file to DB
@@ -499,7 +499,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
     if(err.message.indexOf('Cannot read property') > -1) {
       const driveFiles = fs.readdirSync(rootdir)
       if(driveFiles.indexOf('app.db')) {
-        const filePath = `${path.join(__dirname, '../../src', 'migrations')}/00_initial.js`
+        const filePath = `${path.join(__dirname, '../../..', 'migrations')}/00_initial.js`
         const Script = require(filePath)
 
         const { account, mnemonic, encryptionKey, keyPair } = await Script.up({ rootdir, drivePath, password })
