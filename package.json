@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -31,8 +31,6 @@
     "file-type": "^16.5.3",
     "memorystream": "^0.3.1",
     "remove-markdown": "^0.3.0",
-    "sequelize": "^5.21.2",
-    "sqlite3": "^4.1.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

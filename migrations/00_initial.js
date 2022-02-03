@@ -1,40 +1,27 @@
 const Migrate = require("@telios/nebula-migrate")
-const { Sequelize } = require('sequelize')
-const AccountModel = require('./helpers/AccountModel.js')
 const ClientSDK = require("@telios/client-sdk")
+const sqlite3 = require('@journeyapps/sqlcipher').verbose()
 
 module.exports = {
   up: async ({ rootdir, drivePath, password }) => {
     try {
-      const sequelize = await new Sequelize(null, null, password, {
-        dialect: 'sqlite',
-        dialectModulePath: '@journeyapps/sqlcipher',
-        storage: `${rootdir}/app.db`,
-        transactionType: 'IMMEDIATE'
-      });
-
-      await sequelize.authenticate()
-
-      const Account = await AccountModel.init(sequelize)
-
-      const account = await Account.findOne()
-
-      const encryptionKey = account.driveEncryptionKey
-      const keyPair = {
-        publicKey: account.deviceSigningPubKey,
-        secretKey: account.deviceSigningPrivKey
-      }
-      const sdk = new ClientSDK()
-      const { mnemonic } = sdk.Account.makeKeys()
-
-      await Migrate({ rootdir: rootdir, drivePath: drivePath, encryptionKey: Buffer.from(encryptionKey, 'hex'), keyPair })
-
-      return { 
-        mnemonic,
-        encryptionKey,
-        keyPair,
-        account
-      }
+        const account = await getAccount(`${rootdir}/app.db`, password)
+        const encryptionKey = account.driveEncryptionKey
+        const keyPair = {
+          publicKey: account.deviceSigningPubKey,
+          secretKey: account.deviceSigningPrivKey
+        }
+        const sdk = new ClientSDK()
+        const { mnemonic } = sdk.Account.makeKeys()
+  
+        await Migrate({ rootdir, drivePath, encryptionKey: Buffer.from(encryptionKey, 'hex'), keyPair })
+  
+        return { 
+          mnemonic,
+          encryptionKey,
+          keyPair,
+          account
+        }
     } catch(err) {
       throw err
     }
@@ -42,4 +29,20 @@ module.exports = {
   down: async () => {
     
   }
+}
+
+async function getAccount(dbPath, password) {
+  const db = new sqlite3.Database(dbPath)
+
+  return new Promise((resolve, reject) => {
+    db.serialize(function() {
+      db.run("PRAGMA cipher_compatibility = 4")
+    
+      db.run(`PRAGMA key = '${password}'`)
+    
+      db.each("SELECT * FROM Account", function(err, row) {
+        return resolve(row)
+      })
+    })
+  })
 }
