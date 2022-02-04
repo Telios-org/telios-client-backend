@@ -280,7 +280,7 @@ export default async (props: EmailOpts) => {
 
         let msgObj: EmailSchema = {
           emailId: msg.email.emailId || msg._id,
-          unread: folderId === 3 || folderId === 2 ? 0 : 1,
+          unread: folderId === 3 || folderId === 2 ? false : true,
           folderId,
           aliasId,
           mailboxId: 1,
@@ -347,7 +347,7 @@ export default async (props: EmailOpts) => {
               const msg = { ...item }
 
               msg.id = msg.emailId
-              msg.unread = msg.unread ? 1 : 0
+              msg.unread = msg.unread ? true : false
               msgArr.push(msg)
             }
           })
@@ -472,10 +472,10 @@ export default async (props: EmailOpts) => {
       email.attachments = JSON.parse(email.attachments)
 
       if (email.unread) {
-        await Email.update({ emailId: email.emailId }, { unread: 0 })
-        email.unread = 0
+        await Email.update({ emailId: email.emailId }, { unread: false })
+        email.unread = false
       }
-      
+
       channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
     } catch(err: any) {
       channel.send({
@@ -501,7 +501,7 @@ export default async (props: EmailOpts) => {
       const Email = new EmailModel(store)
       await Email.ready()
 
-      await Email.update({ emailId: id }, { unread: 1 })
+      await Email.update({ emailId: id }, { unread: true })
 
       channel.send({ event: 'email:markAsUnread:callback', data: null })
     } catch(err: any) {

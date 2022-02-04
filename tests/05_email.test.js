@@ -16,7 +16,7 @@ test('send email', async t => {
   channel = await OpenChannel()
 
   const payload = {
-    email: MockEmail({ emailId: null, folderId: 1, aliasId: null, unread: 0 })
+    email: MockEmail({ emailId: null, folderId: 1, aliasId: null, unread: false })
   }
 
   channel.send({ event: 'email:sendEmail', payload })
@@ -35,7 +35,7 @@ test('send email', async t => {
 test('save sent email to database', async t => {
   t.plan(1)
 
-  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: 0 })
+  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
   const payload = {
     type: 'Incoming',
@@ -78,7 +78,7 @@ test('save incoming alias email', async t => {
 
     if(error) t.fail(error.message)
 
-    const mockEmail = MockEmail({ to: { address: 'alice2022#existing@telios.io' }, unread: 0 })
+    const mockEmail = MockEmail({ to: { address: 'alice2022#existing@telios.io' }, unread: false })
 
     const payload = {
       type: 'Incoming',
@@ -126,7 +126,7 @@ test('save email attachments', async t => {
 
 test('generate new aliases for on-the-fly email', async t => {
   t.plan(3)
-    const mockEmail = MockEmail({ to: { address: 'alice2022#onthefly@telios.io' }, unread: 0 })
+    const mockEmail = MockEmail({ to: { address: 'alice2022#onthefly@telios.io' }, unread: false })
 
     const payload = {
       type: 'Incoming',
@@ -164,7 +164,7 @@ test('generate new aliases for on-the-fly email', async t => {
 test('save email as draft', async t => {
   t.plan(2)
 
-  const mockEmail = MockEmail({ unread: 0 })
+  const mockEmail = MockEmail({ unread: false })
 
   const payload = {
     type: 'Draft',

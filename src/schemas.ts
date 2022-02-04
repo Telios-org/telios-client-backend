@@ -55,7 +55,7 @@ export interface EmailSchema {
   mailboxId: number
   aliasId?: string | null
   subject: string
-  unread: number
+  unread: boolean
   date: string
   toJSON: string
   fromJSON: string
