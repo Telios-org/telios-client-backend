@@ -469,7 +469,13 @@ export default async (props: EmailOpts) => {
       let email: any = await FileUtil.readFile('/'+eml.path, { drive, type: 'email'})
 
       email = JSON.parse(email)
+      email.attachments = JSON.parse(email.attachments)
 
+      if (email.unread) {
+        await Email.update({ emailId: email.emailId }, { unread: 0 })
+        email.unread = 0
+      }
+      
       channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
     } catch(err: any) {
       channel.send({
