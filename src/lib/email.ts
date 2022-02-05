@@ -346,7 +346,6 @@ export default async (props: EmailOpts) => {
             if (item && item.bodyAsText) {
               const msg = { ...item }
 
-              msg.id = msg.emailId
               msg.unread = msg.unread ? true : false
               msgArr.push(msg)
             }
@@ -392,7 +391,7 @@ export default async (props: EmailOpts) => {
       const emailModel = new EmailModel(store)
       const Email = await emailModel.ready()
 
-      let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1)
+      let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
 
       messages = messages.map((email: any) => {
         delete email.bodyAsHtml
@@ -466,7 +465,7 @@ export default async (props: EmailOpts) => {
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
-      let email: any = await FileUtil.readFile('/'+eml.path, { drive, type: 'email'})
+      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email'})
 
       email = JSON.parse(email)
       email.attachments = JSON.parse(email.attachments)
@@ -576,7 +575,7 @@ export default async (props: EmailOpts) => {
       for (const email of messages) {
         await Email.update(
           { 
-            emailId: email.id 
+            emailId: email.emailId 
           }, 
           { 
             folderId: toFolder,

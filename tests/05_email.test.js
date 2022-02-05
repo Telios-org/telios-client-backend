@@ -32,7 +32,7 @@ test('send email', async t => {
   })
 })
 
-test('save sent email to database', async t => {
+test('save incoming email to database', async t => {
   t.plan(1)
 
   const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
