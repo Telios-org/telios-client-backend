@@ -68,8 +68,8 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
           try {
 
-            opts.file.createdAt = new Date().toISOString()
-            opts.file.updatedAt = new Date().toISOString()
+            opts.file.createdAt = new Date().toUTCString()
+            opts.file.updatedAt = new Date().toUTCString()
 
             const doc: FileSchema = await File.insert(opts.file)
             resolve(doc)

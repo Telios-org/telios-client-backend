@@ -101,8 +101,8 @@ export default async (props: AccountOpts) => {
         deviceSigningPrivKey: signingKeypair.privateKey,
         serverSig: serverSig,
         deviceId: account.device_id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toUTCString(),
+        updatedAt: new Date().toUTCString(),
       })
 
       await runMigrate(acctPath, '/Drive', null, store)
@@ -521,8 +521,8 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
           deviceSigningPrivKey: account.deviceSigningPrivKey,
           serverSig: account.serverSig,
           deviceId: account.deviceId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toUTCString(),
+          updatedAt: new Date().toUTCString(),
         })
 
         // Create recovery file with master pass

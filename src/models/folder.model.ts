@@ -49,8 +49,8 @@ export const DefaultFolders = [
     icon: 'inbox',
     seq: 1,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   },
   {
     folderId: 2,
@@ -59,8 +59,8 @@ export const DefaultFolders = [
     icon: 'pencil',
     seq: 2,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   },
   {
     folderId: 3,
@@ -69,8 +69,8 @@ export const DefaultFolders = [
     icon: 'send-o',
     seq: 3,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   },
   {
     folderId: 4,
@@ -79,8 +79,8 @@ export const DefaultFolders = [
     icon: 'trash-o',
     seq: 4,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   },
   {
     folderId: 5,
@@ -89,7 +89,7 @@ export const DefaultFolders = [
     icon: null,
     seq: 5,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   }
 ]

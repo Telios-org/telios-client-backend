@@ -106,9 +106,9 @@ export default async (props: EmailOpts) => {
         bodyAsText: removeMd(email.bodyAsText),
         bodyAsHtml: email.bodyAsHtml,
         attachments: JSON.stringify(email.attachments),
-        date: email.date || new Date().toISOString(),
-        createdAt: email.createdAt || new Date().toISOString(),
-        updatedAt: email.updatedAt || new Date().toISOString()
+        date: email.date || new Date().toUTCString(),
+        createdAt: email.createdAt || new Date().toUTCString(),
+        updatedAt: email.updatedAt || new Date().toUTCString()
       }
 
       const doc = await Email.insert(_email)
@@ -236,8 +236,8 @@ export default async (props: EmailOpts) => {
                     disabled: false,
                     fwdAddresses: null,
                     whitelisted: true,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
+                    createdAt: new Date().toUTCString(),
+                    updatedAt: new Date().toUTCString()
                   })
 
                   aliasId = alias.aliasId
@@ -280,8 +280,8 @@ export default async (props: EmailOpts) => {
           bodyAsText: msg.email.bodyAsText || msg.email.text_body,
           attachments: JSON.stringify(attachments),
           path: msg.email.path,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: new Date().toUTCString(),
+          updatedAt: new Date().toUTCString()
         }
 
         if (msg.email.emailId && type !== 'incoming') {

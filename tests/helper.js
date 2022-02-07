@@ -84,7 +84,7 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
     aliasId,
     subject: subject || `Subject-${uuid}`,
     unread,
-    date: new Date().toISOString(),
+    date: new Date().toUTCString(),
     to: _to,
     from: _from,
     cc: _cc,
@@ -102,7 +102,7 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
     }],
     path: null,
     // Timestamps
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   }
 }

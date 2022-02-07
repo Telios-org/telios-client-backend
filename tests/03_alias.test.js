@@ -68,8 +68,8 @@ test('register new alias address', async t => {
     fwdAddresses: '',
     disabled: false,
     count: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
   }
 
   channel.send({ event: 'alias:registerAliasAddress', payload })
@@ -117,7 +117,7 @@ test('update alias address', async t => {
     description: 'Updated description',
     fwdAddresses: ['alice@mail.com', 'alice@somemail.com'],
     disabled: true,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toUTCString()
   }
 
   channel.send({ event: 'alias:updateAliasAddress', payload })

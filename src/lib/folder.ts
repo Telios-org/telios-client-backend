@@ -57,8 +57,8 @@ export default async (props: FolderOpts) => {
         icon: payload.icon || null,
         color: payload.color || null,
         seq: payload.seq,
-        createdAt: payload.createdAt || new Date().toISOString(),
-        updatedAt: payload.updatedAt || new Date().toISOString()
+        createdAt: payload.createdAt || new Date().toUTCString(),
+        updatedAt: payload.updatedAt || new Date().toUTCString()
       })
 
       // folder.id = folder.folderId

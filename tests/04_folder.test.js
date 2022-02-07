@@ -25,8 +25,8 @@ test('create folder', async t => {
       type: 'default',
       icon: 'trash-o',
       seq: 6,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: new Date().toUTCString(),
+      updatedAt: new Date().toUTCString()
     }
 
     channel.send({ event: 'folder:createFolder', payload })

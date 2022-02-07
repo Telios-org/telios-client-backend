@@ -37,8 +37,8 @@ export default async (props: ContactOpts) => {
       const upserted = []
 
       for(let contact of _contactList) {
-        contact.createdAt = contact.createdAt || new Date().toISOString()
-        contact.updatedAt = contact.updatedAt || new Date().toISOString()
+        contact.createdAt = contact.createdAt || new Date().toUTCString()
+        contact.updatedAt = contact.updatedAt || new Date().toUTCString()
         const result = await Contact.update({ _id: contact._id }, contact, { upsert: true })
         if(result.nUpserted) upserted.push(contact)
       }

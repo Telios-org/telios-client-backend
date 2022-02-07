@@ -16,7 +16,7 @@ test('create contacts', async t => {
       givenName: 'Albus',
       familyName: 'Dumbeldore',
       nickname: 'Dumbeldorf',
-      birthday: new Date().toISOString(),
+      birthday: new Date().toUTCString(),
       publicKey: '00000000000000000000000000000000',
       pgpPublicKey: '00000000000000000000000000000000',
       email: 'albus.dumbeldore@hogwarts.edu',

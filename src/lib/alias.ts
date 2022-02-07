@@ -38,8 +38,8 @@ export default async (props: AliasOpts) => {
         mailboxId,
         domain: store.domain.mail,
         disabled: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toUTCString(),
+        updatedAt: new Date().toUTCString(),
       })
 
       store.setKeypair(keypair)
@@ -131,8 +131,8 @@ export default async (props: AliasOpts) => {
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
         whitelisted: true,
-        createdAt: createdAt || new Date().toISOString(),
-        updatedAt: updatedAt || new Date().toISOString()
+        createdAt: createdAt || new Date().toUTCString(),
+        updatedAt: updatedAt || new Date().toUTCString()
       })
 
       channel.send({
