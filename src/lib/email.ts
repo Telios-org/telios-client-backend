@@ -452,7 +452,9 @@ export default async (props: EmailOpts) => {
 
       email = JSON.parse(email)
       email.attachments = JSON.parse(email.attachments)
-
+      email.unread = eml.unread
+      email.folderId = eml.folderId
+      
       if (email.unread) {
         await Email.update({ emailId: email.emailId }, { unread: false })
         email.unread = false
