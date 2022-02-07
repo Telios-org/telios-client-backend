@@ -1,7 +1,7 @@
 import { AliasSchema, StoreSchema } from '../schemas'
 
 export class AliasModel {
-  private _collection: any
+  public collection: any
   private _drive: any
   private _store: StoreSchema
 
@@ -11,30 +11,34 @@ export class AliasModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Alias')
+    this.collection = await this._drive.db.collection('Alias')
 
-    await this._collection.createIndex(['createdAt', 'name'])
+    await this.collection.createIndex(['createdAt', 'name'])
     
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: AliasSchema) : Promise<AliasSchema> {
-    return this._collection.insert(doc)
+    return this.collection.insert(doc)
   }
 
-  public async find(doc?: any) : Promise<AliasSchema> {
-    return this._collection.find(doc)
+  public async find(doc?: any) : Promise<AliasSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: any) : Promise<AliasSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
   }
 
-  // public async update(doc: AccountSchema) {
-    
-  // }
+  public async remove(doc: any, opts?: any) {
+    return this.collection.remove(doc, opts)
+  }
+ 
+  public async update(doc:any, props: any, opts?:any) {
+    return this.collection.update(doc, props, opts)
+  }
 
-  public async search(doc?: AliasSchema, opts?: any) : Promise<AliasSchema> {
-    return this._collection.search(doc, opts)
+  public async search(doc?: AliasSchema, opts?: any) : Promise<AliasSchema[]> {
+    return this.collection.search(doc, opts)
   }
 }

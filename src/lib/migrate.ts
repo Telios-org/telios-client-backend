@@ -31,9 +31,6 @@ export default async (props: any) => {
       // 3. If new migration in dir that does not exist in db, then run up
       // 4. Save script name to DB as already being ran
       // 5. DONE
-
-      // await MailboxSDK.registerMailbox(payload)
-      // channel.send({ event: 'mailbox:register:callback', data: payload })
     } catch(err: any) {
       channel.send({
         event: 'migrate:run:callback',

@@ -1,7 +1,7 @@
 import { MigrateSchema, StoreSchema } from '../schemas'
 
 export class MigrateModel {
-  private _collection: any
+  public collection: any
   private _drive: any
   private _store: StoreSchema
 
@@ -11,20 +11,28 @@ export class MigrateModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Migrate')
+    this.collection = await this._drive.db.collection('Migrate')
 
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: MigrateSchema) : Promise<MigrateSchema> {
-    return this._collection.insert(doc)
+    return this.collection.insert(doc)
   }
 
-  public async find(doc?: any) : Promise<MigrateSchema> {
-    return this._collection.find(doc)
+  public async find(doc?: any) : Promise<MigrateSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: any) : Promise<MigrateSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
+  }
+
+  public async remove(doc: any, opts?: any) {
+    return this.collection.remove(doc, opts)
+  }
+ 
+  public async update(doc:any, props: any, opts?:any) {
+    return this.collection.update(doc, props, opts)
   }
 }

@@ -1,7 +1,7 @@
 import { FolderSchema, StoreSchema } from '../schemas'
 
 export class FolderModel {
-  private _collection: any
+  public collection: any
   private _drive: any
   private _store: StoreSchema
 
@@ -11,30 +11,34 @@ export class FolderModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Folder')
+    this.collection = await this._drive.db.collection('Folder')
 
-    await this._collection.createIndex(['createdAt', 'folderId', 'mailboxId'])
-    await this._collection.createIndex(['updatedAt'])
-    await this._collection.createIndex(['seq'])
+    await this.collection.createIndex(['createdAt', 'folderId', 'mailboxId'])
+    await this.collection.createIndex(['updatedAt'])
+    await this.collection.createIndex(['seq'])
     
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: FolderSchema) : Promise<FolderSchema> {
-    return this._collection.insert(doc)
+    return this.collection.insert(doc)
   }
 
-  public async find(doc?: any) : Promise<FolderSchema> {
-    return this._collection.find(doc)
+  public async find(doc?: any) : Promise<FolderSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: any) : Promise<FolderSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
   }
 
-  // public async update(doc: AccountSchema) {
-    
-  // }
+  public async remove(doc: any, opts?: any) {
+    return this.collection.remove(doc, opts)
+  }
+ 
+  public async update(doc:any, props: any, opts?:any) {
+    return this.collection.update(doc, props, opts)
+  }
 }
 
 export const DefaultFolders = [

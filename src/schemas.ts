@@ -1,4 +1,4 @@
-import { setDriveOpts, AuthPayload, AccountSecrets } from './types'
+import { setDriveOpts, AuthPayload, AccountSecrets, ModelType } from './types'
 
 export interface StoreSchema {
   sdk: {
@@ -10,23 +10,33 @@ export interface StoreSchema {
   encryptionKey: any
   teliosPubKey: string
   acctPath: string
+  domain: {
+    api: string
+    mail: string
+  }
+  models: ModelType
   setDrive(props: setDriveOpts): any
   getDrive(): any
-  setAccount(account: AccountSchema): void
-  getAccount(): AccountSchema | undefined
+  initModels(): Promise<void>
+  setAccount(account: AccountSchema | null): void
+  getAccount(): AccountSchema
   setAccountSecrets(secrets: AccountSecrets): void
-  getAccountSecrets(): AccountSecrets | undefined
+  getAccountSecrets(): AccountSecrets
   setAuthPayload(payload: AuthPayload): void
-  getAuthPayload(): AuthPayload | undefined
-  setKeypair(keypair: { publicKey: string, privateKey: string }): void
-  getKeypairs(): { publicKey: string, privateKey: string }
+  getAuthPayload(): AuthPayload
+  setKeypair(keypair: {
+      publicKey: string
+      privateKey: string
+  }): void
+  getKeypairs(): any
+  refreshToken(): any
 }
 
 export interface AccountSchema {
   _id?: any,
-  accountId?: string,
-  displayName?: string,
-  avatar?: string,
+  accountId?: string
+  displayName?: string
+  avatar?: string
   uid: string
   driveEncryptionKey: string
   secretBoxPubKey: string
@@ -36,17 +46,18 @@ export interface AccountSchema {
   serverSig: string
   deviceId: string
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface MailboxSchema {
+  _id?: any,
   mailboxId: string
   address: string
-  name: string
+  name?: string
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface EmailSchema {
@@ -67,8 +78,8 @@ export interface EmailSchema {
   path: string
   count?: any
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface AliasSchema {
@@ -81,8 +92,8 @@ export interface AliasSchema {
   disabled?: boolean | undefined
   whitelisted?: boolean | undefined
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface AliasNamespaceSchema {
@@ -93,8 +104,8 @@ export interface AliasNamespaceSchema {
   domain: string
   disabled?: boolean
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface FileSchema {
@@ -114,24 +125,23 @@ export interface FileSchema {
   discoveryKey?: any
   discovery_key?: any
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface FolderSchema {
-  _id: any
-  id: number
+  _id?: any
   folderId: number
   mailboxId: number
   name: string
   type: string
-  count: number
-  icon: string
-  color: string
+  count?: number
+  icon?: string
+  color?: string
   seq: number
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface ContactSchema {
@@ -152,8 +162,8 @@ export interface ContactSchema {
   notes?: string
   organization?: any
   // Timestamps
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface MigrateSchema {

@@ -1,3 +1,27 @@
+import { AccountModel } from './models/account.model'
+import { AliasModel } from './models/alias.model'
+import { AliasNamespaceModel } from './models/aliasNamespace.model'
+import { ContactModel } from './models/contact.model'
+import { EmailModel } from './models/email.model'
+import { FileModel } from './models/file.model'
+import { FolderModel } from './models/folder.model'
+import { MailboxModel } from './models/mailbox.model'
+import { MigrateModel } from './models/migrate.model'
+
+import { StoreSchema } from './schemas'
+
+export interface ModelType {
+  Account: AccountModel
+  Alias: AliasModel
+  AliasNamespace: AliasNamespaceModel
+  Contact: ContactModel
+  Email: EmailModel
+  File: FileModel
+  Folder: FolderModel
+  Mailbox: MailboxModel
+  Migrate: MigrateModel
+}
+
 export interface MainOpts {
   channel: any
   userDataPath: string
@@ -100,63 +124,63 @@ export interface AccountOpts {
   channel: any
   userDataPath: string,
   msg: AccountMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface MailboxOpts {
   channel: any
   userDataPath: string,
   msg: MailboxMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface FolderOpts {
   channel: any
   userDataPath: string,
   msg: FolderMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface FileOpts {
   channel: any
   userDataPath: string,
   msg: FileMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface AliasOpts {
   channel: any
   userDataPath: string,
   msg: AliasMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface EmailOpts {
   channel: any
   userDataPath: string,
   msg: EmailMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface ContactOpts {
   channel: any
   userDataPath: string,
   msg: ContactMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface MigrateOpts {
   channel: any
   userDataPath: string,
   msg: MigrateMessage,
-  store: any
+  store: StoreSchema
 }
 
 export interface setDriveOpts {
   name: string
   keyPair?: {
-    publicKey: string,
-    privateKey: string
+    publicKey: Buffer,
+    secretKey: Buffer
   },
   encryptionKey: string
   acl?: string[]

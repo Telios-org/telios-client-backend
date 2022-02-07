@@ -2,12 +2,8 @@ const fs = require('fs')
 const path = require('path')
 const { randomBytes } = require('crypto')
 
-import { AccountModel } from '../models/account.model'
-import { MigrateModel } from '../models/migrate.model'
-
 import { AccountOpts } from '../types'
-import { StoreSchema, MigrateSchema } from '../schemas'
-import { Store } from '../Store'
+import { StoreSchema } from '../schemas'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -52,11 +48,10 @@ export default async (props: AccountOpts) => {
 
       await drive.ready()
 
-      const accountModel = new AccountModel(store)
-      const migrateModel = new MigrateModel(store)
+      // Initialize models
+      await store.initModels()
 
-      await accountModel.ready() // Initialize account db from within drive
-      const Migrate = await migrateModel.ready()
+      const accountModel = store.models.Account
 
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
@@ -168,7 +163,7 @@ export default async (props: AccountOpts) => {
 
     try {
       // Initialize account collection
-      const accountModel = new AccountModel(store)
+      const accountModel = store.models.Account
 
       try {
         // Retrieve drive encryption key and keyPair from vault using master password
@@ -201,6 +196,7 @@ export default async (props: AccountOpts) => {
         handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
 
         await drive.ready()
+
       } catch(err: any) {
 
         channel.send({
@@ -243,12 +239,8 @@ export default async (props: AccountOpts) => {
         }
       }
 
-      channel.send({
-        event: 'debug:info',
-        data: 'DRIVE SET'
-      })
-
-      await accountModel.ready() // Initialize account db from within drive
+      // Initialize models
+      await store.initModels()
 
       // Get account
       const fullAcct = await accountModel.findOne()
@@ -295,8 +287,7 @@ export default async (props: AccountOpts) => {
     const { accountId, displayName, avatar } = payload
 
     try {
-      const accountModel = new AccountModel(store)
-      const Account = await accountModel.ready()
+      const Account = store.models.Account
 
       const account = Account.update({ accountId }, { displayName, avatar })
       channel.send({ event: 'account:update:callback', data: account })
@@ -318,8 +309,7 @@ export default async (props: AccountOpts) => {
    */
   if (event === 'account:retrieveStats') {
     try {
-      const accountModel = new AccountModel(store)
-      const Account = await accountModel.ready()
+      const Account = store.models.Account
 
       const { uid } = store.getAccount()
       const account = store.sdk.account
@@ -463,7 +453,7 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
 
 async function runMigrate(rootdir:string, drivePath: string, password: any, store: StoreSchema) {
   try {
-    const migrateModel = new MigrateModel(store)
+    const migrateModel = store.models.Migrate
     const Migrate = await migrateModel.ready()
 
     let migrations: any[] = await Migrate.find()
@@ -512,8 +502,10 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
 
         await drive.ready()
 
-        const accountModel = new AccountModel(store)
-        await accountModel.ready()
+        // Initialize models
+        await store.initModels()
+
+        const accountModel = store.models.Account
 
         const _id = new ObjectID()
 

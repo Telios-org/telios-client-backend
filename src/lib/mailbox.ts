@@ -1,12 +1,7 @@
-import { MailboxModel } from '../models/mailbox.model'
-import { EmailModel } from '../models/email.model'
-import { FolderModel, DefaultFolders } from '../models/folder.model'
+import { DefaultFolders } from '../models/folder.model'
 
 import { MailboxOpts } from '../types'
-import { 
-  AccountSchema, 
-  EmailSchema,
-  MailboxSchema} from '../schemas'
+import { AccountSchema, MailboxSchema} from '../schemas'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -93,8 +88,7 @@ export default async (props: MailboxOpts) => {
    ************************************************/
   if (event === 'mailbox:getMailboxes') {
     try {
-      const mailboxModel = new MailboxModel(store)
-      const Mailbox = await mailboxModel.ready()
+      const Mailbox = store.models.Mailbox
 
       const mailboxes: MailboxSchema[] = await Mailbox.find()
       
@@ -120,11 +114,8 @@ export default async (props: MailboxOpts) => {
     let { address, mailboxId } = payload
 
     try {
-      const folderModel = new FolderModel(store)
-      const mailboxModel = new MailboxModel(store)
-      
-      const Mailbox = await mailboxModel.ready()
-      const Folder = await folderModel.ready()
+      const Mailbox = store.models.Mailbox
+      const Folder = store.models.Folder
 
       const _id = new ObjectID()
 

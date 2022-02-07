@@ -1,9 +1,17 @@
-const ClientSDK = require('@telios/client-sdk');
-const Drive = require('@telios/nebula');
-const fs = require('fs');
-import envAPI from './env_api';
-import { setDriveOpts, AuthPayload, AccountSecrets } from './types';
-import { AccountSchema } from './schemas';
+const ClientSDK = require('@telios/client-sdk')
+const Drive = require('@telios/nebula')
+import envAPI from './env_api'
+import { setDriveOpts, AuthPayload, AccountSecrets, ModelType } from './types'
+import { AccountSchema } from './schemas'
+import { AccountModel } from './models/account.model'
+import { AliasModel } from './models/alias.model'
+import { AliasNamespaceModel } from './models/aliasNamespace.model'
+import { ContactModel } from './models/contact.model'
+import { EmailModel } from './models/email.model'
+import { FileModel } from './models/file.model'
+import { FolderModel } from './models/folder.model'
+import { MailboxModel } from './models/mailbox.model'
+import { MigrateModel } from './models/migrate.model'
 
 export class Store {
   public sdk
@@ -12,13 +20,15 @@ export class Store {
   public teliosPubKey: string
   public acctPath: string
   public domain: {
-
+    api: string
+    mail: string
   }
-  
+  public models: ModelType
+
   private _teliosSDK: any
-  private _account: AccountSchema | any
-  private _authPayload: AuthPayload | undefined
-  private _accountSecrets: AccountSecrets | undefined
+  private _account: AccountSchema
+  private _authPayload: AuthPayload
+  private _accountSecrets: AccountSecrets
   private _keyPairs: any
 
   constructor(env: 'development' | 'production' | 'test') {
@@ -37,25 +47,50 @@ export class Store {
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
+    this.models = {
+      Account: new AccountModel(this),
+      Alias: new AliasModel(this),
+      AliasNamespace: new AliasNamespaceModel(this),
+      Contact: new ContactModel(this),
+      Email: new EmailModel(this),
+      File: new FileModel(this),
+      Folder: new FolderModel(this),
+      Mailbox: new MailboxModel(this),
+      Migrate: new MigrateModel(this)
+    }
+
     this.drive = null
     this.encryptionKey = ''
     this.acctPath = ''
     
-    this._account = undefined
-    this._authPayload = undefined
-    this._accountSecrets = undefined
+    this._account = {
+
+      uid: '',
+      driveEncryptionKey:  '',
+      secretBoxPubKey:  '',
+      secretBoxPrivKey:  '',
+      deviceSigningPubKey:  '',
+      deviceSigningPrivKey:  '',
+      serverSig:  '',
+      deviceId:  ''
+    }
+
+    this._authPayload = {
+      claims: {
+        account_key: '',
+        device_signing_key: '',
+        device_id: ''
+      },
+      device_signing_priv_key: '',
+      sig: ''
+    }
+
+    this._accountSecrets = {
+      password: '',
+      email: ''
+    }
+    
     this._keyPairs = new Map()
-    // this.account = null;
-    // this.currentAccount = null;
-    // this.sessionActive = false;
-    // this.keypairs = {};
-    // this.authPayload = null;
-    // this.connection = {};
-    // this.theme = 'system';
-    // this.initialDraft = null;
-    // this.newDraft = null;
-    // this.draftDirty = false;
-    // this.matomo = null;
 
     // TODO: Retrieve this remotely from server
     this.teliosPubKey = 'fa8932f0256a4233dde93195d24a6ae4d93cc133d966f3c9f223e555953c70c1';
@@ -87,32 +122,55 @@ export class Store {
     return this.drive
   }
 
+  public async initModels() {
+    const asyncModels = []
+
+    for(const model in this.models) {
+      asyncModels.push(new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            const m = await this.models[model as keyof typeof this.models].ready()
+            return resolve(m)
+          } catch(err: any) {
+            return reject(err)
+          }
+        })
+      }))
+    }
+
+    try {
+      await Promise.all(asyncModels)
+    } catch(err:any) {
+      throw err
+    }
+  }
+
   public setAccount(account: AccountSchema) {
     this._account = account
   }
   
-  public getAccount() : AccountSchema | undefined{
+  public getAccount() : AccountSchema {
     return this._account
   }
 
-  public setAccountSecrets(secrets: AccountSecrets) {
+  public setAccountSecrets(secrets: AccountSecrets): void {
     this._accountSecrets = secrets
   }
 
-  public getAccountSecrets() : AccountSecrets | undefined {
+  public getAccountSecrets(): AccountSecrets {
     return this._accountSecrets
   }
 
-  public setAuthPayload(payload: AuthPayload) {
+  public setAuthPayload(payload: AuthPayload): void {
     this._authPayload = payload
     this._teliosSDK.setAuthPayload(payload)
   }
 
-  public getAuthPayload() {
+  public getAuthPayload(): AuthPayload {
     return this._authPayload
   }
 
-  public setKeypair(keypair: { publicKey: string, privateKey: string }) {
+  public setKeypair(keypair: { publicKey: string, privateKey: string }): void {
     this._keyPairs.set(keypair.publicKey, keypair)
   }
 
@@ -135,44 +193,4 @@ export class Store {
 
     return this.sdk.account.createAuthToken(payload, this._account.deviceSigningPrivKey);
   }
-
-  // setNewDraft(draft) {
-  //   this.newDraft = draft;
-  // }
-
-  // getNewDraft() {
-  //   return this.newDraft;
-  // }
-
-  // setInitialDraft(draft) {
-  //   this.initialDraft = draft;
-  // }
-
-  // getInitialDraft() {
-  //   return this.initialDraft;
-  // }
-
-  // setDraftDirty(bool) {
-  //   this.draftDirty = bool;
-  // }
-
-  // getDraftDirty() {
-  //   return this.draftDirty;
-  // }
-
-  // setAccountSecrets(secrets) {
-  //   this.accountSecrets = secrets;
-  // }
-
-  // getAccountSecrets() {
-  //   return this.accountSecrets;
-  // }
-
-  // setTheme(newTheme) {
-  //   this.theme = newTheme;
-  // }
-
-  // getTheme() {
-  //   return this.theme;
-  // }
 }

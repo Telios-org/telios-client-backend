@@ -15,8 +15,7 @@ export default async (props: ContactOpts) => {
    **************************************/
   if (event === 'contact:createContacts') {
     const { contactList } = payload
-    const Contact = new ContactModel(store)
-    await Contact.ready()
+    const Contact = store.models.Contact
 
     const _contactList = contactList.map((contact: ContactSchema) => {
       if(!contact.contactId) {
@@ -63,8 +62,7 @@ export default async (props: ContactOpts) => {
    **************************************/
   if (event === 'contact:getContactById') {
     const { id } = payload
-    const contactModel = new ContactModel(store)
-    const Contact = await contactModel.ready()
+    const Contact = store.models.Contact
 
     try {
       const contact = await Contact.findOne({ contactId: id })
@@ -86,8 +84,7 @@ export default async (props: ContactOpts) => {
    *  UPDATE CONTACT
    **************************************/
   if (event === 'contact:updateContact') {
-    const Contact = new ContactModel(store)
-    await Contact.ready()
+    const Contact = store.models.Contact
 
     if(payload._id) delete payload._id
 
@@ -112,8 +109,7 @@ export default async (props: ContactOpts) => {
    **************************************/
   if (event === 'contact:searchContact') {
     const { searchQuery } = payload
-    const contactModel = new ContactModel(store)
-    const Contact = await contactModel.ready()
+    const Contact = store.models.Contact
 
     try {
       const contacts: ContactSchema[] = await Contact.search(searchQuery)
@@ -136,8 +132,7 @@ export default async (props: ContactOpts) => {
    **************************************/
   if (event === 'contact:removeContact') {
     const { id } = payload
-    const Contact = new ContactModel(store)
-    await Contact.ready()
+    const Contact = store.models.Contact
 
     try {
       await Contact.remove({ contactId: id })
@@ -159,8 +154,7 @@ export default async (props: ContactOpts) => {
    *  GET ALL CONTACTS
    **************************************/
   if (event === 'contact:getAllContacts') {
-    const contactModel = new ContactModel(store)
-    const Contact = await contactModel.ready()
+    const Contact = store.models.Contact
 
     try {
       const contacts: ContactSchema[] = await Contact.find()

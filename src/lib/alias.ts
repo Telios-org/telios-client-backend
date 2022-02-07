@@ -1,6 +1,3 @@
-import { AliasModel } from '../models/alias.model'
-import { AliasNamespaceModel } from '../models/aliasNamespace.model'
-
 import { AliasOpts } from '../types'
 import {
   AccountSchema, 
@@ -21,8 +18,8 @@ export default async (props: AliasOpts) => {
       const { mailboxId, namespace } = payload
 
       const Crypto = store.sdk.crypto
-      const aliasNamespaceModel = new AliasNamespaceModel(store)
-      const AliasNamespace = await aliasNamespaceModel.ready()
+
+      const AliasNamespace = store.models.AliasNamespace
 
       const account: AccountSchema = store.getAccount()
 
@@ -32,18 +29,20 @@ export default async (props: AliasOpts) => {
         alias_name: namespace,
         domain: store.domain.mail,
         key: keypair.publicKey
-      });
-
-      const output = await AliasNamespace.insert({
-        publicKey: key,
-        privateKey: keypair.privateKey,
-        name: namespace,
-        mailboxId,
-        domain: store.domain.mail,
-        disabled: false
       })
 
-      store.setKeypair(keypair);
+      const output = await AliasNamespace.insert({
+        name: namespace,
+        publicKey: key,
+        privateKey: keypair.privateKey,
+        mailboxId,
+        domain: store.domain.mail,
+        disabled: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      store.setKeypair(keypair)
 
       channel.send({
         event: 'alias:registerAliasNamespace:callback',
@@ -68,8 +67,7 @@ export default async (props: AliasOpts) => {
    ************************************************/
   if (event === 'alias:getMailboxNamespaces') {
     try {
-      const aliasNamespaceModel = new AliasNamespaceModel(store)
-      const AliasNamespace = await aliasNamespaceModel.ready()
+      const AliasNamespace = store.models.AliasNamespace.collection
 
       const namespaces: AliasNamespaceSchema[] = await AliasNamespace.find({ mailboxId: payload.id }).sort('name', 1)
 
@@ -77,7 +75,7 @@ export default async (props: AliasOpts) => {
         const keypair = {
           publicKey: namespace.publicKey,
           privateKey: namespace.privateKey
-        };
+        }
 
         store.setKeypair(keypair)
       }
@@ -85,7 +83,7 @@ export default async (props: AliasOpts) => {
       channel.send({
         event: 'alias:getMailboxNamespaces:callback',
         data: namespaces
-      });
+      })
     } catch(err:any) {
       channel.send({
         event: 'alias:getMailboxNamespaces:callback',
@@ -115,15 +113,14 @@ export default async (props: AliasOpts) => {
     } = payload
 
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const Alias = store.models.Alias
 
       const { registered } = await Mailbox.registerAliasAddress({
         alias_address: `${namespaceName}#${address}@${domain}`,
         forwards_to: fwdAddresses,
         whitelisted: true,
         disabled
-      });
+      })
 
       const output = await Alias.insert({
         aliasId: `${namespaceName}#${address}`,
@@ -133,7 +130,7 @@ export default async (props: AliasOpts) => {
         description,
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
-        whitelisted: 1,
+        whitelisted: true,
         createdAt: createdAt || new Date().toISOString(),
         updatedAt: updatedAt || new Date().toISOString()
       })
@@ -161,8 +158,7 @@ export default async (props: AliasOpts) => {
    ************************************************/
   if (event === 'alias:getMailboxAliases') {
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const Alias = store.models.Alias.collection
 
       const aliases = await Alias.find({ 
         namespaceKey: { 
@@ -177,7 +173,7 @@ export default async (props: AliasOpts) => {
             (a.fwdAddresses && a.fwdAddresses.length) > 0
               ? a.fwdAddresses.split(',')
               : [],
-          createdAt: new Date(a.createdAt)
+          createdAt: a.createdAt
         }
       })
 
@@ -213,8 +209,7 @@ export default async (props: AliasOpts) => {
     } = payload
 
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const Alias = store.models.Alias
 
       await Mailbox.updateAliasAddress({
         alias_address: `${namespaceName}#${address}@${domain}`,
@@ -258,8 +253,7 @@ export default async (props: AliasOpts) => {
     const { namespaceName, domain, address } = payload
 
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const Alias = store.models.Alias
 
       await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
       await Alias.remove({ aliasId: `${namespaceName}#${address}` })
@@ -286,8 +280,7 @@ export default async (props: AliasOpts) => {
     const { id, amount } = payload
 
     try {
-      const aliasModel = new AliasModel(store)
-      const Alias = await aliasModel.ready()
+      const Alias = store.models.Alias
 
       await Alias.update({ aliasId: id }, { $inc: { count: amount } })
 

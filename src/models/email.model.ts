@@ -23,7 +23,7 @@ export interface EmailProps {
 }
 
 export class EmailModel {
-  private _collection: any
+  public collection: any
   private _drive: any
   private _store: StoreSchema
 
@@ -33,39 +33,39 @@ export class EmailModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Email')
+    this.collection = await this._drive.db.collection('Email')
 
-    await this._collection.createIndex(['date'])
-    await this._collection.createIndex(['emailId'])
-    await this._collection.createIndex(['folderId'])
+    await this.collection.createIndex(['date'])
+    await this.collection.createIndex(['emailId'])
+    await this.collection.createIndex(['folderId'])
 
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: EmailProps) : Promise<EmailSchema> {
-    const d = await this._collection.insert(doc)
-    this._collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'])
+    const d = await this.collection.insert(doc)
+    this.collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'])
     return d
   }
 
-  public async find(doc?: EmailProps) {
-    return this._collection.find(doc)
+  public async find(doc?: EmailProps) : Promise<EmailSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: EmailProps) : Promise<EmailSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
   }
 
   public async update(doc: EmailProps, updateVars: any, opts?: any) {
     // TODO: update search index
-    return this._collection.update(doc, updateVars, opts)
+    return this.collection.update(doc, updateVars, opts)
   }
 
   public async remove(doc: EmailProps, opts?: any) {
-    return this._collection.remove(doc, opts)
+    return this.collection.remove(doc, opts)
   }
 
   public async search(query: string) : Promise<EmailSchema[]> {
-    return this._collection.search(query)
+    return this.collection.search(query)
   }
 }

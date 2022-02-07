@@ -1,7 +1,7 @@
 import { ContactSchema, StoreSchema } from '../schemas'
 
 export class ContactModel {
-  private _collection: any
+  public collection: any
   private _drive: any
   private _store: StoreSchema
 
@@ -11,32 +11,36 @@ export class ContactModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('Contact')
+    this.collection = await this._drive.db.collection('Contact')
 
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: ContactSchema) : Promise<ContactSchema> {
-    const d = await this._collection.insert(doc)
-    this._collection.ftsIndex(['name', 'email'])
+    const d = await this.collection.insert(doc)
+    this.collection.ftsIndex(['name', 'email'])
     return d
   }
 
-  public async find(doc?: any) : Promise<ContactSchema> {
-    return this._collection.find(doc)
+  public async find(doc?: any) : Promise<ContactSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: any) : Promise<ContactSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
   }
 
   public async remove(doc: any, opts?: any) {
-    return this._collection.remove(doc, opts)
+    return this.collection.remove(doc, opts)
   }
  
   public async update(doc:any, props: any, opts?:any) {
-    const result = await this._collection.update(doc, props, opts)
-    this._collection.ftsIndex(['name', 'email'])
+    const result = await this.collection.update(doc, props, opts)
+    this.collection.ftsIndex(['name', 'email'])
     return result
+  }
+
+  public async search(query: string) : Promise<ContactSchema[]> {
+    return this.collection.search(query)
   }
 }

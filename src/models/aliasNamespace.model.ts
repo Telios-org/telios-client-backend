@@ -1,7 +1,8 @@
 import { AliasNamespaceSchema, StoreSchema } from '../schemas'
 
 export class AliasNamespaceModel {
-  private _collection: any
+  public collection: any
+  
   private _drive: any
   private _store: StoreSchema
 
@@ -11,30 +12,34 @@ export class AliasNamespaceModel {
 
   public async ready() {
     this._drive = this._store.getDrive()
-    this._collection = await this._drive.db.collection('AliasNamespace')
+    this.collection = await this._drive.db.collection('AliasNamespace')
 
-    await this._collection.createIndex(['name', 'mailboxId'])
+    await this.collection.createIndex(['name', 'mailboxId'])
     
-    return this._collection
+    return this.collection
   }
 
   public async insert(doc: AliasNamespaceSchema) : Promise<AliasNamespaceSchema> {
-    return this._collection.insert(doc)
+    return this.collection.insert(doc)
   }
 
-  public async find(doc?: any) : Promise<AliasNamespaceSchema> {
-    return this._collection.find(doc)
+  public async find(doc?: any) : Promise<AliasNamespaceSchema[]> {
+    return this.collection.find(doc)
   }
 
   public async findOne(doc?: any) : Promise<AliasNamespaceSchema> {
-    return this._collection.findOne(doc)
+    return this.collection.findOne(doc)
   }
 
-  // public async update(doc: AccountSchema) {
-    
-  // }
+  public async remove(doc: any, opts?: any) {
+    return this.collection.remove(doc, opts)
+  }
+ 
+  public async update(doc:any, props: any, opts?:any) {
+    return this.collection.update(doc, props, opts)
+  }
 
-  public async search(doc?: AliasNamespaceSchema, opts?: any) : Promise<AliasNamespaceSchema> {
-    return this._collection.search(doc, opts)
+  public async search(doc?: AliasNamespaceSchema, opts?: any) : Promise<AliasNamespaceSchema[]> {
+    return this.collection.search(doc, opts)
   }
 }

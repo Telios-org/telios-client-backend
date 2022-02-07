@@ -1,8 +1,5 @@
-import { FolderModel } from '../models/folder.model'
-import { MailboxModel } from '../models/mailbox.model'
-
 import { FolderOpts } from '../types'
-import { FolderSchema, MailboxSchema } from '../schemas'
+import { FolderSchema } from '../schemas'
 
 export default async (props: FolderOpts) => {
   const { channel, msg, store } = props 
@@ -13,8 +10,7 @@ export default async (props: FolderOpts) => {
    ************************************************/
   if (event === 'folder:getMailboxFolders') {
     try {
-      const folderModel = new FolderModel(store)
-      const Folder = await folderModel.ready()
+      const Folder = store.models.Folder.collection
       
       const folders: FolderSchema[] = await Folder.find({ mailboxId: payload.id }).sort('seq', 1)
 
@@ -41,8 +37,7 @@ export default async (props: FolderOpts) => {
    ************************************************/
   if (event === 'folder:createFolder') {
     try {
-      const folderModel = new FolderModel(store)
-      const Folder = await folderModel.ready()
+      const Folder = store.models.Folder.collection
 
       let folderId: number = 0
       const cursor = Folder.find()
@@ -86,8 +81,7 @@ export default async (props: FolderOpts) => {
    ************************************************/
   if (event === 'folder:updateFolder') {
     try {
-      const folderModel = new FolderModel(store)
-      const Folder = await folderModel.ready()
+      const Folder = store.models.Folder
 
       const data = await Folder.update({ folderId: payload.folderId }, { name: payload.name })
 
@@ -112,8 +106,7 @@ export default async (props: FolderOpts) => {
     const { id, amount } = payload
 
     try {
-      const folderModel = new FolderModel(store)
-      const Folder = await folderModel.ready()
+      const Folder = store.models.Folder
 
       await Folder.update({ folderId: id }, { $inc: { count: amount } })
 
@@ -136,8 +129,7 @@ export default async (props: FolderOpts) => {
    ************************************************/
   if (event === 'folder:deleteFolder') {
     try {
-      const folderModel = new FolderModel(store)
-      const Folder = await folderModel.ready()
+      const Folder = store.models.Folder
 
       const doc = await Folder.remove({ folderId: 6 })
 

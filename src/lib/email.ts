@@ -2,11 +2,6 @@ const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
 const path = require('path')
 
-import { EmailModel } from '../models/email.model'
-import { AliasModel } from '../models/alias.model'
-import { AliasNamespaceModel } from '../models/aliasNamespace.model'
-import { FileModel } from '../models/file.model'
-
 import * as FileUtil from '../util/file.util'
 
 import { EmailOpts, Attachment } from '../types'
@@ -40,11 +35,8 @@ export default async (props: EmailOpts) => {
       const emailFilename = uuidv4()
       const emailDest = `/email/${emailFilename}.json`
 
-      const Email = new EmailModel(store)
-      await Email.ready()
-
-      const fileModel = new FileModel(store)
-      const File = await fileModel.ready()
+      const Email = store.models.Email
+      const File = store.models.File
       
       let _attachments: Attachment[] = []
       let attachments: Attachment[] = email?.attachments
@@ -142,15 +134,10 @@ export default async (props: EmailOpts) => {
     try {
       const drive = store.getDrive()
       
-      const Email = new EmailModel(store)
-      const aliasNamespaceModel = new AliasNamespaceModel(store)
-      const aliasModel = new AliasModel(store)
-      const fileModel = new FileModel(store)
-      
-      await Email.ready()
-      const AliasNamespace = await aliasNamespaceModel.ready()
-      const Alias = await aliasModel.ready()
-      const File = await fileModel.ready()
+      const Email = store.models.Email
+      const AliasNamespace = store.models.AliasNamespace
+      const Alias = store.models.Alias
+      const File = store.models.File
 
       const { messages, type, newMessage } = payload
 
@@ -248,7 +235,7 @@ export default async (props: EmailOpts) => {
                     count: 0,
                     disabled: false,
                     fwdAddresses: null,
-                    whitelisted: 1,
+                    whitelisted: true,
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                   })
@@ -388,8 +375,7 @@ export default async (props: EmailOpts) => {
    ************************************************/
   if (event === 'email:getMessagesByFolderId') {
     try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
+      const Email = store.models.Email.collection
 
       let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
 
@@ -421,8 +407,7 @@ export default async (props: EmailOpts) => {
    ************************************************/
   if (event === 'email:getMessagesByAliasId') {
     try {
-      const emailModel = new EmailModel(store)
-      const Email = await emailModel.ready()
+      const Email = store.models.Email.collection
 
       let messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
         .sort('date', -1)
@@ -458,10 +443,8 @@ export default async (props: EmailOpts) => {
   if (event === 'email:getMessageById') {
     try {
       const drive = store.getDrive()
-      let content: string
 
-      const Email = new EmailModel(store)
-      await Email.ready()
+      const Email = store.models.Email
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
@@ -497,8 +480,7 @@ export default async (props: EmailOpts) => {
     try {
       const { id } = payload
 
-      const Email = new EmailModel(store)
-      await Email.ready()
+      const Email = store.models.Email
 
       await Email.update({ emailId: id }, { unread: true })
 
@@ -523,12 +505,9 @@ export default async (props: EmailOpts) => {
   if (event === 'email:removeMessages') {
     try {
       const drive = store.getDrive()
-
-      const Email = new EmailModel(store)
-      const fileModel = new FileModel(store)
       
-      await Email.ready()
-      const File = await fileModel.ready()
+      const Email = store.models.Email
+      const File = store.models.File
 
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
@@ -567,8 +546,7 @@ export default async (props: EmailOpts) => {
     const { messages } = payload
 
     try {
-      const Email = new EmailModel(store)
-      await Email.ready()
+      const Email = store.models.Email
 
       const toFolder = messages[0].folder.toId
 
@@ -610,8 +588,7 @@ export default async (props: EmailOpts) => {
 
       const { filepath, attachments } = payload
 
-      const fileModel = new FileModel(store)
-      const File = await fileModel.ready()
+      const File = store.models.File
 
       if (filepath === undefined) return 'canceled'
 
@@ -687,8 +664,7 @@ export default async (props: EmailOpts) => {
 
     try {
       if (searchQuery) {
-        const emailModel = new EmailModel(store)
-        const Email = await emailModel.ready()
+        const Email = store.models.Email
 
         let results: EmailSchema[] = await Email.search(searchQuery)
 
