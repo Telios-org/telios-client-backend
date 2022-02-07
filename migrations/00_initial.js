@@ -97,7 +97,7 @@ async function extractDB(rootdir, password) {
         db.run(`PRAGMA key = '${password}'`)
 
         db.each("SELECT * FROM Email", function(err, row) {
-          data.main.collections.Email.push({ path: row.path })
+          data.main.collections.Email.push({ path: row.path, unread: row.unread === 1 ? true : false })
         })
       })
 
