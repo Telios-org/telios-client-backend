@@ -277,7 +277,7 @@ export default async (props: EmailOpts) => {
           date: msg.email.date,
           bccJSON: JSON.stringify(msg.email.bcc),
           ccJSON: JSON.stringify(msg.email.cc),
-          bodyAsText: msg.email.bodyAsText || msg.email.text_body,
+          bodyAsText: removeMd(msg.email.bodyAsText || msg.email.text_body),
           attachments: JSON.stringify(attachments),
           path: msg.email.path,
           createdAt: new Date().toUTCString(),
@@ -384,7 +384,9 @@ export default async (props: EmailOpts) => {
           delete email.bodyAsHtml
         }
 
-        email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        if(email.bodyAsText) {
+          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        }
 
         return email
       })
@@ -424,7 +426,9 @@ export default async (props: EmailOpts) => {
           delete email.bodyAsHtml
         }
 
-        email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        if(email.bodyAsText) {
+          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        }
 
         return email
       })
@@ -685,8 +689,10 @@ export default async (props: EmailOpts) => {
             delete email.bodyAsHtml
           }
 
-          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
-          
+          if(email.bodyAsText) {
+            email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+          }
+
           return email
         })
 
