@@ -380,7 +380,12 @@ export default async (props: EmailOpts) => {
       let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
 
       messages = messages.map((email: any) => {
-        delete email.bodyAsHtml
+        if(email.bodyAsHtml) {
+          delete email.bodyAsHtml
+        }
+
+        email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+
         return email
       })
 
@@ -415,7 +420,12 @@ export default async (props: EmailOpts) => {
         .limit(payload.limit)
       
       messages = messages.map((email: any) => {
-        delete email.bodyAsHtml
+        if(email.bodyAsHtml) {
+          delete email.bodyAsHtml
+        }
+
+        email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+
         return email
       })
 
@@ -454,7 +464,7 @@ export default async (props: EmailOpts) => {
       email.attachments = JSON.parse(email.attachments)
       email.unread = eml.unread
       email.folderId = eml.folderId
-      
+
       if (email.unread) {
         await Email.update({ emailId: email.emailId }, { unread: false })
         email.unread = false
@@ -671,7 +681,12 @@ export default async (props: EmailOpts) => {
         let results: EmailSchema[] = await Email.search(searchQuery)
 
         results = results.map((email: any) => {
-          delete email.bodyAsHtml
+          if(email.bodyAsHtml) {
+            delete email.bodyAsHtml
+          }
+
+          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+          
           return email
         })
 
