@@ -289,7 +289,7 @@ export default async (props: AccountOpts) => {
     try {
       const Account = store.models.Account
 
-      const account = Account.update({ accountId }, { displayName, avatar })
+      const account = await Account.update({ accountId }, { displayName, avatar })
       channel.send({ event: 'account:update:callback', data: account })
     } catch (err: any) {
       channel.send({
@@ -309,16 +309,9 @@ export default async (props: AccountOpts) => {
    */
   if (event === 'account:retrieveStats') {
     try {
-      const Account = store.models.Account
-
-      const { uid } = store.getAccount()
       const account = store.sdk.account
 
       const stats = await account.retrieveStats()
-
-      const stringStats = JSON.stringify(stats)
-
-      await Account.update({ uid },{ stats: stringStats })
 
       const finalPayload = {
         plan: stats.plan,
