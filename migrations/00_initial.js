@@ -72,7 +72,7 @@ async function extractDB(rootdir, password) {
       })
 
       db.each("SELECT * FROM Alias", function(err, row) {
-        if(typeof row.disabled !== 'boolean') {
+        if(row && typeof row.disabled !== 'boolean') {
           row.disabled = row.disabled === 1 ? true : false
         }
         data.main.collections.Alias.push({ 
@@ -82,7 +82,7 @@ async function extractDB(rootdir, password) {
       })
 
       db.each("SELECT * FROM Namespace", function(err, row) {
-        if(typeof row.disabled !== 'boolean') {
+        if(row && typeof row.disabled !== 'boolean') {
           row.disabled = row.disabled === 1 ? true : false
         }
         data.main.collections.AliasNamespace.push(row)
