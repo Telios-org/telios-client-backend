@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 
 import * as FileUtil from '../util/file.util'
-
+import { UTCtimestamp } from '../util/date.util'
 import { EmailOpts, Attachment } from '../types'
 import { 
   AccountSchema, 
@@ -106,9 +106,9 @@ export default async (props: EmailOpts) => {
         bodyAsText: removeMd(email.bodyAsText),
         bodyAsHtml: email.bodyAsHtml,
         attachments: JSON.stringify(email.attachments),
-        date: email.date || new Date().toUTCString(),
-        createdAt: email.createdAt || new Date().toUTCString(),
-        updatedAt: email.updatedAt || new Date().toUTCString()
+        date: email.date || UTCtimestamp(),
+        createdAt: email.createdAt || UTCtimestamp(),
+        updatedAt: email.updatedAt || UTCtimestamp()
       }
 
       const doc = await Email.insert(_email)
@@ -236,8 +236,8 @@ export default async (props: EmailOpts) => {
                     disabled: false,
                     fwdAddresses: null,
                     whitelisted: true,
-                    createdAt: new Date().toUTCString(),
-                    updatedAt: new Date().toUTCString()
+                    createdAt: UTCtimestamp(),
+                    updatedAt: UTCtimestamp()
                   })
 
                   aliasId = alias.aliasId
@@ -280,8 +280,8 @@ export default async (props: EmailOpts) => {
           bodyAsText: removeMd(msg.email.bodyAsText || msg.email.text_body),
           attachments: JSON.stringify(attachments),
           path: msg.email.path,
-          createdAt: new Date().toUTCString(),
-          updatedAt: new Date().toUTCString()
+          createdAt: UTCtimestamp(),
+          updatedAt: UTCtimestamp()
         }
 
         if (msg.email.emailId && type !== 'incoming') {
@@ -684,17 +684,7 @@ export default async (props: EmailOpts) => {
 
         let results: EmailSchema[] = await Email.search(searchQuery)
 
-        results = results.map((email: any) => {
-          if(email.bodyAsHtml) {
-            delete email.bodyAsHtml
-          }
-
-          if(email.bodyAsText) {
-            email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
-          }
-
-          return email
-        })
+        channel.send({ event: 'debug', data: results })
 
         channel.send({
           event: 'email:searchMailbox:callback',

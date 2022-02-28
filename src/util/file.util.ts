@@ -1,4 +1,5 @@
-import { EmailSchema, FileSchema } from "../schemas";
+import { EmailSchema, FileSchema } from "../schemas"
+import { UTCtimestamp } from '../util/date.util'
 
 const MemoryStream = require('memorystream')
 const { v4: uuidv4 } = require('uuid')
@@ -68,8 +69,8 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
           try {
 
-            opts.file.createdAt = new Date().toUTCString()
-            opts.file.updatedAt = new Date().toUTCString()
+            opts.file.createdAt = UTCtimestamp()
+            opts.file.updatedAt = UTCtimestamp()
 
             const doc: FileSchema = await File.insert(opts.file)
             resolve(doc)

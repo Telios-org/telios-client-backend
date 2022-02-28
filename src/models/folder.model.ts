@@ -1,4 +1,5 @@
 import { FolderSchema, StoreSchema } from '../schemas'
+import { UTCtimestamp } from '../util/date.util'
 
 export class FolderModel {
   public collection: any
@@ -49,8 +50,8 @@ export const DefaultFolders = [
     icon: 'inbox',
     seq: 1,
     count: 0,
-    createdAt: new Date().toUTCString(),
-    updatedAt: new Date().toUTCString()
+    createdAt: UTCtimestamp(),
+    updatedAt: UTCtimestamp()
   },
   {
     folderId: 2,
@@ -59,8 +60,8 @@ export const DefaultFolders = [
     icon: 'pencil',
     seq: 2,
     count: 0,
-    createdAt: new Date().toUTCString(),
-    updatedAt: new Date().toUTCString()
+    createdAt: UTCtimestamp(),
+    updatedAt: UTCtimestamp()
   },
   {
     folderId: 3,
@@ -69,8 +70,8 @@ export const DefaultFolders = [
     icon: 'send-o',
     seq: 3,
     count: 0,
-    createdAt: new Date().toUTCString(),
-    updatedAt: new Date().toUTCString()
+    createdAt: UTCtimestamp(),
+    updatedAt: UTCtimestamp()
   },
   {
     folderId: 4,
@@ -79,8 +80,8 @@ export const DefaultFolders = [
     icon: 'trash-o',
     seq: 4,
     count: 0,
-    createdAt: new Date().toUTCString(),
-    updatedAt: new Date().toUTCString()
+    createdAt: UTCtimestamp(),
+    updatedAt: UTCtimestamp()
   },
   {
     folderId: 5,
@@ -89,7 +90,7 @@ export const DefaultFolders = [
     icon: null,
     seq: 5,
     count: 0,
-    createdAt: new Date().toUTCString(),
-    updatedAt: new Date().toUTCString()
+    createdAt: UTCtimestamp(),
+    updatedAt: UTCtimestamp()
   }
 ]

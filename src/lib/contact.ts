@@ -2,6 +2,7 @@ import { ContactModel } from '../models/contact.model'
 
 import { ContactOpts } from '../types'
 import { ContactSchema } from '../schemas'
+import { UTCtimestamp } from '../util/date.util'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -37,8 +38,8 @@ export default async (props: ContactOpts) => {
       const upserted = []
 
       for(let contact of _contactList) {
-        contact.createdAt = contact.createdAt || new Date().toUTCString()
-        contact.updatedAt = contact.updatedAt || new Date().toUTCString()
+        contact.createdAt = contact.createdAt || UTCtimestamp
+        contact.updatedAt = contact.updatedAt || UTCtimestamp
         const result = await Contact.update({ _id: contact._id }, contact, { upsert: true })
         if(result.nUpserted) upserted.push(contact)
       }

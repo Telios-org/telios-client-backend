@@ -3,6 +3,7 @@ import {
   AccountSchema, 
   AliasSchema, 
   AliasNamespaceSchema } from '../schemas'
+import { UTCtimestamp } from '../util/date.util'
 
 export default async (props: AliasOpts) => {
   const { channel, msg, store } = props 
@@ -38,8 +39,8 @@ export default async (props: AliasOpts) => {
         mailboxId,
         domain: store.domain.mail,
         disabled: false,
-        createdAt: new Date().toUTCString(),
-        updatedAt: new Date().toUTCString(),
+        createdAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp(),
       })
 
       store.setKeypair(keypair)
@@ -131,8 +132,8 @@ export default async (props: AliasOpts) => {
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
         whitelisted: true,
-        createdAt: createdAt || new Date().toUTCString(),
-        updatedAt: updatedAt || new Date().toUTCString()
+        createdAt: createdAt || UTCtimestamp(),
+        updatedAt: updatedAt || UTCtimestamp()
       })
 
       channel.send({

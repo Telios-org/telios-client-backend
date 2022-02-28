@@ -1,5 +1,6 @@
 import { FolderOpts } from '../types'
 import { FolderSchema } from '../schemas'
+import { UTCtimestamp } from '../util/date.util'
 
 export default async (props: FolderOpts) => {
   const { channel, msg, store } = props 
@@ -57,8 +58,8 @@ export default async (props: FolderOpts) => {
         icon: payload.icon || null,
         color: payload.color || null,
         seq: payload.seq,
-        createdAt: payload.createdAt || new Date().toUTCString(),
-        updatedAt: payload.updatedAt || new Date().toUTCString()
+        createdAt: payload.createdAt || UTCtimestamp(),
+        updatedAt: payload.updatedAt || UTCtimestamp()
       })
 
       // folder.id = folder.folderId

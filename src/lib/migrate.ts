@@ -18,8 +18,6 @@ export default async (props: any) => {
 
       const migrations: MigrateSchema[] = await Migrate.find()
 
-      channel.send({event: 'debug:info', data: migrations})
-
       // 1. Check migrations directory
       // fs.readdirSync(path.join(__dirname, '../../src', 'migrations')).forEach((file: any) => {
       //   const filePath = `${path.join(__dirname, '../../src', 'migrations')}/${file}`

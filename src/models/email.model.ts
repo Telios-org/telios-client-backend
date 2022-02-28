@@ -4,6 +4,7 @@ import { QueryOpts } from '../types'
 export interface EmailProps {
   emailId?: any
   folderId?: number
+  mailboxId?: number,
   aliasId?: string | null
   subject?: string
   unread?: boolean
@@ -43,9 +44,36 @@ export class EmailModel {
   }
 
   public async insert(doc: EmailProps) : Promise<EmailSchema> {
-    const d = await this.collection.insert(doc)
-    this.collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'])
-    return d
+    let bodyAsText = ""
+
+    if(doc.bodyAsText) {
+      bodyAsText = doc.bodyAsText.split(" ").slice(0, 20).join(" ")
+    }
+
+    const sparseEmail = {
+      emailId: doc.emailId,
+      folderId: doc.folderId,
+      mailboxId: doc.mailboxId,
+      aliasId: doc.aliasId,
+      subject: doc.subject,
+      unread: doc.unread,
+      date: doc.date,
+      toJSON: doc.toJSON,
+      fromJSON: doc.fromJSON,
+      bodyAsText: bodyAsText,
+      attachments: doc.attachments,
+      path: doc.path,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt
+    }
+
+    const d = await this.collection.insert(sparseEmail)
+    
+    const fullDoc = { ...doc, _id: d._id }
+
+    this.collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [fullDoc])
+    
+    return {...doc, ...d}
   }
 
   public async find(doc?: EmailProps) : Promise<EmailSchema[]> {

@@ -181,7 +181,7 @@ const payload = {
   description: 'Updated description',
   fwdAddresses: ['alice@mail.com', 'alice@somemail.com'],
   disabled: true,
-  updatedAt: new Date().toUTCString()
+  updatedAt: UTCTimestamp
 }
 ```
 
@@ -213,8 +213,8 @@ const payload = {
   type: 'default',
   icon: 'trash-o',
   seq: 6,
-  createdAt: new Date().toUTCString(),
-  updatedAt: new Date().toUTCString()
+  createdAt: UTCTimestamp,
+  updatedAt: UTCTimestamp
 }
 ```
 

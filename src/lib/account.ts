@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 
 import { AccountOpts } from '../types'
@@ -101,8 +102,8 @@ export default async (props: AccountOpts) => {
         deviceSigningPrivKey: signingKeypair.privateKey,
         serverSig: serverSig,
         deviceId: account.device_id,
-        createdAt: new Date().toUTCString(),
-        updatedAt: new Date().toUTCString(),
+        createdAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp(),
       })
 
       await runMigrate(acctPath, '/Drive', null, store)
@@ -169,15 +170,6 @@ export default async (props: AccountOpts) => {
         // Retrieve drive encryption key and keyPair from vault using master password
         const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
 
-        channel.send({
-          event: 'debug:info',
-          data: {
-            message: 'GET VAULT',
-            encryptionKey,
-            keyPair
-          }
-        })
-
         if(encryptionKey && keyPair) {
           // Notify the receiver the master password has been authenticated
           channel.send({ event: 'account:authorized' })
@@ -198,15 +190,6 @@ export default async (props: AccountOpts) => {
         await drive.ready()
 
       } catch(err: any) {
-
-        channel.send({
-          event: 'debug:info',
-          error: { 
-            name: 'VAULTERROR', 
-            message: err.message, 
-            stack: err.stack 
-          }
-        })
         
         if(err?.type !== 'VAULTERROR') {
           return channel.send({
@@ -244,11 +227,6 @@ export default async (props: AccountOpts) => {
 
       // Get account
       const fullAcct = await accountModel.findOne()
-
-      channel.send({
-        event: 'debug:info',
-        data: { fullAcct }
-      })
 
       handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
@@ -514,8 +492,8 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
           deviceSigningPrivKey: account.deviceSigningPrivKey,
           serverSig: account.serverSig,
           deviceId: account.deviceId,
-          createdAt: new Date().toUTCString(),
-          updatedAt: new Date().toUTCString(),
+          createdAt: UTCtimestamp(),
+          updatedAt: UTCtimestamp(),
         })
 
         // Create recovery file with master pass

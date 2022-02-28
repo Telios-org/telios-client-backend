@@ -18,7 +18,8 @@ export class ContactModel {
 
   public async insert(doc: ContactSchema) : Promise<ContactSchema> {
     const d = await this.collection.insert(doc)
-    this.collection.ftsIndex(['name', 'email'])
+    
+    this.collection.ftsIndex(['name', 'email', 'nickname'], [d])
     return d
   }
 
@@ -36,7 +37,12 @@ export class ContactModel {
  
   public async update(doc:any, props: any, opts?:any) {
     const result = await this.collection.update(doc, props, opts)
-    this.collection.ftsIndex(['name', 'email'])
+    
+    // TODO: refactor this so we don't have to do a lookup for text indexing
+    this.collection.findOne(doc).then((contact:ContactSchema) => {
+      this.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
+    })
+    
     return result
   }
 

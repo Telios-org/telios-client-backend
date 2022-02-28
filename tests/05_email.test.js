@@ -256,6 +256,8 @@ test('move emails to another folder', async t => {
 
       if(error) t.fail(error.message)
 
+      console.log(emails)
+
       for(const email of emails) {
         t.equals(email.folderId, 1)
       }
