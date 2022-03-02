@@ -459,7 +459,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
     // Migrate from old Hypercore v10 to newer version of v10
     if(err.message.indexOf('Cannot read property') > -1) {
       const driveFiles = fs.readdirSync(rootdir)
-      if(driveFiles.indexOf('app.db')) {
+      if(driveFiles.indexOf('app.db') > -1) {
         const filePath = `${path.join(__dirname, '../../', 'migrations')}/00_initial.js`
         const Script = require(filePath)
 
