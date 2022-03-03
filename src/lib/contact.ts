@@ -25,12 +25,6 @@ export default async (props: ContactOpts) => {
         contact._id = _id
       }
 
-      if(contact.givenName || contact.familyName) {
-        contact.name = `${contact.givenName} ${contact.familyName}` 
-      } else {
-        contact.name = ''
-      }
-
       return contact
     })
 
