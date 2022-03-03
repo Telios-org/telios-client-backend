@@ -130,7 +130,9 @@ export default class MesssageHandler {
       let keyPair
 
       while (!keyPair) {
-        keyPair = this.drive._workerKeyPairs.getKeyPair()
+        if(this.drive && this.drive._workerKeyPairs) {
+          keyPair = this.drive._workerKeyPairs.getKeyPair()
+        }
       }
 
       const stream = await this.drive.fetchFileByDriveHash(discoveryKey, fileMeta.hash, { key: fileMeta.key, header: fileMeta.header, keyPair })
