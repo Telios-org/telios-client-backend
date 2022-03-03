@@ -465,7 +465,11 @@ export default async (props: EmailOpts) => {
       let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email'})
 
       email = JSON.parse(email)
-      email.attachments = JSON.parse(email.attachments)
+
+      if(typeof email.attachments === 'string') {
+        email.attachments = JSON.parse(email.attachments)
+      }
+      
       email.unread = eml.unread
       email.folderId = eml.folderId
 
