@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^5.0.1",
+    "@telios/client-sdk": "^5.0.2",
     "@telios/nebula": "^2.1.2",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "file-type": "^16.5.3",
