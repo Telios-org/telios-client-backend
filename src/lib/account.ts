@@ -127,6 +127,7 @@ export default async (props: AccountOpts) => {
       channel.send({
         event: 'account:create:callback',
         data: {
+          accountId: _id.toString('hex'),
           uid: accountUID,
           deviceId: account.device_id,
           signedAcct: account,
