@@ -12,13 +12,12 @@ export class ContactModel {
   public async ready() {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Contact')
-
+    await this.collection.createIndex(['name', 'email'])
     return this.collection
   }
 
   public async insert(doc: ContactSchema) : Promise<ContactSchema> {
     const d = await this.collection.insert(doc)
-    
     this.collection.ftsIndex(['name', 'email', 'nickname'], [d])
     return d
   }

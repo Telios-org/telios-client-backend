@@ -379,18 +379,6 @@ export default async (props: EmailOpts) => {
 
       let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
 
-      messages = messages.map((email: any) => {
-        if(email.bodyAsHtml) {
-          delete email.bodyAsHtml
-        }
-
-        if(email.bodyAsText) {
-          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
-        }
-
-        return email
-      })
-
       channel.send({
         event: 'email:getMessagesByFolderId:callback',
         data: messages

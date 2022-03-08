@@ -245,8 +245,10 @@ export default class MesssageHandler {
      *  HANDLE SINGLE MESSAGE
      ************************************************/
     if (event === 'messageHandler:newMessage') {
-      const { meta } = payload
-      await this.fetchFile(meta.discovery_key, meta)
+      const { meta } = payload;
+      const account = this.store.getAccount()
+      const fileMeta = this.mailbox._decryptMailMeta(meta, account.secretBoxPrivKey, account.secretBoxPubKey);
+      await this.fetchFile(fileMeta.discovery_key, fileMeta)
     }
 
 
