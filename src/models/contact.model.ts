@@ -18,7 +18,7 @@ export class ContactModel {
 
   public async insert(doc: ContactSchema) : Promise<ContactSchema> {
     const d = await this.collection.insert(doc)
-    this.collection.ftsIndex(['name', 'email', 'nickname'], [d])
+    await this.collection.ftsIndex(['name', 'email', 'nickname'], [d])
     return d
   }
 

@@ -69,7 +69,7 @@ export class EmailModel {
     
     const fullDoc = { ...doc, _id: d._id }
 
-    this.collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [fullDoc])
+    await this.collection.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [fullDoc])
     
     return {...doc, ...d}
   }
