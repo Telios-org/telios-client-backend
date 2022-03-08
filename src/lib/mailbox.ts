@@ -143,4 +143,29 @@ export default async (props: MailboxOpts) => {
       })
     }
   }
+
+  /*************************************************
+   *  UPDATE MAILBOX DISPLAY NAME
+   ************************************************/
+   if (event === 'mailbox:updateMailboxName') {
+    let { name, mailboxId } = payload
+
+    try {
+      const Mailbox = store.models.Mailbox
+
+      const mailbox: MailboxSchema = await Mailbox.update({ mailboxId }, { name })
+
+      channel.send({ event: 'mailbox:updateMailboxName:callback', data: mailbox })
+    } catch(err: any) {
+      channel.send({
+        event: 'mailbox:updateMailboxName:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        },
+        data: null
+      })
+    }
+  }
 }

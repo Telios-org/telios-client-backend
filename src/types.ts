@@ -54,6 +54,7 @@ export interface MailboxMessage {
         | 'mailbox:markArrayAsSynced' 
         | 'mailbox:getMailboxes'
         | 'mailbox:saveMailbox'
+        | 'mailbox:updateMailboxName'
   payload: any
 }
 

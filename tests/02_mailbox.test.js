@@ -79,6 +79,25 @@ test('save mailbox', async t => {
   })
 })
 
+test('update Mailbox Display Name', async t => {
+  t.plan(1)
+
+  channel.send({
+    event: 'mailbox:updateMailboxName',
+    payload: {
+      name: 'Bilbo Baggins'
+    }
+  })
+
+  channel.on('mailbox:updateMailboxName:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    t.ok(data)
+  })
+})
+
 test('get mailboxes', async t => {
   t.plan(1)
 
