@@ -36,9 +36,7 @@ export class EmailModel {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Email')
 
-    await this.collection.createIndex(['date'])
-    await this.collection.createIndex(['emailId'])
-    await this.collection.createIndex(['folderId'])
+    await this.collection.createIndex(['date', 'folderId', 'emailId'])
 
     return this.collection
   }
