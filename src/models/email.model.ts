@@ -58,6 +58,8 @@ export class EmailModel {
       date: doc.date,
       toJSON: doc.toJSON,
       fromJSON: doc.fromJSON,
+      ccJSON: doc.ccJSON,
+      bccJSON: doc.bccJSON,
       bodyAsText: bodyAsText,
       attachments: doc.attachments,
       path: doc.path,
