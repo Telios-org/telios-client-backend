@@ -458,7 +458,10 @@ export default async (props: EmailOpts) => {
         email.attachments = JSON.parse(email.attachments)
       }
 
-      email.bcc = JSON.parse(eml.bccJSON) //bcc gets stripped unpon send so we need to restore from collection
+      if(typeof eml.bccJSON === 'string'){
+        email.bcc = JSON.parse(eml.bccJSON)//bcc gets stripped unpon send so we need to restore from collection
+      }
+       
       
       email.unread = eml.unread
       email.folderId = eml.folderId
