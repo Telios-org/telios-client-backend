@@ -58,8 +58,7 @@ export class EmailModel {
       date: doc.date,
       toJSON: doc.toJSON,
       fromJSON: doc.fromJSON,
-      ccJSON: doc.ccJSON,
-      bccJSON: doc.bccJSON,
+      bccJSON: doc.bccJSON, // We need this this info gets stripped in the file upon sending
       bodyAsText: bodyAsText,
       attachments: doc.attachments,
       path: doc.path,
