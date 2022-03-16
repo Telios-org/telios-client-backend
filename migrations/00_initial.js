@@ -77,7 +77,7 @@ async function extractDB(rootdir, password) {
         }
         data.main.collections.Alias.push({ 
           ...row,
-          whitelsited: row.whitelisted === 1 ? true : false
+          whitelisted: row && row.whitelisted === 1 ? true : false
         })
       })
 
@@ -85,15 +85,22 @@ async function extractDB(rootdir, password) {
         if(row && typeof row.disabled !== 'boolean') {
           row.disabled = row.disabled === 1 ? true : false
         }
-        data.main.collections.AliasNamespace.push(row)
+
+        if(row) {
+          data.main.collections.AliasNamespace.push(row)
+        }
       })
 
       db.each("SELECT * FROM Contact", function(err, row) {
-        data.main.collections.Contact.push(row)
+        if(row) {
+          data.main.collections.Contact.push(row)
+        }
       })
 
       db.each("SELECT * FROM Folder", function(err, row) {
-        data.main.collections.Folder.push(row)
+        if(row) {
+          data.main.collections.Folder.push(row)
+        }
       })
     })
 
@@ -106,7 +113,9 @@ async function extractDB(rootdir, password) {
         db.run(`PRAGMA key = '${password}'`)
 
         db.each("SELECT * FROM Email", function(err, row) {
-          data.main.collections.Email.push({ path: row.path, unread: row.unread === 1 ? true : false })
+          if(row) {
+            data.main.collections.Email.push({ path: row.path, unread: row.unread === 1 ? true : false })
+          }
         })
       })
 

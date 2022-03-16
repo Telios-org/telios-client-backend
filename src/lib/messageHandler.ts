@@ -246,12 +246,8 @@ export default class MesssageHandler {
      ************************************************/
     if (event === 'messageHandler:newMessage') {
       const { meta } = payload;
-      const account = this.store.getAccount()
-      const fileMeta = this.mailbox._decryptMailMeta(meta, account.secretBoxPrivKey, account.secretBoxPubKey);
-      await this.fetchFile(fileMeta.discovery_key, fileMeta)
+      await this.fetchFile(meta.discovery_key, meta)
     }
-
-
 
     /*************************************************
      *  RETRY FAILED MESSAGES
