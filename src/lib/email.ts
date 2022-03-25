@@ -48,10 +48,15 @@ export default async (props: EmailOpts) => {
           await new Promise((resolve, reject) => {
             try {
               totalAttachmentSize += attachment.size
+              let filename = attachment.filename ||attachment.name
+              if(attachment.contentType === "text/x-amp-html"){
+                filename="x-amp-html.html"
+              }
+
               FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
                 _attachments.push({
                   _id: file._id,
-                  filename: attachment.filename,
+                  filename,
                   contentType: file.contentType,
                   size: file.size,
                   discoveryKey: file.discovery_key,
@@ -170,11 +175,15 @@ export default async (props: EmailOpts) => {
         ) {
           msg.email.attachments.forEach((file: Attachment) => {
             const fileId = file.fileId || uuidv4()
+            let filename = file.filename ||file.name
+            if(file.contentType === "text/x-amp-html"){
+              filename="x-amp-html.html"
+            }
             const fileObj = {
               _id: new ObjectID(),
               id: fileId,
               emailId: msg.email.emailId || msg._id,
-              filename: file.filename || file.name,
+              filename,
               contentType: file.contentType,
               size: file.size,
               discoveryKey: file.discoveryKey || drive.discoveryKey,

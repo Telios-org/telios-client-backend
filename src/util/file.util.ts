@@ -27,11 +27,16 @@ export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any })
 export const saveFileToDrive = async (File: any, opts: { file: any, content?: string, drive: any }) : Promise<FileSchema> => {
   return new Promise(async (resolve, reject) => {
     let readStream
+    let filename = opts.file.filename || opts.file.name
+
+    if(opts.file.contentType === "text/x-amp-html"){
+      filename="x-amp-html.html"
+    }
 
     // When file is over 25mb create readstream from file path
     if(opts.file.localPath) {
       readStream = fs.createReadStream(opts.file.localPath);
-      opts.file.path = `/file/${opts.file.filename || opts.file.name}`
+      opts.file.path = `/file/emails/${opts.file.emailId}/${filename}`
     }
     
     if(opts.content) {
@@ -39,7 +44,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
       readStream.end(Buffer.from(opts.content, 'base64'));
 
       if(!opts.file.path) {
-        opts.file.path = `/file/${opts.file.filename || opts.file.name}`
+        opts.file.path = `/file/emails/${opts.file.emailId}/${filename}`
       }
     }
 
