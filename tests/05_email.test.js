@@ -109,10 +109,16 @@ test('save email attachments', async t => {
     attachments: JSON.parse(__email.attachments)
   }
 
+  channel.on('debug', cb => {
+    console.log('DEBUGLOG', cb.data);
+  })
+
   channel.send({ event: 'email:saveFiles', payload })
 
   channel.once('email:saveFiles:callback', cb => {
     const { error, data } = cb
+
+    console.log('DATA', data);
 
     if(error) t.fail(error.message)
 

@@ -50,7 +50,7 @@ export default async (props: EmailOpts) => {
               totalAttachmentSize += attachment.size
               let filename = attachment.filename ||attachment.name
               if(attachment.contentType === "text/x-amp-html"){
-                filename="x-amp-html.html"
+                filename = "x-amp-html.html"
               }
 
               FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
@@ -175,7 +175,7 @@ export default async (props: EmailOpts) => {
         ) {
           msg.email.attachments.forEach((file: Attachment) => {
             const fileId = file.fileId || uuidv4()
-            let filename = file.filename ||file.name
+            let filename = file.filename || file.name
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
@@ -652,6 +652,8 @@ export default async (props: EmailOpts) => {
             if (!file) {
               file = attachment
             }
+
+            channel.send({event:"debug", data: file})
 
             await FileUtil.saveFileFromEncryptedStream(writeStream, {
               drive,

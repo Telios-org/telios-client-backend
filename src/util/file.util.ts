@@ -29,14 +29,10 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
     let readStream
     let filename = opts.file.filename || opts.file.name
 
-    if(opts.file.contentType === "text/x-amp-html"){
-      filename="x-amp-html.html"
-    }
-
     // When file is over 25mb create readstream from file path
     if(opts.file.localPath) {
       readStream = fs.createReadStream(opts.file.localPath);
-      opts.file.path = `/file/emails/${opts.file.emailId}/${filename}`
+      opts.file.path = `/file/${filename}`
     }
     
     if(opts.content) {
@@ -44,7 +40,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
       readStream.end(Buffer.from(opts.content, 'base64'));
 
       if(!opts.file.path) {
-        opts.file.path = `/file/emails/${opts.file.emailId}/${filename}`
+        opts.file.path = `/file/${filename}`
       }
     }
 
