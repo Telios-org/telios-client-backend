@@ -4,12 +4,13 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
+const { account } = require('@telios/client-sdk/lib/routes')
 
 let _channel
 let _account
 
 test('create account', async t => {
-  t.plan(4)
+  t.plan(5)
   let connectedCount = 0
   await cleanup()
 
@@ -32,7 +33,7 @@ test('create account', async t => {
     event: 'account:create',
     payload: {
       email: 'bob@telios.io',
-      password: 'letmein123',
+      password: 'letmein321',
       vcode: 'testcode123',
       recoveryEmail: 'bob@mail.com'
     }
@@ -45,6 +46,9 @@ test('create account', async t => {
 
     console.log('SUCCESS :: ', data)
 
+    _account = data
+
+    t.ok(data.mnemonic)
     t.ok(data.uid)
   })
 
@@ -58,7 +62,37 @@ test('create account', async t => {
   })
 })
 
-test('account login success', async t => {
+test('Reset password with passphrase', async t => {
+  t.plan(1)
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:resetPassword',
+    payload: {
+      passphrase: _account.mnemonic,
+      email: 'bob@telios.io',
+      newPass: 'letmein123',
+    }
+  })
+
+  channel.on('debug', data => {
+    console.log(data)
+  })
+
+  channel.on('account:resetPassword:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+   
+    t.ok(data.reset)
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('account login', async t => {
   t.plan(1)
 
   _channel = new Channel(path.join(__dirname, 'Accounts'))
@@ -123,6 +157,14 @@ test('retrieve account stats', async t => {
   t.teardown(async () => {
     _channel.kill()
   })
+})
+
+test('Recover account', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  
 })
 
 test('account login error', async t => {

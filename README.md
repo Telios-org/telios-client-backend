@@ -110,6 +110,15 @@ const payload = {
 }
 ```
 
+#### `channel.send({ event: 'account:resetPassword', payload })`
+```js
+const payload = {
+  passphrase: 'hub edit torch trust silent absorb news process pioneer category arrive prevent scrub senior cruise love wire elder field parent device physical warm clutch',
+  email: 'bob@telios.io',
+  newPass: 'letmein999',
+}
+```
+
 #### `channel.send({ event: 'account:authorized', payload })`
 
 #### `channel.send({ event: 'account:update', payload })`

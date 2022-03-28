@@ -62,7 +62,7 @@ export class AccountModel {
   public getVault(
     password: string,
     type: 'recovery' | 'vault',
-  ): { drive_encryption_key: any; keyPair: any } {
+  ): { drive_encryption_key: any; keyPair: any, master_pass: any } {
     const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
 
     if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }

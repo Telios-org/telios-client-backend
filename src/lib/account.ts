@@ -14,9 +14,10 @@ export default async (props: AccountOpts) => {
   const { event, payload } = msg
   const Account = store.sdk.account
   const Crypto = store.sdk.crypto
-  /**
-   * CREATE ACCOUNT
-   */
+  
+  /*************************************************
+   *  CREATE ACCOUNT
+   ************************************************/
   if (event === 'account:create') {
     try {
       const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
@@ -98,15 +99,19 @@ export default async (props: AccountOpts) => {
         secretBoxPubKey: secretBoxKeypair.publicKey,
         secretBoxPrivKey: secretBoxKeypair.privateKey,
         driveEncryptionKey: encryptionKey,
-        deviceSigningPubKey: signingKeypair.publicKey,
-        deviceSigningPrivKey: signingKeypair.privateKey,
-        serverSig: serverSig,
-        deviceId: account.device_id,
         createdAt: UTCtimestamp(),
-        updatedAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp()
       })
 
-      await runMigrate(acctPath, '/Drive', null, store)
+      // Init local encrypted db. This does not sync with other peers!
+      const localDB = await drive._localHB
+
+      await localDB.put('device', {
+        deviceSigningPubKey: signingKeypair.publicKey,
+        deviceSigningPrivKey: signingKeypair.privateKey,
+        deviceId: account.device_id,
+        serverSig: serverSig
+      })
 
       handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
@@ -150,9 +155,9 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  /**
-   * GET ACCOUNT / LOGIN
-   */
+  /*************************************************
+   *  GET ACCOUNT/LOGIN
+   ************************************************/
   if (event === 'account:login') {
     const acctPath = `${userDataPath}/${payload.email}`
 
@@ -227,7 +232,13 @@ export default async (props: AccountOpts) => {
       await store.initModels()
 
       // Get account
-      const fullAcct = await accountModel.findOne()
+      const account = await accountModel.findOne()
+
+      // Init local encrypted db. This does not sync with other peers!
+      const localDB = await drive._localHB
+      const deviceInfo = await localDB.get('device')
+
+      const fullAcct = { ...account, ...deviceInfo }
 
       handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
@@ -259,9 +270,154 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  /**
-   * UPDATE ACCOUNT
-   */
+  /*************************************************
+   *  FORGOT PASSWORD
+   ************************************************/
+  if(event === 'account:resetPassword') {
+    const { passphrase, newPass } = payload
+
+    const acctPath = `${userDataPath}/${payload.email}`
+
+    store.acctPath = acctPath
+
+    try {
+      const accountModel = store.models.Account
+
+      // Get old password
+      const { master_pass } = accountModel.getVault(passphrase, 'recovery')
+      
+      // Retrieve drive encryption key and keyPair from vault using old master password
+      const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(master_pass, 'vault')
+
+      // Initialize drive
+      const drive = store.setDrive({
+        name: `${acctPath}/Drive`,
+        encryptionKey,
+        keyPair: {
+          publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+          secretKey: Buffer.from(keyPair.secretKey, 'hex')
+        }
+      })
+
+      handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+      await drive.ready()
+
+      // Initialize models
+      await store.initModels()
+
+      // Update recovery file with new password
+      await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
+
+      // Update vault file with new password
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey, keyPair })
+
+      channel.send({
+        event: 'account:resetPassword:callback',
+        data: {
+          reset: true
+        },
+      })
+    } catch(err: any) {
+      channel.send({
+        event: 'account:resetPassword:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
+
+  /*************************************************
+   *  RECOVER ACCOUNT / Sync devices
+   ************************************************/
+  // Step 1. Initiate account recovery by having a code emailed to the User's recovery email
+  if (event === 'account:recover') {
+    const { email, recoveryEmail } = payload
+    const Account = store.sdk.account
+
+    try {
+      await Account.recover({ email, recovery_email: recoveryEmail })
+      channel.send({ event: 'account:recover:callback', data: null })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:recover:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
+    }
+  }
+
+  // Step 2. Retrieve keys needed for syncing/replicating
+  if (event === 'account:sync') {
+    const { code, isSyncIntiator } = payload
+
+    if(!isSyncIntiator) {
+
+    } else {
+      // const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
+      // const parentAccountsDir = path.join(userDataPath)
+      // if (!fs.existsSync(parentAccountsDir)) {
+      //   fs.mkdirSync(parentAccountsDir)
+      // }
+      // const acctPath = path.join(userDataPath, `/${payload.email}`)
+      // store.acctPath = acctPath
+
+      // fs.mkdirSync(acctPath)
+
+      // // Generate account key bundle
+      // const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
+
+      // const encryptionKey = Crypto.generateAEDKey()
+      // const driveKeyPair = {
+      //   publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
+      //   secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
+      // }
+
+      // // Create account Nebula drive
+      // const drive = store.setDrive({
+      //   name: `${acctPath}/Drive`,
+      //   encryptionKey,
+      //   keyPair: driveKeyPair
+      // })
+
+      // handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+      // await drive.ready()
+
+      // // Initialize models
+      // await store.initModels()
+
+      // const accountModel = store.models.Account
+
+      const Account = store.sdk.account
+
+      const keys = await Account.sync({ code })
+
+      // keys.drive_key
+      // keys.peer_pub_key
+
+
+
+
+
+
+      // Create new drive and replicate
+      // Add Peer public key to ACL
+      // Sync done, go login
+    }
+  }
+
+  /*************************************************
+   *  UPDATE ACCOUNT
+   ************************************************/
   if (event === 'account:update') {
     const { accountId, displayName, avatar } = payload
 
@@ -283,9 +439,9 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  /**
-   * GET ACCOUNT STATS
-   */
+  /*************************************************
+   *  GET ACCOUNT STATS
+   ************************************************/
   if (event === 'account:retrieveStats') {
     try {
       const account = store.sdk.account
@@ -321,17 +477,17 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  /**
-   * REMOVE ACCOUNT
-   */
+  /*************************************************
+   *  REMOVE ACCOUNT
+   ************************************************/
   if (event === 'account:remove') {
     const acctPath = path.join(userDataPath, `/${payload.email}`)
     fs.rmSync(acctPath, { force: true, recursive: true })
   }
 
-  /**
-   * LOGOUT
-   */
+  /*************************************************
+   *  LOGOUT
+   ************************************************/
   if (event === 'account:logout') {
     try {
       store.setAccountSecrets({ email: undefined, password: undefined })
@@ -377,9 +533,9 @@ export default async (props: AccountOpts) => {
     return 'loggedOut'
   }
 
-  /**
-   * EXIT
-   */
+  /*************************************************
+   *  EXIT
+   ************************************************/
   if (event === 'account:exit') {
     channel.kill(0)
   }

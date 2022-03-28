@@ -31,6 +31,9 @@ export interface MainOpts {
 export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
+        | 'account:resetPassword'
+        | 'account:recover'
+        | 'account:sync'
         | 'account:remove'
         | 'account:update'
         | 'account:retrieveStats' 
@@ -45,6 +48,10 @@ export interface AccountMessage {
     password: string
     recoveryEmail: string
     vcode: string
+    code: string
+    isSyncIntiator: boolean
+    passphrase: string
+    newPass: string
   }
 }
 
