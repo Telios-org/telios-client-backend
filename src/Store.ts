@@ -218,8 +218,6 @@ export class Store extends EventEmitter{
         let conn = this._connections.get(peerKey)
         
         if(!conn) {
-          this._peers.set(peerKey, { status: 'ONLINE', server: true })
-          
           // Send current drive status to peer every 5 seconds
           socket.statusInterval = setInterval(() => {
             const _conn = this._connections.get(peerKey)
@@ -238,7 +236,8 @@ export class Store extends EventEmitter{
         conn.on('data', (data: any) => {
           try {
             const msg = JSON.parse(data.toString())
-            if(msg.status === 'ONLINE' || msg.status === 'BUSY' || msg.status === 'AWAY') {
+            const peer = this._peers.get(peerKey)
+            if(!peer || msg.status === 'OFFLINE' && peer.status !== msg.status) {
               this.emit('peer-updated', { peerKey, status: msg.status, server: true })
               this._peers.set(peerKey, { status: msg.status, server: true })
             }
