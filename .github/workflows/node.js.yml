@@ -11,8 +11,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     env: 
-      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY }}'
-      SIGNING_PUB_KEY_DEV: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
@@ -26,8 +25,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env: 
-      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY }}'
-      SIGNING_PUB_KEY_DEV: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2

@@ -112,10 +112,6 @@ export class Store extends EventEmitter{
     this._peers = new Map()
     this._swarm = null
     this.teliosPubKey = process.env.SIGNING_PUB_KEY ? process.env.SIGNING_PUB_KEY : ""
-
-    if(process.env.NODE_ENV === 'test_sdk') {
-      this.teliosPubKey = process.env.SIGNING_PUB_KEY_DEV ? process.env.SIGNING_PUB_KEY_DEV : ""
-    }
   }
 
   public setDrive(props: setDriveOpts) {
