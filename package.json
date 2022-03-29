@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "3.5.4",
+  "version": "3.5.5",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "test": "env-cmd npm run build; env-cmd tape tests/*.test.js | tap-spec",
+    "test-main": "npm run build; tape tests/*.test.js | tap-spec",
     "prepare": "env-cmd npm run build",
     "build": "tsc"
   },
