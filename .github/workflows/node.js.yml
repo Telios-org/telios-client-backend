@@ -26,8 +26,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env: 
-      SIGNING_PUB_KEY: ${{ SIGNING_PUB_KEY }}
-      SIGNING_PUB_KEY_DEV: ${{ SIGNING_PUB_KEY_DEV }}
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY }}'
+      SIGNING_PUB_KEY_DEV: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2
