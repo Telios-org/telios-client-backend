@@ -10,8 +10,6 @@ import { Store } from '../Store'
 const BSON = require('bson')
 const { ObjectID } = BSON
 
-require('dotenv').config()
-
 export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
