@@ -1,7 +1,9 @@
+const EventEmitter = require('events')
 const ClientSDK = require('@telios/client-sdk')
 const Drive = require('@telios/nebula')
+
 import envAPI from './env_api'
-import { setDriveOpts, AuthPayload, AccountSecrets, ModelType } from './types'
+import { setDriveOpts, AuthPayload, AccountSecrets, ModelType, DriveStatuses } from './types'
 import { AccountSchema } from './schemas'
 import { AccountModel } from './models/account.model'
 import { AliasModel } from './models/alias.model'
@@ -13,7 +15,7 @@ import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
 
-export class Store {
+export class Store extends EventEmitter{
   public sdk
   public drive: any
   public encryptionKey: any
@@ -30,8 +32,13 @@ export class Store {
   private _authPayload: AuthPayload
   private _accountSecrets: AccountSecrets
   private _keyPairs: any
+  private _connections: Record<string, any>
+  private _peers: Record<string, any>
+  private _driveStatus: DriveStatuses = 'OFFLINE'
 
   constructor(env: 'development' | 'production' | 'test') {
+    super()
+    
     this._teliosSDK = new ClientSDK({ 
       provider: env === 'production' || !env ? envAPI.prod : envAPI.dev 
     })
@@ -47,15 +54,25 @@ export class Store {
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
+    
     this.models = {
+      // @ts-ignore
       Account: new AccountModel(this),
+      // @ts-ignore
       Alias: new AliasModel(this),
+      // @ts-ignore
       AliasNamespace: new AliasNamespaceModel(this),
+      // @ts-ignore
       Contact: new ContactModel(this),
+      // @ts-ignore
       Email: new EmailModel(this),
+      // @ts-ignore
       File: new FileModel(this),
+      // @ts-ignore
       Folder: new FolderModel(this),
+      // @ts-ignore
       Mailbox: new MailboxModel(this),
+      // @ts-ignore
       Migrate: new MigrateModel(this)
     }
 
@@ -91,9 +108,14 @@ export class Store {
     }
     
     this._keyPairs = new Map()
+    this._connections = new Map()
+    this._peers = new Map()
+    this._swarm = null
+    this.teliosPubKey = process.env.SIGNING_PUB_KEY ? process.env.SIGNING_PUB_KEY : ""
 
-    // TODO: Retrieve this remotely from server
-    this.teliosPubKey = 'fa8932f0256a4233dde93195d24a6ae4d93cc133d966f3c9f223e555953c70c1';
+    if(process.env.NODE_ENV === 'test_sdk') {
+      this.teliosPubKey = process.env.SIGNING_PUB_KEY_DEV ? process.env.SIGNING_PUB_KEY_DEV : ""
+    }
   }
 
   public setDrive(props: setDriveOpts) {
@@ -120,6 +142,14 @@ export class Store {
 
   public getDrive() {
     return this.drive
+  }
+
+  public setDriveStatus(status: DriveStatuses) {
+    this._driveStatus = status
+  }
+
+  public getDriveStatus() {
+    return this._driveStatus
   }
 
   public async initModels() {
@@ -181,6 +211,81 @@ export class Store {
       keyPairs[entry[0]] = entry[1]
     }
     return keyPairs;
+  }
+
+  public joinPeer(peerKey: string) {
+    if(!this._swarm) {
+      this._swarm = this.drive._swarm.server
+
+      this._swarm.on('connection', (socket:any, info:any) => {
+        const peerKey = socket.remotePublicKey.toString('hex')
+        let conn = this._connections.get(peerKey)
+        
+        if(!conn) {
+          this._peers.set(peerKey, { status: 'ONLINE', server: true })
+          
+          // Send current drive status to peer every 5 seconds
+          socket.statusInterval = setInterval(() => {
+            const _conn = this._connections.get(peerKey)
+
+            if(!_conn) {
+              return clearInterval(socket.statusInterval)
+            }
+
+            conn.write(JSON.stringify({ status: this.getDriveStatus() }))
+          }, 5000)
+
+          this._connections.set(peerKey, socket)
+          conn = socket
+        }
+
+        conn.on('data', (data: any) => {
+          try {
+            const msg = JSON.parse(data.toString())
+            if(msg.status === 'ONLINE' || msg.status === 'BUSY' || msg.status === 'AWAY') {
+              this.emit('peer-updated', { peerKey, status: msg.status, server: true })
+              this._peers.set(peerKey, { status: msg.status, server: true })
+            }
+    
+          } catch(err) {
+            // Could not parse JSON
+          }
+        })
+    
+        conn.on('error', async (err: any) => {
+          clearInterval(socket.statusInterval)
+          this.emit('peer-updated', { peerKey, status: 'OFFLINE', server: true })
+          this.drive._swarm.server.leavePeer(Buffer.from(peerKey, 'hex'))
+          this._peers.delete(peerKey)
+          this._connections.delete(peerKey)
+
+          if(peerKey === this.teliosPubKey) {
+            // Attempt to reconnect to server
+            await this.drive._swarm.server.flush();
+            this.joinPeer(peerKey)
+          }
+        })
+      })
+    }
+   
+    this._swarm.joinPeer(Buffer.from(peerKey, 'hex'))
+  }
+
+  public getPeers(): Record<string, any> {
+    return this._peers
+  }
+
+  public messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }) {
+    const conn = this._connections.get(peerPubKey)
+
+    if(!conn) throw('Peer is unavailable and cannot receive messages.')
+
+    try {
+      const msg = JSON.stringify(data)
+      conn.write(msg)
+    } catch(err:any) {
+      throw err
+    }
   }
 
   public refreshToken() {

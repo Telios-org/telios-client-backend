@@ -13,6 +13,7 @@ import { StoreSchema } from './schemas'
 
 export = (props: MainOpts) => {
   const { channel, userDataPath, env } = props
+  // @ts-ignore
   const store: StoreSchema = new Store(env)
   const messageHandler = new MessageHandler(channel, store)
 
