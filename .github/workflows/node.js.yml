@@ -10,7 +10,8 @@ jobs:
         node-version: [16.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    env: 
+    env:
+      NODE_ENV: 'test_sdk'
       SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +25,8 @@ jobs:
     name: Publish Package
     needs: build
     runs-on: ubuntu-latest
-    env: 
+    env:
+      NODE_ENV: 'test_sdk'
       SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     if: github.ref == 'refs/heads/master'
     steps:
