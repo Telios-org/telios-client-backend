@@ -1,6 +1,6 @@
 {
   "name": "@telios/telios-client-backend",
-  "version": "3.5.6",
+  "version": "3.5.7",
   "description": "A reusable backend to for telios email clients to use between desktop and mobile.",
   "main": "index.js",
   "files": [
@@ -11,7 +11,7 @@
   "scripts": {
     "test": "env-cmd npm run build; env-cmd tape tests/*.test.js | tap-spec",
     "test-main": "npm run build; tape tests/*.test.js | tap-spec",
-    "prepare": "npm run build",
+    "prepare": "env-cmd npm run build",
     "build": "tsc"
   },
   "repository": {
@@ -25,8 +25,8 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^5.1.0",
-    "@telios/nebula": "^2.5.0",
+    "@telios/client-sdk": "^5.1.1",
+    "@telios/nebula": "^2.5.1",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",

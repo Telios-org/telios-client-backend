@@ -151,15 +151,16 @@ test('forward email out of network', async t => {
 
     if(error) t.fail(error.message)
 
-    console.log('SUCCESS :: ', cb)
+    const attachments = JSON.parse(data.attachments)
+
     t.ok(data.emailId)
-    t.ok(data.attachments[0].content)
+    t.equals(attachments[0].content, undefined)
     t.ok(meta.isOffWorlding)
   })
 })
 
 test('forward email in network', async t => {
-  t.plan(2)
+  t.plan(3)
 
   const payload = {
     email: MockEmail({ 
@@ -176,17 +177,16 @@ test('forward email in network', async t => {
 
   channel.once('email:sendEmail:callback', cb => {
     const { error, data, meta } = cb
-
+    console.log(error)
     if(error) t.fail(error.message)
 
-    console.log('SUCCESS :: ', cb)
+    const attachments = JSON.parse(data.attachments)
+
     t.ok(data.emailId)
-    t.ok(data.attachments[0].content === undefined)
+    t.ok(attachments[0].content === undefined)
     t.ok(!meta.isOffWorlding)
   })
 })
-
-
 
 test('generate new aliases for on-the-fly email', async t => {
   t.plan(3)
