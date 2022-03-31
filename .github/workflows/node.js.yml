@@ -17,7 +17,7 @@ jobs:
           envkey_NODE_ENV: 'test_sdk'
           envkey_SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
           file_name: .env
-          directory: "/home/runner/work/telios-client-backend/telios-client-backend"
+          directory: "./home/runner/work/telios-client-backend/telios-client-backend"
           fail_on_empty: false
       - name: Checkout repo
         uses: actions/checkout@v2
