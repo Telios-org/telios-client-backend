@@ -10,13 +10,10 @@ jobs:
         node-version: [16.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      NODE_ENV: 'test_sdk'
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     steps:
-      - name: Make envfile
-        run: |
-          touch .env
-          echo NODE_ENV="test_sdk" >> .env
-          echo SIGNING_PUB_KEY="${{ secrets.SIGNING_PUB_KEY_DEV }}" >> .env
-          cat .env
       - name: Checkout repo
         uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
