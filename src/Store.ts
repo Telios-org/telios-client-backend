@@ -36,11 +36,11 @@ export class Store extends EventEmitter{
   private _peers: Record<string, any>
   private _driveStatus: DriveStatuses = 'OFFLINE'
 
-  constructor(env: 'development' | 'production' | 'test') {
+  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string) {
     super()
     
     this._teliosSDK = new ClientSDK({ 
-      provider: env === 'production' || !env ? envAPI.prod : envAPI.dev 
+      provider: apiURL || envAPI.prod
     })
 
     this.sdk = {
@@ -50,7 +50,7 @@ export class Store extends EventEmitter{
     }
 
     this.domain = {
-      api: env === 'production' || !env ? envAPI.prod : envAPI.dev,
+      api: apiURL || envAPI.prod,
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
@@ -79,9 +79,10 @@ export class Store extends EventEmitter{
     this.drive = null
     this.encryptionKey = ''
     this.acctPath = ''
+    // Fallback to production signing public key if it could not be fetched from well-known resource
+    this.teliosPubKey = signingPubKey || "fa8932f0256a4233dde93195d24a6ae4d93cc133d966f3c9f223e555953c70c1"
     
     this._account = {
-
       uid: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
@@ -111,7 +112,6 @@ export class Store extends EventEmitter{
     this._connections = new Map()
     this._peers = new Map()
     this._swarm = null
-    this.teliosPubKey = process.env.SIGNING_PUB_KEY ? process.env.SIGNING_PUB_KEY : ""
   }
 
   public setDrive(props: setDriveOpts) {
@@ -120,7 +120,7 @@ export class Store extends EventEmitter{
     this.encryptionKey = encryptionKey
     
     if(!Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
-    
+
     this.drive = new Drive(name, null, {
       keyPair,
       encryptionKey: this.encryptionKey,

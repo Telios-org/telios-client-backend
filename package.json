@@ -11,7 +11,7 @@
   "scripts": {
     "test": "env-cmd npm run build; env-cmd tape tests/*.test.js | tap-spec",
     "test-main": "npm run build; tape tests/*.test.js | tap-spec",
-    "prepare": "npm run build",
+    "prepare": "env-cmd npm run build",
     "build": "tsc"
   },
   "repository": {

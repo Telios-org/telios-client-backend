@@ -59,7 +59,7 @@ test('create account', async t => {
 })
 
 test('account login success', async t => {
-  t.plan(1)
+  t.plan(3)
 
   _channel = new Channel(path.join(__dirname, 'Accounts'))
 
@@ -68,6 +68,17 @@ test('account login success', async t => {
     payload: {
       email: 'bob@telios.io',
       password: 'letmein123'
+    }
+  })
+
+  _channel.on('drive:peer:updated', cb => {
+    const { error, data } = cb
+  
+    if(error) t.fail(error.message)
+
+    if(data && data.status === 'ONLINE') {
+      t.ok(data.peerKey)
+      t.equals(true, data.server)
     }
   })
 
@@ -116,7 +127,7 @@ test('retrieve account stats', async t => {
     
     if(error) t.fail(error.message)
 
-    console.log('SUCESS ::', data)
+    console.log('SUCCESS ::', data)
     t.ok(data)
   })
 
@@ -181,41 +192,6 @@ test('get account refresh token', async t => {
 
       t.ok(data)
     })
-
-    t.teardown(async () => {
-      channel.kill()
-    })
-  })
-})
-
-test('get connected peer status', async t => {
-  t.plan(2)
-
-  const channel = new Channel(path.join(__dirname, 'Accounts'))
-
-  channel.send({
-    event: 'account:login',
-    payload: {
-      email: 'bob@telios.io',
-      password: 'letmein123'
-    }
-  })
-
-  channel.on('drive:peer:updated', cb => {
-    const { error, data } = cb
-  
-    if(error) t.fail(error.message)
-
-    if(data && data.status === 'ONLINE') {
-      t.ok(data.peerKey)
-      t.equals(true, data.server)
-    }
-  })
-
-  channel.on('account:login:callback', cb => {
-    const { error, data } = cb
-    
-    if(error) t.fail(error.message)
 
     t.teardown(async () => {
       channel.kill()
