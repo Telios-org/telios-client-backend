@@ -12,14 +12,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Make envfile
-      - uses: SpicyPizza/create-envfile@v1.3
+        uses: SpicyPizza/create-envfile@v1.3
         with:
           envkey_NODE_ENV: 'test_sdk'
           envkey_SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
           file_name: .env
           fail_on_empty: false
       - name: Checkout repo
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
@@ -36,7 +36,7 @@ jobs:
     if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout repo
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
       - name: Use Node.js 16.x
         uses: actions/setup-node@v1
         with:
