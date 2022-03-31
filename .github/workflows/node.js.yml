@@ -18,6 +18,7 @@ jobs:
           envkey_SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
           file_name: .env
           fail_on_empty: false
+      - name: Checkout repo
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
@@ -34,6 +35,7 @@ jobs:
       SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     if: github.ref == 'refs/heads/master'
     steps:
+      - name: Checkout repo
       - uses: actions/checkout@v2
       - name: Use Node.js 16.x
         uses: actions/setup-node@v1
