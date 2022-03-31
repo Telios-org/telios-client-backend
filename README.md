@@ -90,6 +90,18 @@ channel.on('account:create:callback', cb => {
 
 #### `channel.on('drive:network:updated', data => {})`
 
+#### `channel.on('drive:peer:updated', data => {})`
+
+Returns the following peer info:
+
+```js
+  {
+    peerKey: '00000000000000000000000000000000',
+    status: 'ONLINE' | 'OFFLINE' | 'BUSY',  'AWAY',
+    server: true | false
+  }
+```
+
 ## Account API
 
 #### `channel.send({ event: 'account:create', payload })`

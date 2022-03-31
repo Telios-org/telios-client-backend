@@ -187,6 +187,8 @@ export interface setDriveOpts {
   acl?: string[]
 }
 
+export type DriveStatuses = 'ONLINE' | 'OFFLINE' | 'BUSY' | 'AWAY'
+
 export interface QueryOpts {
   count?: boolean
   sort?: (sortKey: string, direction: number) => any

@@ -27,7 +27,7 @@ export default class MesssageHandler {
     }
 
     // If worker is running before drive is ready then call .ready()
-    if (!this.drive.discoveryKey) {
+    if (this.drive && !this.drive.discoveryKey) {
       await this.drive.ready()
     }
 

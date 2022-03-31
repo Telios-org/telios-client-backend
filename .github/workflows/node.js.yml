@@ -10,6 +10,9 @@ jobs:
         node-version: [16.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      NODE_ENV: 'test_sdk'
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
@@ -17,11 +20,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
-      - run: npm test
+      - run: npm run test-main
   publish:
     name: Publish Package
     needs: build
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: 'test_sdk'
+      SIGNING_PUB_KEY: '${{ secrets.SIGNING_PUB_KEY_DEV }}'
     if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2

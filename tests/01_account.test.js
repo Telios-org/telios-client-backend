@@ -188,6 +188,41 @@ test('get account refresh token', async t => {
   })
 })
 
+test('get connected peer status', async t => {
+  t.plan(2)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'bob@telios.io',
+      password: 'letmein123'
+    }
+  })
+
+  channel.on('drive:peer:updated', cb => {
+    const { error, data } = cb
+  
+    if(error) t.fail(error.message)
+
+    if(data && data.status === 'ONLINE') {
+      t.ok(data.peerKey)
+      t.equals(true, data.server)
+    }
+  })
+
+  channel.on('account:login:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    t.teardown(async () => {
+      channel.kill()
+    })
+  })
+})
+
 async function cleanup() {
   if (fs.existsSync(path.join(__dirname, '/Accounts'))) {
     fs.rmSync(path.join(__dirname, 'Accounts'), { recursive: true })
