@@ -42,37 +42,60 @@ export default async (props: EmailOpts) => {
       let attachments: Attachment[] = email?.attachments
       let totalAttachmentSize = 0
 
+      //Is the email going somewhere off network?
+      const recipients = [...email.to, ...email.cc, ...email.bcc];
+      const isOffWorlding = recipients.some((r) => !r.account_key)
+
       // 1. Save individual attachments to local disk
       if(attachments?.length) {
         for(let attachment of attachments) {
           await new Promise((resolve, reject) => {
             try {
-              totalAttachmentSize += attachment.size
-              let filename = attachment.filename ||attachment.name
-              if(attachment.contentType === "text/x-amp-html"){
-                filename = "x-amp-html.html"
+
+              totalAttachmentSize += attachment.size;
+              let filename = attachment.filename || attachment.name
+
+              if(attachment.content !== null && !attachment.path){
+                  FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file) => {
+                      _attachments.push({
+                          _id: file._id,
+                          filename,
+                          content: file.content,
+                          contentType: file.contentType,
+                          size: file.size,
+                          discoveryKey: file.discovery_key,
+                          hash: file.hash,
+                          path: file.path,
+                          header: file.header,
+                          key: file.key
+                      });
+                      resolve(file);
+                  }).catch((err) => {
+                      reject(err);
+                  });
+              }else if(isOffWorlding){
+                  //If we send the message outside the network we need to send the base64 content
+                  FileUtil.readFile(attachment.path as string, {drive, type: 'attachment'} ).then((content: string) => {
+                      _attachments.push({
+                          ...attachment,
+                          content
+                      });
+                      resolve(content);
+                  }).catch((err) => {
+                      reject(err);
+                  });
+              }else{
+                  //If we stay within network all the information necessary is already available
+                  _attachments.push({
+                      ...attachment
+                  });
+                  resolve(attachment)
               }
-
-              FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file: FileSchema) => {
-                _attachments.push({
-                  _id: file._id,
-                  filename,
-                  contentType: file.contentType,
-                  size: file.size,
-                  discoveryKey: file.discovery_key,
-                  hash: file.hash,
-                  path: file.path,
-                  header: file.header,
-                  key: file.key
-                })
-
-                resolve(file)
-              }).catch((err: any) => {
-                reject(err)
-              })              
-            } catch(e) {
-              reject(e)
-            }
+              
+          }
+          catch (e) {
+              reject(e);
+          }
           })
         }
   
@@ -175,7 +198,7 @@ export default async (props: EmailOpts) => {
         ) {
           msg.email.attachments.forEach((file: Attachment) => {
             const fileId = file.fileId || uuidv4()
-            let filename = file.filename || file.name
+            let filename = file.filename || file.name || 'unnamed'
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
@@ -456,6 +479,7 @@ export default async (props: EmailOpts) => {
       const drive = store.getDrive()
 
       const Email = store.models.Email
+      const File = store.models.File;
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
@@ -471,6 +495,13 @@ export default async (props: EmailOpts) => {
         email.bcc = JSON.parse(eml.bccJSON)//bcc gets stripped unpon send so we need to restore from collection
       }
        
+      for(let i = 0; i < email.attachments.length; i += 1) {
+        const _file = email.attachments[i]
+        const attachment = await File.findOne({ path: _file.path })
+        _file.hash = attachment.hash
+        _file.header = attachment.header
+        _file.key = attachment.key
+    }
       
       email.unread = eml.unread
       email.folderId = eml.folderId

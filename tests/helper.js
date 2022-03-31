@@ -68,15 +68,15 @@ module.exports.OpenChannel = () => {
 module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread }) => {
   const uuid = uuidv4()
 
-  const _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io' } ]
-  const _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io' } ]
-  const _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io' } ]
+  const _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io', account_key:'123456' } ]
+  const _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io', account_key:'654321' } ]
+  const _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io', account_key:'112333' } ]
   const _bcc = [ { name: 'Albus Dumbeldore', address: 'albus.dumbeldore@howgwarts.edu' } ]
 
   if(to) _to.push(to)
-  if(from) _to.push(from)
-  if(cc) _to.push(cc)
-  if(bcc) _to.push(bcc)
+  if(from) _from.push(from)
+  if(cc) _cc.push(cc)
+  if(bcc) _bcc.push(bcc)
 
   return {
     emailId,

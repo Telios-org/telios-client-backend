@@ -26,7 +26,7 @@ test('send email', async t => {
 
     if(error) t.fail(error.message)
 
-    console.log('SUCCESS :: ', data)
+    console.log('SUCCESS :: ', cb)
     
     t.ok(data.emailId)
   })

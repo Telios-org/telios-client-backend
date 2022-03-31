@@ -115,6 +115,7 @@ export interface FileSchema {
   folderId: number
   filename: string
   contentType: string
+  content: string
   size: number
   drive: string
   path: string

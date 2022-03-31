@@ -136,7 +136,7 @@ export const saveFileFromEncryptedStream = async (writeStream: any, opts: { disc
   });
 };
 
-export const readFile = (path: string, opts: { drive: any, type: string }) => {
+export const readFile = (path: string, opts: { drive: any, type: string }):Promise<string> => {
   return new Promise((resolve, reject) => {
     let content = ''
     
