@@ -141,7 +141,7 @@ export default async (props: EmailOpts) => {
 
       const doc = await Email.insert(_email)
 
-      channel.send({ event: 'email:sendEmail:callback', data: doc })
+      channel.send({ event: 'email:sendEmail:callback', data: doc, meta:{isOffWorlding} })
     } catch(err: any) {
       channel.send({
         event: 'email:sendEmail:callback',

@@ -130,6 +130,64 @@ test('save email attachments', async t => {
   })
 })
 
+
+test('forward email out of network', async t => {
+  t.plan(3)
+
+  const payload = {
+    email: MockEmail({ 
+      emailId: null, 
+      folderId: 1, 
+      aliasId: null, 
+      unread: false,
+      attachments: JSON.parse(__email.attachments) 
+    })
+  }
+
+  channel.send({ event: 'email:sendEmail', payload })
+
+  channel.once('email:sendEmail:callback', cb => {
+    const { error, data, meta } = cb
+
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', cb)
+    t.ok(data.emailId)
+    t.ok(data.attachments[0].content)
+    t.ok(meta.isOffWorlding)
+  })
+})
+
+test('forward email in network', async t => {
+  t.plan(2)
+
+  const payload = {
+    email: MockEmail({ 
+      emailId: null, 
+      folderId: 1, 
+      aliasId: null, 
+      unread: false,
+      attachments: JSON.parse(__email.attachments),
+      bcc:[]
+    })
+  }
+
+  channel.send({ event: 'email:sendEmail', payload })
+
+  channel.once('email:sendEmail:callback', cb => {
+    const { error, data, meta } = cb
+
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', cb)
+    t.ok(data.emailId)
+    t.ok(data.attachments[0].content === undefined)
+    t.ok(!meta.isOffWorlding)
+  })
+})
+
+
+
 test('generate new aliases for on-the-fly email', async t => {
   t.plan(3)
     const mockEmail = MockEmail({ to: { address: 'alice2022#onthefly@telios.io' }, unread: false })

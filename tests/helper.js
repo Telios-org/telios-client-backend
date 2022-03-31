@@ -65,19 +65,47 @@ module.exports.OpenChannel = () => {
   })
 }
 
-module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread }) => {
+module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread, attachments }) => {
   const uuid = uuidv4()
 
-  const _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io', account_key:'123456' } ]
-  const _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io', account_key:'654321' } ]
-  const _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io', account_key:'112333' } ]
-  const _bcc = [ { name: 'Albus Dumbeldore', address: 'albus.dumbeldore@howgwarts.edu' } ]
+  let _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io', account_key:'123456' } ]
+  let _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io', account_key:'654321' } ]
+  let _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io', account_key:'112333' } ]
+  let _bcc = [ { name: 'Albus Dumbeldore', address: 'albus.dumbeldore@howgwarts.edu' } ]
+  let _attachments = [{
+    filename: 'test_image.png',
+    extension: '.png',
+    contentType: 'image/png',
+    size: 280000000,
+    content: b64EncodedAttachment
+  }]
 
-  if(to) _to.push(to)
-  if(from) _from.push(from)
-  if(cc) _cc.push(cc)
-  if(bcc) _bcc.push(bcc)
 
+  if(to){
+    if(Array.isArray(to)) _to = to
+    else _to.push(to)
+  }
+
+  if(from){
+    if(Array.isArray(from)) _from = from
+    else _from.push(from)
+  }
+
+  if(cc){
+    if(Array.isArray(cc)) _cc = cc
+    else _to.push(cc)
+  }
+
+  if(bcc){
+    if(Array.isArray(bcc)) _bcc = bcc
+    else _to.push(bcc)
+  }
+
+  if(attachments){
+    if(Array.isArray(attachments)) _attachments = attachments
+    else _to.push(attachments)
+  }
+  
   return {
     emailId,
     folderId,
@@ -93,13 +121,7 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
     bodyAsText: `This is a test message-${uuid}`,
     html_body: `<div>This is a test message-${uuid}</div>`,
     bodyAsHtml: `<div>This is a test message-${uuid}</div>`,
-    attachments: [{
-      filename: 'test_image.png',
-      extension: '.png',
-      contentType: 'image/png',
-      size: 280000000,
-      content: b64EncodedAttachment
-    }],
+    attachments: _attachments,
     path: null,
     // Timestamps
     createdAt: new Date().toUTCString(),
