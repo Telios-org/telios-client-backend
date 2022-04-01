@@ -497,10 +497,12 @@ export default async (props: EmailOpts) => {
        
       for(let i = 0; i < email.attachments.length; i += 1) {
         const _file = email.attachments[i]
-        const attachment = await File.findOne({ path: _file.path })
-        _file.hash = attachment.hash
-        _file.header = attachment.header
-        _file.key = attachment.key
+        if(!_file.hash && !_file.key && !_file.header) {
+          const attachment = await File.findOne({ path: _file.path })
+          _file.hash = attachment.hash
+          _file.header = attachment.header
+          _file.key = attachment.key
+        }
     }
       
       email.unread = eml.unread
