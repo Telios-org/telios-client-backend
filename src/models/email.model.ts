@@ -48,6 +48,19 @@ export class EmailModel {
       bodyAsText = doc.bodyAsText.split(" ").slice(0, 20).join(" ")
     }
 
+    if(doc.attachments) {
+      let attachments = JSON.parse(doc.attachments)
+      attachments = attachments.map((file:any) => {
+        if(file.content) {
+          delete file.content
+        }
+
+        return file
+      })
+
+      doc.attachments = JSON.stringify(attachments)
+    }
+
     const sparseEmail = {
       emailId: doc.emailId,
       folderId: doc.folderId,

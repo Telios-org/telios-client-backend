@@ -1,6 +1,14 @@
-import { setDriveOpts, AuthPayload, AccountSecrets, ModelType } from './types'
+import { setDriveOpts, AuthPayload, AccountSecrets, ModelType, DriveStatuses } from './types'
 
-export interface StoreSchema {
+interface IEmissions {
+  'peer-updated': (data: {
+      peerKey: string
+      status: DriveStatuses
+      server: boolean
+  }) => void
+}
+
+export declare interface StoreSchema {
   sdk: {
     account: any
     mailbox: any
@@ -15,8 +23,12 @@ export interface StoreSchema {
     mail: string
   }
   models: ModelType
+  on: <K extends "peer-updated">(event: K, listener: IEmissions[K]) => this
+  emit: <K extends "peer-updated">(event: K, ...args: Parameters<IEmissions[K]>) => boolean
   setDrive(props: setDriveOpts): any
   getDrive(): any
+  setDriveStatus(string: DriveStatuses): any
+  getDriveStatus(): DriveStatuses
   initModels(): Promise<void>
   setAccount(account: AccountSchema | null): void
   getAccount(): AccountSchema
@@ -29,6 +41,9 @@ export interface StoreSchema {
       privateKey: string
   }): void
   getKeypairs(): any
+  joinPeer(peerPubKey: string): any
+  getPeers(): Record<string, any>
+  messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
 }
 
@@ -115,6 +130,7 @@ export interface FileSchema {
   folderId: number
   filename: string
   contentType: string
+  content: string
   size: number
   drive: string
   path: string

@@ -27,7 +27,7 @@ export default class MesssageHandler {
     }
 
     // If worker is running before drive is ready then call .ready()
-    if (!this.drive.discoveryKey) {
+    if (this.drive && !this.drive.discoveryKey) {
       await this.drive.ready()
     }
 
@@ -245,7 +245,14 @@ export default class MesssageHandler {
      *  HANDLE SINGLE MESSAGE
      ************************************************/
     if (event === 'messageHandler:newMessage') {
-      const { meta } = payload;
+      let { meta } = payload;
+
+      if(!meta.discoveryKey && meta.msg) {
+        // Decipher meta
+        const account = this.store.getAccount();
+        meta = this.store.sdk.mailbox._decryptMailMeta(meta, account.secretBoxPrivKey, account.secretBoxPubKey);
+      }
+      
       await this.fetchFile(meta.discovery_key, meta)
     }
 

@@ -26,7 +26,7 @@ test('send email', async t => {
 
     if(error) t.fail(error.message)
 
-    console.log('SUCCESS :: ', data)
+    console.log('SUCCESS :: ', cb)
     
     t.ok(data.emailId)
   })
@@ -109,10 +109,16 @@ test('save email attachments', async t => {
     attachments: JSON.parse(__email.attachments)
   }
 
+  channel.on('debug', cb => {
+    console.log('DEBUGLOG', cb.data);
+  })
+
   channel.send({ event: 'email:saveFiles', payload })
 
   channel.once('email:saveFiles:callback', cb => {
     const { error, data } = cb
+
+    console.log('DATA', data);
 
     if(error) t.fail(error.message)
 
@@ -121,6 +127,64 @@ test('save email attachments', async t => {
 
   t.teardown(() => {
     fs.rmSync(__dirname + '/newDir', { recursive: true })
+  })
+})
+
+
+test('forward email out of network', async t => {
+  t.plan(3)
+
+  const payload = {
+    email: MockEmail({ 
+      emailId: null, 
+      folderId: 1, 
+      aliasId: null, 
+      unread: false,
+      attachments: JSON.parse(__email.attachments) 
+    })
+  }
+
+  channel.send({ event: 'email:sendEmail', payload })
+
+  channel.once('email:sendEmail:callback', cb => {
+    const { error, data, meta } = cb
+
+    if(error) t.fail(error.message)
+
+    const attachments = JSON.parse(data.attachments)
+
+    t.ok(data.emailId)
+    t.equals(attachments[0].content, undefined)
+    t.ok(meta.isOffWorlding)
+  })
+})
+
+test('forward email in network', async t => {
+  t.plan(3)
+
+  const payload = {
+    email: MockEmail({ 
+      emailId: null, 
+      folderId: 1, 
+      aliasId: null, 
+      unread: false,
+      attachments: JSON.parse(__email.attachments),
+      bcc:[]
+    })
+  }
+
+  channel.send({ event: 'email:sendEmail', payload })
+
+  channel.once('email:sendEmail:callback', cb => {
+    const { error, data, meta } = cb
+    console.log(error)
+    if(error) t.fail(error.message)
+
+    const attachments = JSON.parse(data.attachments)
+
+    t.ok(data.emailId)
+    t.ok(attachments[0].content === undefined)
+    t.ok(!meta.isOffWorlding)
   })
 })
 

@@ -3,8 +3,9 @@ const path = require('path')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 
-import { AccountOpts } from '../types'
+import { AccountOpts, DriveStatuses } from '../types'
 import { StoreSchema } from '../schemas'
+import { Store } from '../Store'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -49,6 +50,11 @@ export default async (props: AccountOpts) => {
       handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
 
       await drive.ready()
+
+      store.setDriveStatus('ONLINE')
+
+      // Join Telios as a peer
+      joinPeer(store, store.teliosPubKey, channel)
 
       // Initialize models
       await store.initModels()
@@ -195,6 +201,10 @@ export default async (props: AccountOpts) => {
 
         await drive.ready()
 
+        store.setDriveStatus('ONLINE')
+
+        // Join Telios as a peer
+        joinPeer(store, store.teliosPubKey, channel)
       } catch(err: any) {
         
         if(err?.type !== 'VAULTERROR') {
@@ -547,11 +557,10 @@ async function handleDriveMessages(
   channel: any,
   store: StoreSchema,
 ) {
-  drive.on('message', (peerPubKey: string, data: any) => {
-    const msg = JSON.parse(data.toString())
-
-    // Only connect to peers with the SDK priv/pub keypair
-    if (msg.type && peerPubKey === store.teliosPubKey) {
+  drive.on('message', (peerKey: string, data: any) => {
+    try {
+      const msg = JSON.parse(data.toString())
+      
       // Service is telling client it has a new email to sync
       if (msg.type === 'newMail') {
         channel.send({
@@ -559,16 +568,17 @@ async function handleDriveMessages(
           data: { meta: msg.meta, account, async: true },
         })
       }
-    } else {
-      channel.send({
-        event: 'account:newMessage:callback',
-        error: {
-          name: 'account:newMessage:callback',
-          message: 'Could not connect to peer',
-          stacktrace: '',
-        }
-      })
+    } catch(err) {
+      // Could not parse message as JSON
     }
+  })
+}
+
+function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
+  store.joinPeer(peerPubKey)
+
+  store.on('peer-updated', (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
+    channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
   })
 }
 
@@ -629,6 +639,8 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         })
 
         await drive.ready()
+
+        store.setDriveStatus('ONLINE')
 
         // Initialize models
         await store.initModels()

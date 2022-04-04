@@ -3,3 +3,4 @@ node_modules
 /dist
 /tests/Drive/*
 /tests/Accounts/*
+.env
