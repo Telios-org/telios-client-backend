@@ -15,9 +15,31 @@ export default async (props: FolderOpts) => {
       
       const folders: FolderSchema[] = await Folder.find({ mailboxId: payload.id }).sort('seq', 1)
 
+      const promises = folders.map(async f => {
+        const Email = store.models.Email
+
+         // Making sure the folder count is accurate
+        const { count } = await Folder.findOne({ folderId: f.folderId })
+        const emails = await Email.find({unread: true, folderId: f.folderId})
+        const newCount = await emails.length;
+
+        let updated = false
+        if(count !== newCount){
+          const { nModified } = await Folder.update({ folderId: f.folderId }, { count: newCount })
+          updated = nModified;
+        }
+
+        return {
+          ...f,
+          count: newCount
+        }
+      })
+
+      const output = await Promise.all(promises)
+
       channel.send({
         event: 'folder:getMailboxFolders:callback',
-        data: folders
+        data: output
       });
     } catch(err: any) {
       channel.send({
@@ -123,7 +145,6 @@ export default async (props: FolderOpts) => {
       })
     }
   }
-
 
   /*************************************************
    *  DELETE FOLDERS
