@@ -78,7 +78,6 @@ export interface FolderMessage {
         | 'folder:createFolder'
         | 'folder:updateFolder'
         | 'folder:updateFolderCount'
-        | 'folder:checkFolderCount'
         | 'folder:deleteFolder'
   payload: any
 }
@@ -91,7 +90,6 @@ export interface AliasMessage {
         | 'alias:registerAliasAddress'
         | 'alias:updateAliasAddress'
         | 'alias:removeAliasAddress'
-        | 'alias:checkAliasCount'
   payload: any
 }
 

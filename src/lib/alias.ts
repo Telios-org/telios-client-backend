@@ -288,4 +288,28 @@ export default async (props: AliasOpts) => {
     }
   }
 
+    /*************************************************
+   *  UPDATE ALIAS COUNT
+   ************************************************/
+     if (event === 'alias:updateAliasCount') {
+      const { id, amount } = payload
+  
+      try {
+        const Alias = store.models.Alias
+  
+        await Alias.update({ aliasId: id }, { $inc: { count: amount } })
+  
+        channel.send({ event: 'alias:updateAliasCount:callback', updated: true })
+      } catch(err:any) {
+        channel.send({
+          event: 'alias:updateAliasCount:callback',
+          error: {
+            name: err.name,
+            message: err.message,
+            stacktrace: err.stack
+          }
+        })
+      }
+    }
+
 }

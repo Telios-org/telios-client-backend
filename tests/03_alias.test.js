@@ -2,6 +2,8 @@ const tape = require('tape')
 const _test = require('tape-promise').default
 const test = _test(tape)
 const { OpenChannel } = require('./helper')
+const { MockEmail } = require('./helper')
+
 
 let channel
 let mailboxId
@@ -62,7 +64,7 @@ test('register new alias address', async t => {
 
   const payload = {
     namespaceName: 'alice2022',
-    domain: 'dev,telios.io',
+    domain: 'dev.telios.io',
     address: 'netflix',
     description: '',
     fwdAddresses: '',
@@ -112,7 +114,7 @@ test('update alias address', async t => {
 
   const payload = {
     namespaceName: 'alice2022',
-    domain: 'dev,telios.io',
+    domain: 'dev.telios.io',
     address: 'netflix',
     description: 'Updated description',
     fwdAddresses: ['alice@mail.com', 'alice@somemail.com'],
@@ -135,35 +137,65 @@ test('update alias address', async t => {
 })
 
 test('increment alias message count', async t => {
-  t.plan(1)
+  t.plan(2)
 
-  const payload = { id: 'alice2022#netflix' , amount: 1 }
+  const mockEmail = MockEmail({ to: { address: 'alice2022#netflix@dev.telios.io' }, unread: false })
 
-  channel.send({ event: 'alias:updateAliasCount', payload })
+  const payloadEML = {
+    type: 'Incoming',
+    messages: [mockEmail],
+  }
 
-  channel.once('alias:updateAliasCount:callback', cb => {
+  let eml;
+  channel.send({ event: 'email:saveMessageToDB', payload: payloadEML })
+
+  channel.once('email:saveMessageToDB:callback', cb => {
     const { error, data } = cb
 
     if(error) t.fail(error.message)
+    eml = data.msgArr[0]
+    const payload = { id: 'alice2022#netflix' , amount: 1 }
 
-    channel.send({ event: 'alias:getMailboxAliases', payload: {
-      namespaceKeys: ['alice2022']
-    } })
-  
-    channel.once('alias:getMailboxAliases:callback', cb => {
+    channel.send({ event: 'alias:updateAliasCount', payload })
+
+    channel.once('alias:updateAliasCount:callback', cb => {
       const { error, data } = cb
 
       if(error) t.fail(error.message)
 
-      console.log('SUCCESS :: ', data[0])
+      channel.send({ event: 'alias:getMailboxAliases', payload: {
+        namespaceKeys: ['alice2022']
+      } })
+    
+      channel.once('alias:getMailboxAliases:callback', cb => {
+        const { error, data } = cb
+
+        if(error) t.fail(error.message)
+
+        console.log('SUCCESS :: ', data[0])
+        
+        t.equals(data[0].count, 1)
+
+        const payloadRM = {
+          messageIds: [eml.emailId]
+        }
       
-      t.equals(data[0].count, 1)
+        channel.send({ event: 'email:removeMessages', payload: payloadRM })
+        channel.once('email:removeMessages:callback', cb => {
+          const { error, data } = cb
+      
+          if(error) t.fail(error.message)
+      
+          t.ok(true)
+        })
+      })
     })
   })
 })
 
 test('decrement alias message count', async t => {
   t.plan(1)
+
 
   const payload = { id: 'alice2022#netflix' , amount: -1 }
 
@@ -195,7 +227,7 @@ test('remove alias address', async t => {
 
   const payload = {
     namespaceName: 'alice2022',
-    domain: 'dev,telios.io',
+    domain: 'dev.telios.io',
     address: 'netflix'
   }
 
