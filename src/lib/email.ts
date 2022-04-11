@@ -696,6 +696,7 @@ export default async (props: EmailOpts) => {
               discoveryKey: file.discoveryKey,
               filename: file.filename
             })
+            channel.send({event:"debug", data: 'AFTER FILEUTIL'})
           }
         })
       )

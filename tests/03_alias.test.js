@@ -139,7 +139,7 @@ test('update alias address', async t => {
 test('increment alias message count', async t => {
   t.plan(2)
 
-  const mockEmail = MockEmail({ to: { address: 'alice2022#netflix@dev.telios.io' }, unread: false })
+  const mockEmail = MockEmail({ to: { address: 'alice2022#netflix@dev.telios.io' }, unread: false, attachments: [] })
 
   const payloadEML = {
     type: 'Incoming',

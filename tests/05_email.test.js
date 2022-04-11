@@ -177,7 +177,6 @@ test('forward email in network', async t => {
 
   channel.once('email:sendEmail:callback', cb => {
     const { error, data, meta } = cb
-    console.log(error)
     if(error) t.fail(error.message)
 
     const attachments = JSON.parse(data.attachments)
