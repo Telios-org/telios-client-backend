@@ -132,7 +132,7 @@ export default async (props: EmailOpts) => {
         ccJSON: JSON.stringify(email.cc),
         bccJSON: JSON.stringify(email.bcc),
         bodyAsText: removeMd(email.bodyAsText),
-        bodyAsHtml: email.bodyAsHtml,
+        bodyAsHtml: email.bodyAsHtml ? email.bodyAsHtml : `<div>${removeMd(email.bodyAsText)}</div>`,
         attachments: JSON.stringify(email.attachments),
         date: email.date || UTCtimestamp(),
         createdAt: email.createdAt || UTCtimestamp(),
@@ -486,6 +486,10 @@ export default async (props: EmailOpts) => {
       let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email'})
 
       email = JSON.parse(email)
+
+      if(!email.bodyAsHtml) {
+        email.bodyAsHtml = `<div>${removeMd(email.bodyAsText)}</div>`
+      }
 
       if(typeof email.attachments === 'string') {
         email.attachments = JSON.parse(email.attachments)
