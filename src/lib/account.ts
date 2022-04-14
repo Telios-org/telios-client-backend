@@ -391,7 +391,8 @@ export default async (props: AccountOpts) => {
    * EXIT
    */
   if (event === 'account:exit') {
-    channel.kill(0)
+    const drive = store.drive
+    await drive.close()
   }
 }
 
