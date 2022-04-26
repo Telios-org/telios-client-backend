@@ -32,7 +32,7 @@ export = (props: MainOpts) => {
         store = new Store(env, signingPubKey, apiURL)
         messageHandler = new MessageHandler(channel, store)
       } catch(err:any) {
-        throw err
+        // No internet connection
       }
     }
     Account({ channel, userDataPath, msg, store })
