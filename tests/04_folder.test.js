@@ -128,38 +128,42 @@ test('get mailbox folders', async t => {
       t.ok(data)
     })
   })
-})
-
-test('remove folder', async t => {
-  t.plan(1)
-
-  const payload = {
-    id: 6 
-  }
-
-  channel.send({ event: 'folder:deleteFolder', payload })
-
-  channel.once('folder:deleteFolder:callback', cb => {
-    const { error, data } = cb
-
-    if(error) t.fail(error.message)
-
-    const payload = { id: mailboxId }
-
-    channel.send({ event: 'folder:getMailboxFolders', payload })
-
-    channel.once('folder:getMailboxFolders:callback', cb => {
-      const { error, data } = cb
-
-      if(error) t.fail(error.message)
-
-      console.log('SUCCESS :: ', data)
-      
-      t.equals(data.length, 5)
-    })
-  })
 
   t.teardown(() => {
     channel.kill()
   })
 })
+
+// test('remove folder', async t => {
+//   t.plan(1)
+
+//   const payload = {
+//     id: 6 
+//   }
+
+//   channel.send({ event: 'folder:deleteFolder', payload })
+
+//   channel.once('folder:deleteFolder:callback', cb => {
+//     const { error, data } = cb
+
+//     if(error) t.fail(error.message)
+
+//     const payload = { id: mailboxId }
+
+//     channel.send({ event: 'folder:getMailboxFolders', payload })
+
+//     channel.once('folder:getMailboxFolders:callback', cb => {
+//       const { error, data } = cb
+
+//       if(error) t.fail(error.message)
+
+//       console.log('SUCCESS :: ', data)
+      
+//       t.equals(data.length, 5)
+//     })
+//   })
+
+//   t.teardown(() => {
+//     channel.kill()
+//   })
+// })
