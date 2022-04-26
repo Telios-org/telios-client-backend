@@ -137,6 +137,10 @@ test('remove folder', async t => {
     id: 6 
   }
 
+  channel.on('debug', data => {
+    console.log('DEBUG', data)
+  })
+
   channel.send({ event: 'folder:deleteFolder', payload })
 
   channel.once('folder:deleteFolder:callback', cb => {
@@ -160,7 +164,6 @@ test('remove folder', async t => {
   })
 
   t.teardown(() => {
-    console.log('TEARDOWN AND KILL CHANNEL')
     channel.kill()
   })
 })

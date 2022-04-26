@@ -153,9 +153,9 @@ export default async (props: FolderOpts) => {
   if (event === 'folder:deleteFolder') {
     try {
       const Folder = store.models.Folder
-
+      channel.send({ event: 'debug', data: 'DELETE FOLDER' })
       const doc = await Folder.remove({ folderId: 6 })
-
+      channel.send({ event: 'debug', data: doc })
       channel.send({ event: 'folder:deleteFolder:callback', data: doc });
 
     } catch(err: any) {
