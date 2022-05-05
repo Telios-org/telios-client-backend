@@ -121,8 +121,6 @@ export default async (props: EmailOpts) => {
         dest: emailDest
       })
 
-      // SAVE FILE TO IPFS
-
       // 3. Save email in DB
       let _email = {
         ...email,

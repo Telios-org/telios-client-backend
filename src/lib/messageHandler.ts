@@ -11,12 +11,14 @@ import {
 export default class MesssageHandler {
   private drive: any
   private mailbox: any
+  private ipfs: any
   private channel: any
   private store: StoreSchema
 
   constructor(channel:any, store: StoreSchema) {
     this.drive = null
     this.mailbox = null
+    this.ipfs = null
     this.channel = channel
     this.store = store
   }
@@ -49,6 +51,8 @@ export default class MesssageHandler {
    */
   async fetchBatch(files: any[], account?: AccountSchema) {
     this.mailbox = this.store.sdk.mailbox
+    this.ipfs = this.store.sdk.ipfs
+
     const keyPairs: any = this.store.getKeypairs()
     this.drive = this.store.getDrive()
 
@@ -77,57 +81,102 @@ export default class MesssageHandler {
       return f
     })
 
-    await this.drive.fetchFileBatch(files, (stream: any, file: any) => {
-      return new Promise((resolve, reject) => {
-        let content = ''
+    for(const file of files) {
+      this.ipfs.get(file.cid, file.key, file.header)
+        .then((stream: any) => {
+          let content = ''
 
-        stream.on('data', (chunk: any) => {
-          content += chunk.toString('utf-8')
-        })
-
-        stream.on('error', (err: any) => {
-          if (!file.failed) {
-            file.failed = 1
-          } else {
-            file.failed += 1
-          }
-
-          this.channel.send({
-            event: 'messageHandler:fetchError',
-            data: {
-              file,
-              message: err.message,
-              stack: err.stack
-            }
+          stream.on('data', (chunk: any) => {
+            content += chunk.toString('utf-8')
           })
 
-          resolve(null)
-        })
+          stream.on('end', () => {
+            content = JSON.parse(content)
 
-        stream.on('end', () => {
-          content = JSON.parse(content)
-
-          this.channel.send({
-            event: 'messageHandler:fileFetched',
-            data: {
-              _id: file._id,
-              email: {
-                key: file.key,
-                header: file.header,
-                content
-              },
-            }
+            this.channel.send({
+              event: 'messageHandler:fileFetched',
+              data: {
+                _id: file._id,
+                email: {
+                  key: file.key,
+                  header: file.header,
+                  content
+                },
+              }
+            })
           })
 
-          resolve(null)
+          stream.on('error', (err: any) => {
+            if (!file.failed) {
+              file.failed = 1
+            } else {
+              file.failed += 1
+            }
+
+            this.channel.send({
+              event: 'messageHandler:fetchError',
+              data: {
+                file,
+                message: err.message,
+                stack: err.stack
+              }
+            })
+          })
         })
-      })
-    })
+    }
+
+    // await this.drive.fetchFileBatch(files, (stream: any, file: any) => {
+    //   return new Promise((resolve, reject) => {
+    //     let content = ''
+
+    //     stream.on('data', (chunk: any) => {
+    //       content += chunk.toString('utf-8')
+    //     })
+
+    //     stream.on('error', (err: any) => {
+    //       if (!file.failed) {
+    //         file.failed = 1
+    //       } else {
+    //         file.failed += 1
+    //       }
+
+    //       this.channel.send({
+    //         event: 'messageHandler:fetchError',
+    //         data: {
+    //           file,
+    //           message: err.message,
+    //           stack: err.stack
+    //         }
+    //       })
+
+    //       resolve(null)
+    //     })
+
+    //     stream.on('end', () => {
+    //       content = JSON.parse(content)
+
+    //       this.channel.send({
+    //         event: 'messageHandler:fileFetched',
+    //         data: {
+    //           _id: file._id,
+    //           email: {
+    //             key: file.key,
+    //             header: file.header,
+    //             content
+    //           },
+    //         }
+    //       })
+
+    //       resolve(null)
+    //     })
+    //   })
+    // })
   }
 
   async fetchFile(discoveryKey: string, fileMeta: any) {
     try {
       let keyPair
+      let stream
 
       while (!keyPair) {
         if(this.drive && this.drive._workerKeyPairs) {
@@ -135,7 +184,11 @@ export default class MesssageHandler {
         }
       }
 
-      const stream = await this.drive.fetchFileByDriveHash(discoveryKey, fileMeta.hash, { key: fileMeta.key, header: fileMeta.header, keyPair })
+      if(fileMeta.cid) {
+        stream = await this.ipfs.get(fileMeta.cid, fileMeta.key, fileMeta.header);
+      } else {
+        stream = await this.drive.fetchFileByDriveHash(discoveryKey, fileMeta.hash, { key: fileMeta.key, header: fileMeta.header, keyPair })
+      }
 
       let content:any = ''
 
@@ -253,7 +306,7 @@ export default class MesssageHandler {
         meta = this.store.sdk.mailbox._decryptMailMeta(meta, account.secretBoxPrivKey, account.secretBoxPubKey);
       }
       
-      await this.fetchFile(meta.discovery_key, meta)
+      await this.fetchFile(meta.cid, meta)
     }
 
     /*************************************************

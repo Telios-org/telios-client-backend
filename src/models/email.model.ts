@@ -3,6 +3,7 @@ import { QueryOpts } from '../types'
 
 export interface EmailProps {
   emailId?: any
+  cid?: string,
   folderId?: number
   mailboxId?: number,
   aliasId?: string | null
@@ -18,6 +19,8 @@ export interface EmailProps {
   attachments?: string
   path?: string
   count?: any
+  key?: string
+  header?: string
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -63,6 +66,7 @@ export class EmailModel {
 
     const sparseEmail = {
       emailId: doc.emailId,
+      cid: doc.cid,
       folderId: doc.folderId,
       mailboxId: doc.mailboxId,
       aliasId: doc.aliasId,
@@ -75,6 +79,8 @@ export class EmailModel {
       bodyAsText: bodyAsText,
       attachments: doc.attachments,
       path: doc.path,
+      key: doc.key,
+      header: doc.header,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
     }

@@ -29,11 +29,12 @@ test('send email', async t => {
     console.log('SUCCESS :: ', cb)
     
     t.ok(data.emailId)
+    t.ok(data.cid)
   })
 })
 
 test('save incoming email to database', async t => {
-  t.plan(1)
+  t.plan(2)
 
   const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
@@ -52,6 +53,10 @@ test('save incoming email to database', async t => {
     console.log('SUCCESS :: ', data)
     
     t.equals(data.msgArr.length, 1)
+
+    for(const email of data.msgArr) {
+      t.ok(email.cid)
+    }
   })
 })
 
