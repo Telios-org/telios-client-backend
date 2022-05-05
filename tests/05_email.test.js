@@ -11,7 +11,7 @@ let __email
 let __emailArr
 
 test('send email', async t => {
-  t.plan(1)
+  t.plan(2)
 
   channel = await OpenChannel()
 
@@ -113,10 +113,6 @@ test('save email attachments', async t => {
     filepath: __dirname + '\\newDir\\test.png',
     attachments: JSON.parse(__email.attachments)
   }
-
-  channel.on('debug', cb => {
-    console.log('DEBUGLOG', cb.data);
-  })
 
   channel.send({ event: 'email:saveFiles', payload })
 

@@ -104,8 +104,25 @@ export default async (props: EmailOpts) => {
         email.attachments = _attachments
       }
 
+      // Remove BCC list from email that wil be retrieved
+      const bcc = email.bcc
+      delete email.bcc
+
+      const file = await FileUtil.saveEmailToDrive({ email, drive, ipfs })
+
+      // Add it back after local email is saved
+      email.bcc = bcc
+
+      const meta = {
+        cid: file.cid,
+        key: file.key,
+        header: file.header,
+        path: file.path,
+        size: file.size
+      }
+
       // 2. send then save email file on drive
-      let res = await Mailbox.send(email, {
+      await Mailbox.send({ ...email, ...meta}, {
         owner: email.from[0].address,
         keypairs: {
           secretBoxKeypair: {
@@ -116,18 +133,14 @@ export default async (props: EmailOpts) => {
             publicKey: account.deviceSigningPubKey,
             privateKey: account.deviceSigningPrivKey
           }
-        },
-        drive,
-        dest: emailDest
+        }
       })
 
       // 3. Save email in DB
       let _email = {
-        ...email,
+        ...meta,
         aliasId: null,
         emailId: uuidv4(),
-        path: res.path,
-        // cid: 
         folderId: 3, // Sent folder
         subject: email.subject ? email.subject : '(no subject)',
         fromJSON: JSON.stringify(email.from),
@@ -199,40 +212,49 @@ export default async (props: EmailOpts) => {
           msg.email.attachments &&
           msg.email.attachments.length > 0
         ) {
-          msg.email.attachments.forEach((file: Attachment) => {
+          for(let file of msg.email.attachments) {
             const fileId = file.fileId || uuidv4()
             let filename = file.filename || file.name || 'unnamed'
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
-            const fileObj = {
-              _id: new ObjectID(),
-              id: fileId,
-              cid: file.cid,
-              emailId: msg.email.emailId || msg._id,
-              filename,
-              contentType: file.contentType,
-              size: file.size,
-              discoveryKey: file.discoveryKey || drive.discoveryKey,
-              hash: file.hash,
-              header: file.header,
-              key: file.key
-            }
 
-            attachments.push(fileObj)
+            file = await FileUtil.saveFileToDrive(File, {
+              drive,
+              ipfs,
+              content: file.content,
+              file: {
+                _id: new ObjectID(),
+                id: fileId,
+                cid: file.cid,
+                emailId: msg.email.emailId || msg._id,
+                filename,
+                contentType: file.contentType,
+                size: file.size,
+                discoveryKey: file.discoveryKey || drive.discoveryKey,
+                hash: file.hash,
+                header: file.header,
+                key: file.key
+              }
+            })
+
+            if(file.discovery_key) delete file.discovery_key
+
+            attachments.push(file)
 
             // TODO: We might want to add some additional logic to not automatically download attachments over a certain size.
-            //if (file.content) {
-              asyncMsgs.push(
-                FileUtil.saveFileToDrive(File, {
-                  drive,
-                  ipfs,
-                  content: file.content,
-                  file: fileObj
-                })
-              )
-            //}
-          })
+            // if (file.content) {
+              // asyncMsgs.push(
+              //   FileUtil.saveFileToDrive(File, {
+              //     drive,
+              //     ipfs,
+              //     content: file.content,
+              //     file: fileObj
+              //   })
+              // )
+            // }
+          // })
+          }
         }
 
         let isAlias = false
@@ -335,7 +357,7 @@ export default async (props: EmailOpts) => {
               msgObj = { ...msgObj, bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body }
 
               FileUtil
-                .saveEmailToDrive({ email: msgObj, drive })
+                .saveEmailToDrive({ email: msgObj, drive, ipfs })
                 .then((file: FileSchema) => {
                   delete msgObj.bodyAsHtml
 
@@ -699,8 +721,6 @@ export default async (props: EmailOpts) => {
               file = attachment
             }
 
-            channel.send({event:"debug", data: file})
-
             await FileUtil.saveFileFromEncryptedStream(writeStream, {
               drive,
               ipfs,
@@ -711,7 +731,6 @@ export default async (props: EmailOpts) => {
               discoveryKey: file.discoveryKey,
               filename: file.filename
             })
-            channel.send({event:"debug", data: 'AFTER FILEUTIL'})
           }
         })
       )
@@ -740,8 +759,6 @@ export default async (props: EmailOpts) => {
         const Email = store.models.Email
 
         let results: EmailSchema[] = await Email.search(searchQuery)
-
-        channel.send({ event: 'debug', data: results })
 
         channel.send({
           event: 'email:searchMailbox:callback',
