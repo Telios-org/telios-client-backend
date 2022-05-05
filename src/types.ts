@@ -220,6 +220,7 @@ export interface AccountSecrets {
 export interface Attachment {
   _id?: any
   fileId?: string
+  cid?: string
   emailId?: string
   name?: string
   content?: string

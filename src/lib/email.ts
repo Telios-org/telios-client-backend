@@ -23,6 +23,7 @@ export default async (props: EmailOpts) => {
   const { event, payload } = msg
 
   const Mailbox = store.sdk.mailbox
+  const ipfs = store.sdk.ipfs
 
   /*************************************************
    *  SEND EMAIL
@@ -56,7 +57,7 @@ export default async (props: EmailOpts) => {
               let filename = attachment.filename || attachment.name
 
               if(attachment.content !== null && !attachment.path){
-                  FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file) => {
+                  FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive, ipfs }).then((file) => {
                       _attachments.push({
                           _id: file._id,
                           filename,
@@ -64,6 +65,7 @@ export default async (props: EmailOpts) => {
                           contentType: file.contentType,
                           size: file.size,
                           discoveryKey: file.discovery_key,
+                          cid: file.cid,
                           hash: file.hash,
                           path: file.path,
                           header: file.header,
@@ -75,7 +77,7 @@ export default async (props: EmailOpts) => {
                   });
               }else if(isOffWorlding){
                   //If we send the message outside the network we need to send the base64 content
-                  FileUtil.readFile(attachment.path as string, {drive, type: 'attachment'} ).then((content: string) => {
+                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment' } ).then((content: string) => {
                       _attachments.push({
                           ...attachment,
                           content
@@ -119,12 +121,15 @@ export default async (props: EmailOpts) => {
         dest: emailDest
       })
 
+      // SAVE FILE TO IPFS
+
       // 3. Save email in DB
       let _email = {
         ...email,
         aliasId: null,
         emailId: uuidv4(),
         path: res.path,
+        // cid: 
         folderId: 3, // Sent folder
         subject: email.subject ? email.subject : '(no subject)',
         fromJSON: JSON.stringify(email.from),
@@ -205,6 +210,7 @@ export default async (props: EmailOpts) => {
             const fileObj = {
               _id: new ObjectID(),
               id: fileId,
+              cid: file.cid,
               emailId: msg.email.emailId || msg._id,
               filename,
               contentType: file.contentType,
@@ -217,15 +223,17 @@ export default async (props: EmailOpts) => {
 
             attachments.push(fileObj)
 
-            if (file.content) {
+            // TODO: We might want to add some additional logic to not automatically download attachments over a certain size.
+            //if (file.content) {
               asyncMsgs.push(
                 FileUtil.saveFileToDrive(File, {
                   drive,
+                  ipfs,
                   content: file.content,
                   file: fileObj
                 })
               )
-            }
+            //}
           })
         }
 
@@ -336,7 +344,10 @@ export default async (props: EmailOpts) => {
                   const _email = {
                     ...msgObj,
                     path: file.path,
-                    size: file.size
+                    size: file.size,
+                    cid: file.cid,
+                    key: file.key,
+                    header: file.header
                   }
 
                   Email.insert(_email)
@@ -694,6 +705,8 @@ export default async (props: EmailOpts) => {
 
             await FileUtil.saveFileFromEncryptedStream(writeStream, {
               drive,
+              ipfs,
+              cid: file.cid,
               key: file.key,
               hash: file.hash,
               header: file.header,

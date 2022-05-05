@@ -25,13 +25,14 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^5.1.2",
+    "@telios/client-sdk": "^5.3.4",
     "@telios/nebula": "^2.5.6",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
     "luxon": "^2.3.1",
     "memorystream": "^0.3.1",
+    "node-fetch": "^2.6.7",
     "remove-markdown": "^0.3.0",
     "uuid": "^8.3.2"
   },

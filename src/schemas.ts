@@ -12,6 +12,7 @@ export declare interface StoreSchema {
   sdk: {
     account: any
     mailbox: any
+    ipfs: any
     crypto: any
   }
   drive: any
@@ -92,6 +93,9 @@ export interface EmailSchema {
   attachments: string
   path: string
   count?: any
+  cid?: string
+  key?: string
+  header?: string
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -125,7 +129,9 @@ export interface AliasNamespaceSchema {
 
 export interface FileSchema {
   _id?: any
+  uuid?: string
   fileId?: string
+  cid?: string
   emailId: string
   folderId: number
   filename: string
