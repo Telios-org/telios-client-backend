@@ -20,8 +20,14 @@ export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, i
 
         // SAVE TO IPFS
         if(opts.ipfs) {
-          const { cid } = await saveFileToIPFS(opts.ipfs, readStream)
-          file.cid = cid
+          const _file = await opts.drive.metadb.get(file.hash)
+
+          if(_file && _file.value.path) {
+            const filesDir = opts.drive.filesDir
+            const stream = fs.createReadStream(filesDir + _file.value.path)
+            const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+            file.cid = cid
+          }
         }
 
         resolve(file)
@@ -90,8 +96,14 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
             // SAVE TO IPFS
             if(opts.ipfs) {
-              const { cid } = await saveFileToIPFS(opts.ipfs, readStream)
-              opts.file.cid = cid
+              const _file = await opts.drive.metadb.get(file.hash)
+
+              if(_file && _file.path) {
+                const filesDir = opts.drive.filesDir
+                const stream = fs.createReadStream(filesDir + _file.value.path)
+                const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+                opts.file.cid = cid
+              }
             }
 
             const doc: FileSchema = await File.insert(opts.file)
