@@ -541,6 +541,9 @@ export default async (props: EmailOpts) => {
     }
       
       email.unread = eml.unread
+      email.cid = eml.cid
+      email.key = eml.key
+      email.header = eml.header
       email.folderId = eml.folderId
 
       if (email.unread) {

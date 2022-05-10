@@ -334,7 +334,7 @@ test('move emails to another folder', async t => {
 })
 
 test('get email by ID', async t => {
-  t.plan(2)
+  t.plan(5)
 
   const payload = {
     id: __email.emailId
@@ -349,6 +349,9 @@ test('get email by ID', async t => {
 
     t.equals(data.emailId, __email.emailId)
     t.ok(data.bodyAsHtml)
+    t.ok(data.cid)
+    t.ok(data.key)
+    t.ok(data.header)
   })
 })
 
