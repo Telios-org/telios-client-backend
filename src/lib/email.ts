@@ -613,7 +613,12 @@ export default async (props: EmailOpts) => {
 
         for(const file of files) {
           await File.remove({ fileId: file.fileId})
-          drive.unlink(file.path)          
+          drive.unlink(file.path)
+
+          // Remove from SIA/IPFS storage
+          if(file.cid) {
+            await ipfs.delete(file.cid)
+          }
         }
       }
 

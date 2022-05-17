@@ -59,7 +59,7 @@ test('create account', async t => {
 })
 
 test('account login success', async t => {
-  t.plan(3)
+  t.plan(1)
 
   _channel = new Channel(path.join(__dirname, 'Accounts'))
 
@@ -71,16 +71,16 @@ test('account login success', async t => {
     }
   })
 
-  _channel.on('drive:peer:updated', cb => {
-    const { error, data } = cb
+  // _channel.on('drive:peer:updated', cb => {
+  //   const { error, data } = cb
   
-    if(error) t.fail(error.message)
+  //   if(error) t.fail(error.message)
 
-    if(data && data.status === 'ONLINE') {
-      t.ok(data.peerKey)
-      t.equals(true, data.server)
-    }
-  })
+  //   if(data && data.status === 'ONLINE') {
+  //     t.ok(data.peerKey)
+  //     t.equals(true, data.server)
+  //   }
+  // })
 
   _channel.once('account:login:callback', cb => {
     const { error, data } = cb

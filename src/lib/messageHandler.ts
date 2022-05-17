@@ -1,11 +1,13 @@
 const path = require('path')
 const removeMd = require('remove-markdown')
+const RequestChunker = require('@telios/nebula/util/requestChunker')
 
 import { MsgHelperMessage } from '../types'
 import { 
   AccountSchema, 
   StoreSchema
 } from '../schemas'
+import { Stream } from 'stream'
 
 
 export default class MesssageHandler {
@@ -81,29 +83,77 @@ export default class MesssageHandler {
       return f
     })
 
-    for(const file of files) {
-      this.ipfs.get(file.cid, file.key, file.header)
-        .then((stream: any) => {
+    const ipfsFiles = files.filter(file => file.cid)
+    const nebulaFiles = files.filter(file => !file.cid)
+
+    // If files have an IPFS content identifier (cid) then fetch files from SIA/IPFS
+    if(ipfsFiles.length) {
+      const batches = new RequestChunker(ipfsFiles, 5)
+
+      for (let batch of batches) {
+        const requests = []
+
+        for (let file of batch) {
+          requests.push(new Promise((resolve: any, reject: any) => {
+            this.ipfs.get(file.cid, file.key, file.header)
+              .then((stream: Stream) => {
+                let content = ''
+
+                stream.on('data', (chunk) => {
+                  content += chunk.toString('utf-8')
+                });
+
+                stream.on('end', () => {
+                  content = JSON.parse(content);
+                  this.channel.send({
+                    event: 'messageHandler:fileFetched',
+                    data: {
+                      _id: file._id,
+                      email: {
+                        key: file.key,
+                        header: file.header,
+                        content
+                      },
+                    }
+                  });
+
+                  return resolve()
+                });
+
+                stream.on('error', (err) => {
+                  if (!file.failed) {
+                    file.failed = 1
+                  } else {
+                    file.failed += 1
+                  }
+
+                  this.channel.send({
+                    event: 'messageHandler:fetchError',
+                    data: {
+                      file,
+                      message: err.message,
+                      stack: err.stack
+                    }
+                  });
+
+                  return resolve()
+                });
+              });
+          }))
+        }
+
+        await Promise.all(requests)
+      }
+    }
+
+    // If files DO NOT have an IPFS content identifier (cid) then fetch files directly from peer's device (Nebula)
+    if(nebulaFiles.length) {
+      await this.drive.fetchFileBatch(nebulaFiles, (stream: any, file: any) => {
+        return new Promise((resolve, reject) => {
           let content = ''
 
           stream.on('data', (chunk: any) => {
             content += chunk.toString('utf-8')
-          })
-
-          stream.on('end', () => {
-            content = JSON.parse(content)
-
-            this.channel.send({
-              event: 'messageHandler:fileFetched',
-              data: {
-                _id: file._id,
-                email: {
-                  key: file.key,
-                  header: file.header,
-                  content
-                },
-              }
-            })
           })
 
           stream.on('error', (err: any) => {
@@ -121,56 +171,30 @@ export default class MesssageHandler {
                 stack: err.stack
               }
             })
+
+            resolve(null)
+          })
+
+          stream.on('end', () => {
+            content = JSON.parse(content)
+
+            this.channel.send({
+              event: 'messageHandler:fileFetched',
+              data: {
+                _id: file._id,
+                email: {
+                  key: file.key,
+                  header: file.header,
+                  content
+                },
+              }
+            })
+
+            resolve(null)
           })
         })
+      })
     }
-
-    // await this.drive.fetchFileBatch(files, (stream: any, file: any) => {
-    //   return new Promise((resolve, reject) => {
-    //     let content = ''
-
-    //     stream.on('data', (chunk: any) => {
-    //       content += chunk.toString('utf-8')
-    //     })
-
-    //     stream.on('error', (err: any) => {
-    //       if (!file.failed) {
-    //         file.failed = 1
-    //       } else {
-    //         file.failed += 1
-    //       }
-
-    //       this.channel.send({
-    //         event: 'messageHandler:fetchError',
-    //         data: {
-    //           file,
-    //           message: err.message,
-    //           stack: err.stack
-    //         }
-    //       })
-
-    //       resolve(null)
-    //     })
-
-    //     stream.on('end', () => {
-    //       content = JSON.parse(content)
-
-    //       this.channel.send({
-    //         event: 'messageHandler:fileFetched',
-    //         data: {
-    //           _id: file._id,
-    //           email: {
-    //             key: file.key,
-    //             header: file.header,
-    //             content
-    //           },
-    //         }
-    //       })
-
-    //       resolve(null)
-    //     })
-    //   })
-    // })
   }
 
   async fetchFile(discoveryKey: string, fileMeta: any) {
