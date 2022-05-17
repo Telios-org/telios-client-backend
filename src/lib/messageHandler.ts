@@ -199,6 +199,8 @@ export default class MesssageHandler {
 
   async fetchFile(discoveryKey: string, fileMeta: any) {
     try {
+      this.ipfs = this.store.sdk.ipfs
+      
       let keyPair
       let stream
 
