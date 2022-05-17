@@ -605,6 +605,12 @@ export default async (props: EmailOpts) => {
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
       for(const msg of msgArr) {
+        
+        // Remove email from SIA/IPFS storage
+        if(msg.cid) {
+          await ipfs.delete(msg.cid);
+        }
+
         await Email.remove({ emailId: msg.emailId })
         
         drive.unlink(msg.path)
@@ -615,7 +621,7 @@ export default async (props: EmailOpts) => {
           await File.remove({ fileId: file.fileId})
           drive.unlink(file.path)
 
-          // Remove from SIA/IPFS storage
+          // Remove attachment from SIA/IPFS storage
           if(file.cid) {
             await ipfs.delete(file.cid)
           }
