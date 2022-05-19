@@ -1,22 +1,26 @@
 const path = require('path')
 const removeMd = require('remove-markdown')
+const RequestChunker = require('@telios/nebula/util/requestChunker')
 
 import { MsgHelperMessage } from '../types'
 import { 
   AccountSchema, 
   StoreSchema
 } from '../schemas'
+import { Stream } from 'stream'
 
 
 export default class MesssageHandler {
   private drive: any
   private mailbox: any
+  private ipfs: any
   private channel: any
   private store: StoreSchema
 
   constructor(channel:any, store: StoreSchema) {
     this.drive = null
     this.mailbox = null
+    this.ipfs = null
     this.channel = channel
     this.store = store
   }
@@ -49,6 +53,8 @@ export default class MesssageHandler {
    */
   async fetchBatch(files: any[], account?: AccountSchema) {
     this.mailbox = this.store.sdk.mailbox
+    this.ipfs = this.store.sdk.ipfs
+
     const keyPairs: any = this.store.getKeypairs()
     this.drive = this.store.getDrive()
 
@@ -77,57 +83,126 @@ export default class MesssageHandler {
       return f
     })
 
-    await this.drive.fetchFileBatch(files, (stream: any, file: any) => {
-      return new Promise((resolve, reject) => {
-        let content = ''
+    const ipfsFiles = files.filter(file => file.cid)
+    const nebulaFiles = files.filter(file => !file.cid)
 
-        stream.on('data', (chunk: any) => {
-          content += chunk.toString('utf-8')
-        })
+    // If files have an IPFS content identifier (cid) then fetch files from SIA/IPFS
+    if(ipfsFiles.length) {
+      const batches = new RequestChunker(ipfsFiles, 5)
 
-        stream.on('error', (err: any) => {
-          if (!file.failed) {
-            file.failed = 1
-          } else {
-            file.failed += 1
-          }
+      for (let batch of batches) {
+        const requests = []
 
-          this.channel.send({
-            event: 'messageHandler:fetchError',
-            data: {
-              file,
-              message: err.message,
-              stack: err.stack
-            }
+        for (let file of batch) {
+          requests.push(new Promise((resolve: any, reject: any) => {
+            this.ipfs.get(file.cid, file.key, file.header)
+              .then((stream: Stream) => {
+                let content = ''
+
+                stream.on('data', (chunk) => {
+                  content += chunk.toString('utf-8')
+                });
+
+                stream.on('end', () => {
+                  content = JSON.parse(content);
+                  this.channel.send({
+                    event: 'messageHandler:fileFetched',
+                    data: {
+                      _id: file._id,
+                      email: {
+                        key: file.key,
+                        header: file.header,
+                        content
+                      },
+                    }
+                  });
+
+                  return resolve()
+                });
+
+                stream.on('error', (err) => {
+                  if (!file.failed) {
+                    file.failed = 1
+                  } else {
+                    file.failed += 1
+                  }
+
+                  this.channel.send({
+                    event: 'messageHandler:fetchError',
+                    data: {
+                      file,
+                      message: err.message,
+                      stack: err.stack
+                    }
+                  });
+
+                  return resolve()
+                });
+              });
+          }))
+        }
+
+        await Promise.all(requests)
+      }
+    }
+
+    // If files DO NOT have an IPFS content identifier (cid) then fetch files directly from peer's device (Nebula)
+    if(nebulaFiles.length) {
+      await this.drive.fetchFileBatch(nebulaFiles, (stream: any, file: any) => {
+        return new Promise((resolve, reject) => {
+          let content = ''
+
+          stream.on('data', (chunk: any) => {
+            content += chunk.toString('utf-8')
           })
 
-          resolve(null)
-        })
-
-        stream.on('end', () => {
-          content = JSON.parse(content)
-
-          this.channel.send({
-            event: 'messageHandler:fileFetched',
-            data: {
-              _id: file._id,
-              email: {
-                key: file.key,
-                header: file.header,
-                content
-              },
+          stream.on('error', (err: any) => {
+            if (!file.failed) {
+              file.failed = 1
+            } else {
+              file.failed += 1
             }
+
+            this.channel.send({
+              event: 'messageHandler:fetchError',
+              data: {
+                file,
+                message: err.message,
+                stack: err.stack
+              }
+            })
+
+            resolve(null)
           })
 
-          resolve(null)
+          stream.on('end', () => {
+            content = JSON.parse(content)
+
+            this.channel.send({
+              event: 'messageHandler:fileFetched',
+              data: {
+                _id: file._id,
+                email: {
+                  key: file.key,
+                  header: file.header,
+                  content
+                },
+              }
+            })
+
+            resolve(null)
+          })
         })
       })
-    })
+    }
   }
 
   async fetchFile(discoveryKey: string, fileMeta: any) {
     try {
+      this.ipfs = this.store.sdk.ipfs
+      
       let keyPair
+      let stream
 
       while (!keyPair) {
         if(this.drive && this.drive._workerKeyPairs) {
@@ -135,7 +210,11 @@ export default class MesssageHandler {
         }
       }
 
-      const stream = await this.drive.fetchFileByDriveHash(discoveryKey, fileMeta.hash, { key: fileMeta.key, header: fileMeta.header, keyPair })
+      if(fileMeta.cid) {
+        stream = await this.ipfs.get(fileMeta.cid, fileMeta.key, fileMeta.header);
+      } else {
+        stream = await this.drive.fetchFileByDriveHash(discoveryKey, fileMeta.hash, { key: fileMeta.key, header: fileMeta.header, keyPair })
+      }
 
       let content:any = ''
 
@@ -253,7 +332,7 @@ export default class MesssageHandler {
         meta = this.store.sdk.mailbox._decryptMailMeta(meta, account.secretBoxPrivKey, account.secretBoxPubKey);
       }
       
-      await this.fetchFile(meta.discovery_key, meta)
+      await this.fetchFile(meta.cid, meta)
     }
 
     /*************************************************

@@ -11,13 +11,17 @@ let __email
 let __emailArr
 
 test('send email', async t => {
-  t.plan(1)
+  t.plan(2)
 
   channel = await OpenChannel()
 
   const payload = {
     email: MockEmail({ emailId: null, folderId: 1, aliasId: null, unread: false })
   }
+
+  channel.on('debug', data => {
+    console.log('DEBUG', data);
+  })
 
   channel.send({ event: 'email:sendEmail', payload })
 
@@ -29,11 +33,12 @@ test('send email', async t => {
     console.log('SUCCESS :: ', cb)
     
     t.ok(data.emailId)
+    t.ok(data.cid)
   })
 })
 
 test('save incoming email to database', async t => {
-  t.plan(1)
+  t.plan(2)
 
   const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
@@ -52,6 +57,10 @@ test('save incoming email to database', async t => {
     console.log('SUCCESS :: ', data)
     
     t.equals(data.msgArr.length, 1)
+
+    for(const email of data.msgArr) {
+      t.ok(email.cid)
+    }
   })
 })
 
@@ -108,10 +117,6 @@ test('save email attachments', async t => {
     filepath: __dirname + '\\newDir\\test.png',
     attachments: JSON.parse(__email.attachments)
   }
-
-  channel.on('debug', cb => {
-    console.log('DEBUGLOG', cb.data);
-  })
 
   channel.send({ event: 'email:saveFiles', payload })
 
@@ -329,7 +334,7 @@ test('move emails to another folder', async t => {
 })
 
 test('get email by ID', async t => {
-  t.plan(2)
+  t.plan(5)
 
   const payload = {
     id: __email.emailId
@@ -344,6 +349,9 @@ test('get email by ID', async t => {
 
     t.equals(data.emailId, __email.emailId)
     t.ok(data.bodyAsHtml)
+    t.ok(data.cid)
+    t.ok(data.key)
+    t.ok(data.header)
   })
 })
 

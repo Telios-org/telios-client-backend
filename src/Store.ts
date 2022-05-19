@@ -46,6 +46,7 @@ export class Store extends EventEmitter{
     this.sdk = {
       account: this._teliosSDK.Account,
       mailbox: this._teliosSDK.Mailbox,
+      ipfs: this._teliosSDK.IPFS,
       crypto: this._teliosSDK.Crypto
     }
 

@@ -23,6 +23,7 @@ export default async (props: EmailOpts) => {
   const { event, payload } = msg
 
   const Mailbox = store.sdk.mailbox
+  const ipfs = store.sdk.ipfs
 
   /*************************************************
    *  SEND EMAIL
@@ -56,7 +57,7 @@ export default async (props: EmailOpts) => {
               let filename = attachment.filename || attachment.name
 
               if(attachment.content !== null && !attachment.path){
-                  FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive }).then((file) => {
+                  FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive, ipfs }).then((file) => {
                       _attachments.push({
                           _id: file._id,
                           filename,
@@ -64,6 +65,7 @@ export default async (props: EmailOpts) => {
                           contentType: file.contentType,
                           size: file.size,
                           discoveryKey: file.discovery_key,
+                          cid: file.cid,
                           hash: file.hash,
                           path: file.path,
                           header: file.header,
@@ -75,7 +77,7 @@ export default async (props: EmailOpts) => {
                   });
               }else if(isOffWorlding){
                   //If we send the message outside the network we need to send the base64 content
-                  FileUtil.readFile(attachment.path as string, {drive, type: 'attachment'} ).then((content: string) => {
+                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment' } ).then((content: string) => {
                       _attachments.push({
                           ...attachment,
                           content
@@ -102,8 +104,25 @@ export default async (props: EmailOpts) => {
         email.attachments = _attachments
       }
 
+      // Remove BCC list from email that wil be retrieved
+      const bcc = email.bcc
+      delete email.bcc
+
+      const file = await FileUtil.saveEmailToDrive({ email, drive, ipfs })
+
+      // Add it back after local email is saved
+      email.bcc = bcc
+
+      const meta = {
+        cid: file.cid,
+        key: file.key,
+        header: file.header,
+        path: file.path,
+        size: file.size
+      }
+
       // 2. send then save email file on drive
-      let res = await Mailbox.send(email, {
+      await Mailbox.send({ ...email, ...meta}, {
         owner: email.from[0].address,
         keypairs: {
           secretBoxKeypair: {
@@ -114,17 +133,14 @@ export default async (props: EmailOpts) => {
             publicKey: account.deviceSigningPubKey,
             privateKey: account.deviceSigningPrivKey
           }
-        },
-        drive,
-        dest: emailDest
+        }
       })
 
       // 3. Save email in DB
       let _email = {
-        ...email,
+        ...meta,
         aliasId: null,
         emailId: uuidv4(),
-        path: res.path,
         folderId: 3, // Sent folder
         subject: email.subject ? email.subject : '(no subject)',
         fromJSON: JSON.stringify(email.from),
@@ -196,37 +212,49 @@ export default async (props: EmailOpts) => {
           msg.email.attachments &&
           msg.email.attachments.length > 0
         ) {
-          msg.email.attachments.forEach((file: Attachment) => {
+          for(let file of msg.email.attachments) {
             const fileId = file.fileId || uuidv4()
             let filename = file.filename || file.name || 'unnamed'
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
-            const fileObj = {
-              _id: new ObjectID(),
-              id: fileId,
-              emailId: msg.email.emailId || msg._id,
-              filename,
-              contentType: file.contentType,
-              size: file.size,
-              discoveryKey: file.discoveryKey || drive.discoveryKey,
-              hash: file.hash,
-              header: file.header,
-              key: file.key
-            }
 
-            attachments.push(fileObj)
+            file = await FileUtil.saveFileToDrive(File, {
+              drive,
+              ipfs,
+              content: file.content,
+              file: {
+                _id: new ObjectID(),
+                id: fileId,
+                cid: file.cid,
+                emailId: msg.email.emailId || msg._id,
+                filename,
+                contentType: file.contentType,
+                size: file.size,
+                discoveryKey: file.discoveryKey || drive.discoveryKey,
+                hash: file.hash,
+                header: file.header,
+                key: file.key
+              }
+            })
 
-            if (file.content) {
-              asyncMsgs.push(
-                FileUtil.saveFileToDrive(File, {
-                  drive,
-                  content: file.content,
-                  file: fileObj
-                })
-              )
-            }
-          })
+            if(file.discovery_key) delete file.discovery_key
+
+            attachments.push(file)
+
+            // TODO: We might want to add some additional logic to not automatically download attachments over a certain size.
+            // if (file.content) {
+              // asyncMsgs.push(
+              //   FileUtil.saveFileToDrive(File, {
+              //     drive,
+              //     ipfs,
+              //     content: file.content,
+              //     file: fileObj
+              //   })
+              // )
+            // }
+          // })
+          }
         }
 
         let isAlias = false
@@ -329,14 +357,17 @@ export default async (props: EmailOpts) => {
               msgObj = { ...msgObj, bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body }
 
               FileUtil
-                .saveEmailToDrive({ email: msgObj, drive })
+                .saveEmailToDrive({ email: msgObj, drive, ipfs })
                 .then((file: FileSchema) => {
                   delete msgObj.bodyAsHtml
 
                   const _email = {
                     ...msgObj,
                     path: file.path,
-                    size: file.size
+                    size: file.size,
+                    cid: file.cid,
+                    key: file.key,
+                    header: file.header
                   }
 
                   Email.insert(_email)
@@ -510,6 +541,9 @@ export default async (props: EmailOpts) => {
     }
       
       email.unread = eml.unread
+      email.cid = eml.cid
+      email.key = eml.key
+      email.header = eml.header
       email.folderId = eml.folderId
 
       if (email.unread) {
@@ -571,6 +605,12 @@ export default async (props: EmailOpts) => {
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
       for(const msg of msgArr) {
+        
+        // Remove email from SIA/IPFS storage
+        if(msg.cid) {
+          await ipfs.delete(msg.cid);
+        }
+
         await Email.remove({ emailId: msg.emailId })
         
         drive.unlink(msg.path)
@@ -579,7 +619,12 @@ export default async (props: EmailOpts) => {
 
         for(const file of files) {
           await File.remove({ fileId: file.fileId})
-          drive.unlink(file.path)          
+          drive.unlink(file.path)
+
+          // Remove attachment from SIA/IPFS storage
+          if(file.cid) {
+            await ipfs.delete(file.cid)
+          }
         }
       }
 
@@ -690,17 +735,16 @@ export default async (props: EmailOpts) => {
               file = attachment
             }
 
-            channel.send({event:"debug", data: file})
-
             await FileUtil.saveFileFromEncryptedStream(writeStream, {
               drive,
+              ipfs,
+              cid: file.cid,
               key: file.key,
               hash: file.hash,
               header: file.header,
               discoveryKey: file.discoveryKey,
               filename: file.filename
             })
-            channel.send({event:"debug", data: 'AFTER FILEUTIL'})
           }
         })
       )
@@ -729,8 +773,6 @@ export default async (props: EmailOpts) => {
         const Email = store.models.Email
 
         let results: EmailSchema[] = await Email.search(searchQuery)
-
-        channel.send({ event: 'debug', data: results })
 
         channel.send({
           event: 'email:searchMailbox:callback',
