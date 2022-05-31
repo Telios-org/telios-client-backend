@@ -33,6 +33,8 @@ export interface AccountMessage {
         | 'account:login'
         | 'account:resetPassword'
         | 'account:recover'
+        | 'account:createSyncCode'
+        | 'account:getSyncInfo'
         | 'account:sync'
         | 'account:remove'
         | 'account:update'
@@ -49,9 +51,9 @@ export interface AccountMessage {
     recoveryEmail: string
     vcode: string
     code: string
-    isSyncIntiator: boolean
     passphrase: string
-    newPass: string
+    newPass: string,
+    driveKey: string
   }
 }
 
@@ -190,7 +192,8 @@ export interface setDriveOpts {
     publicKey: Buffer,
     secretKey: Buffer
   },
-  encryptionKey: string
+  driveKey?: string
+  encryptionKey?: string
   acl?: string[]
 }
 

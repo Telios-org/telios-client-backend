@@ -141,6 +141,58 @@ const payload = {
 
 #### `channel.send({ event: 'account:refreshToken' })`
 
+
+## Recovery API
+
+#### `channel.send({ event: 'account:recover', payload })`
+
+Sends a recovery code to the account's recovery email.
+
+```js
+const payload = {
+  email: 'bob@telios.io',
+  recoveryEmail: 'bob@mail.com',
+}
+```
+
+## Device Sync API
+
+#### `channel.send({ event: 'account:createSyncCode' })`
+
+Use this when initiating a sync with another device that may be unable to scan a QR code. The other device will use the code returned from this event to initate a sync.
+
+! Note: When using QR codes, they should return the following data:
+```js
+{ 
+  drive_key, // public key of the remote drive
+  email // email address of the main account
+}
+```
+
+#### `channel.send({ event: 'account:getSyncInfo', { code } })`
+
+Retrieve the info necessary to intiate a sync.
+
+Returns:
+
+```js
+{ 
+  drive_key, // public key of the remote drive
+  email // email address of the main account
+}
+```
+
+#### `channel.send({ event: 'account:sync', payload })`
+
+Initializes replication of remote drive. This event will resolve after replication is complete. Once replication finishes, the user should be directed to log in to their account (`payload.email`) using their master password.
+
+```js
+const payload = {
+  driveKey,
+  email
+}
+```
+
 ## Mailbox API
 
 #### `channel.send({ event: 'mailbox:register', payload })`

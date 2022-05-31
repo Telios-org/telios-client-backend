@@ -365,64 +365,93 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  // Step 2. Retrieve keys needed for syncing/replicating
-  if (event === 'account:sync') {
-    const { code, isSyncIntiator } = payload
+  // Step 1. Initiate sync
+  if (event === 'account:createSyncCode') {
+    const Account = store.sdk.account
 
-    if(!isSyncIntiator) {
-
-    } else {
-      // const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
-      // const parentAccountsDir = path.join(userDataPath)
-      // if (!fs.existsSync(parentAccountsDir)) {
-      //   fs.mkdirSync(parentAccountsDir)
-      // }
-      // const acctPath = path.join(userDataPath, `/${payload.email}`)
-      // store.acctPath = acctPath
-
-      // fs.mkdirSync(acctPath)
-
-      // // Generate account key bundle
-      // const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
-
-      // const encryptionKey = Crypto.generateAEDKey()
-      // const driveKeyPair = {
-      //   publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-      //   secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
-      // }
-
-      // // Create account Nebula drive
-      // const drive = store.setDrive({
-      //   name: `${acctPath}/Drive`,
-      //   encryptionKey,
-      //   keyPair: driveKeyPair
-      // })
-
-      // handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
-
-      // await drive.ready()
-
-      // // Initialize models
-      // await store.initModels()
-
-      // const accountModel = store.models.Account
-
-      const Account = store.sdk.account
-
-      const keys = await Account.sync({ code })
-
-      // keys.drive_key
-      // keys.peer_pub_key
-
-
-
-
-
-
-      // Create new drive and replicate
-      // Add Peer public key to ACL
-      // Sync done, go login
+    try {
+      const { code } = await Account.createSyncCode()
+      channel.send({ event: 'account:createSyncCode:callback', data: { code } })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:createSyncCode:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
     }
+  }
+
+  // Step 2. Retrieve keys needed for syncing/replicating
+  if (event === 'account:getSyncInfo') {
+    const { code } = payload
+    const Account = store.sdk.account
+
+    try {
+      const { drive_key, peer_pub_key, email } = await Account.getSyncInfo({ code })
+      channel.send({ event: 'account:getSyncInfo:callback', data: { drive_key, peer_pub_key, email } })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:getSyncInfo:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
+    }
+  }
+  
+  // Step 3. Start sync
+  if (event === 'account:sync') {
+    const { driveKey, email } = payload
+
+    const Account = store.sdk.account
+    
+    // const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
+    // const parentAccountsDir = path.join(userDataPath)
+    // if (!fs.existsSync(parentAccountsDir)) {
+    //   fs.mkdirSync(parentAccountsDir)
+    // }
+    // const acctPath = path.join(userDataPath, `/${email}`)
+    // store.acctPath = acctPath
+
+    // fs.mkdirSync(acctPath)
+
+    // // Generate account key bundle
+    // const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
+
+    // const driveKeyPair = {
+    //   publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
+    //   secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
+    // }
+
+    // Create device drive
+    // const drive = store.setDrive({
+    //   name: `${acctPath}/Drive`,
+    //   driveKey: driveKey,
+    //   keyPair: driveKeyPair
+    // })
+
+
+    // // Step 4. Begin replication
+    // await drive.ready()
+
+    // // Initialize models
+    // await store.initModels()
+
+    // const accountModel = store.models.Account
+
+
+    // Step 5. Listen for when sync is complete
+
+    // Step 6. Sync done, go login
+
+    // When loggin back in, check if new device needs to be registered.
   }
 
   /*************************************************

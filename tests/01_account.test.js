@@ -93,7 +93,7 @@ test('Reset password with passphrase', async t => {
 })
 
 test('account login success', async t => {
-  t.plan(3)
+  t.plan(1)
 
   _channel = new Channel(path.join(__dirname, 'Accounts'))
 
@@ -105,16 +105,16 @@ test('account login success', async t => {
     }
   })
 
-  _channel.on('drive:peer:updated', cb => {
-    const { error, data } = cb
+  // _channel.on('drive:peer:updated', cb => {
+  //   const { error, data } = cb
   
-    if(error) t.fail(error.message)
+  //   if(error) t.fail(error.message)
 
-    if(data && data.status === 'ONLINE') {
-      t.ok(data.peerKey)
-      t.equals(true, data.server)
-    }
-  })
+  //   if(data && data.status === 'ONLINE') {
+  //     t.ok(data.peerKey)
+  //     t.equals(true, data.server)
+  //   }
+  // })
 
   _channel.once('account:login:callback', cb => {
     const { error, data } = cb
@@ -170,12 +170,33 @@ test('retrieve account stats', async t => {
   })
 })
 
-test('Recover account', async t => {
-  t.plan(1)
+test('recovery account with backup code', async t => {
+  t.plan(5)
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
 
-  
+  channel.send({
+    event: 'account:recover',
+    payload: {
+      email: 'bob@telios.io',
+      recoveryEmail: 'bob@mail.com'
+    }
+  })
+
+  channel.on('account:recover:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    
+
+    // t.teardown(async () => {
+    //   channel.kill()
+    // })
+  })
+})
+
+test('sync account with another device/peer', async t => {
 })
 
 test('account login error', async t => {
