@@ -75,10 +75,6 @@ test('Reset password with passphrase', async t => {
     }
   })
 
-  channel.on('debug', data => {
-    console.log(data)
-  })
-
   channel.on('account:resetPassword:callback', cb => {
     const { error, data } = cb
     
@@ -158,7 +154,7 @@ test('retrieve account stats', async t => {
 
   _channel.on('account:retrieveStats:callback', cb => {
     const { error, data } = cb
-    
+
     if(error) t.fail(error.message)
 
     console.log('SUCCESS ::', data)
@@ -171,7 +167,7 @@ test('retrieve account stats', async t => {
 })
 
 test('recovery account with backup code', async t => {
-  t.plan(5)
+  t.plan(1)
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
 
@@ -188,15 +184,68 @@ test('recovery account with backup code', async t => {
     
     if(error) t.fail(error.message)
 
-    
+    t.ok(true)
 
-    // t.teardown(async () => {
-    //   channel.kill()
-    // })
+    t.teardown(async () => {
+      channel.kill()
+    })
+  })
+})
+
+test('get sync info', async t => {
+  t.plan(2)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:getSyncInfo',
+    payload: {
+      code: 'AbC123'
+    }
+  })
+
+  channel.on('account:getSyncInfo:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS ::', data)
+
+    t.ok(data.drive_key)
+    t.ok(data.email)
+
+    t.teardown(async () => {
+      channel.kill()
+    })
   })
 })
 
 test('sync account with another device/peer', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  // Login to Device A
+
+  channel.send({
+    event: 'account:sync',
+    payload: {
+      driveKey: '0000000000000000000000000000000000000000000000000000000000000000',
+      email: 'bob@telios.io'
+    }
+  })
+
+  channel.on('account:sync:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS ::', data)
+
+    t.teardown(async () => {
+      channel.kill()
+    })
+  })
 })
 
 test('account login error', async t => {

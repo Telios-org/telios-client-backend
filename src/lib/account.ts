@@ -248,7 +248,7 @@ export default async (props: AccountOpts) => {
       const localDB = await drive._localHB
       const deviceInfo = await localDB.get('device')
 
-      const fullAcct = { ...account, ...deviceInfo }
+      const fullAcct = { ...account, ...deviceInfo.value }
 
       handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
@@ -483,9 +483,9 @@ export default async (props: AccountOpts) => {
    ************************************************/
   if (event === 'account:retrieveStats') {
     try {
-      const account = store.sdk.account
+      const Account = store.sdk.account
 
-      const stats = await account.retrieveStats()
+      const stats = await Account.retrieveStats()
 
       const finalPayload = {
         plan: stats.plan,
@@ -504,6 +504,7 @@ export default async (props: AccountOpts) => {
 
       channel.send({ event: 'account:retrieveStats:callback', error: null, data: finalPayload })
     } catch (err: any) {
+      
       channel.send({
         event: 'account:retrieveStats:callback',
         error: { 
