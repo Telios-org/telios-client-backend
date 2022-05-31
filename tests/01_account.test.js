@@ -220,34 +220,6 @@ test('get sync info', async t => {
   })
 })
 
-test('sync account with another device/peer', async t => {
-  t.plan(1)
-
-  const channel = new Channel(path.join(__dirname, 'Accounts'))
-
-  // Login to Device A
-
-  channel.send({
-    event: 'account:sync',
-    payload: {
-      driveKey: '0000000000000000000000000000000000000000000000000000000000000000',
-      email: 'bob@telios.io'
-    }
-  })
-
-  channel.on('account:sync:callback', cb => {
-    const { error, data } = cb
-    
-    if(error) t.fail(error.message)
-
-    console.log('SUCCESS ::', data)
-
-    t.teardown(async () => {
-      channel.kill()
-    })
-  })
-})
-
 test('account login error', async t => {
   t.plan(1)
 

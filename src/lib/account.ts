@@ -408,9 +408,11 @@ export default async (props: AccountOpts) => {
   
   // Step 3. Start sync
   if (event === 'account:sync') {
-    const { driveKey, email } = payload
+    const { driveKey, email, password } = payload
 
     const Account = store.sdk.account
+
+    channel.send({ event: 'debug', data: userDataPath })
     
     // const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
     // const parentAccountsDir = path.join(userDataPath)
@@ -445,6 +447,9 @@ export default async (props: AccountOpts) => {
     // await store.initModels()
 
     // const accountModel = store.models.Account
+
+
+    // const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
 
 
     // Step 5. Listen for when sync is complete
