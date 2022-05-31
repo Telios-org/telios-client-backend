@@ -161,7 +161,7 @@ const payload = {
 
 Use this when initiating a sync with another device that may be unable to scan a QR code. The other device will use the code returned from this event to initate a sync.
 
-! Note: When using QR codes, they should return the following data:
+Note: When using QR codes, they should return the following data:
 ```js
 { 
   drive_key, // public key of the remote drive
