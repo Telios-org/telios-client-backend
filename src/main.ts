@@ -28,7 +28,7 @@ export = (props: MainOpts) => {
         const signingPubKey = env === 'production' ? resource.SIGNING_PUB_KEY : resource.SIGNING_PUB_KEY_DEV
         const apiURL = env === 'production' ? resource.API_SERVER : resource.API_SERVER_TEST 
 
-        // @ts-ignore
+        // @ts-ignore`
         store = new Store(env, signingPubKey, apiURL)
         messageHandler = new MessageHandler(channel, store)
       } catch(err:any) {

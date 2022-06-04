@@ -166,7 +166,7 @@ test('retrieve account stats', async t => {
   })
 })
 
-test('recovery account with backup code', async t => {
+test('recover account with backup code', async t => {
   t.plan(1)
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
