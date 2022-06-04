@@ -57,10 +57,10 @@ export interface AccountSchema {
   driveEncryptionKey: string
   secretBoxPubKey: string
   secretBoxPrivKey: string
-  deviceSigningPubKey: string
-  deviceSigningPrivKey: string
-  serverSig: string
-  deviceId: string
+  deviceSigningPubKey?: string
+  deviceSigningPrivKey?: string
+  serverSig?: string
+  deviceId?: string
   // Timestamps
   createdAt?: string
   updatedAt?: string

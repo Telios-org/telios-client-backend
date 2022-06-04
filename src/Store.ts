@@ -116,13 +116,13 @@ export class Store extends EventEmitter{
   }
 
   public setDrive(props: setDriveOpts) {
-    const { name, keyPair, encryptionKey, acl = [] } = props
+    const { name, driveKey, keyPair, encryptionKey, acl = [] } = props
     
     this.encryptionKey = encryptionKey
     
-    if(!Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
+    if(encryptionKey && !Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
 
-    this.drive = new Drive(name, null, {
+    this.drive = new Drive(name, driveKey, {
       keyPair,
       encryptionKey: this.encryptionKey,
       checkNetworkStatus: true,

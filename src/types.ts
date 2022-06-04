@@ -31,6 +31,11 @@ export interface MainOpts {
 export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
+        | 'account:resetPassword'
+        | 'account:recover'
+        | 'account:createSyncCode'
+        | 'account:getSyncInfo'
+        | 'account:sync'
         | 'account:remove'
         | 'account:update'
         | 'account:retrieveStats' 
@@ -45,6 +50,10 @@ export interface AccountMessage {
     password: string
     recoveryEmail: string
     vcode: string
+    code: string
+    passphrase: string
+    newPass: string,
+    driveKey: string
   }
 }
 
@@ -183,7 +192,8 @@ export interface setDriveOpts {
     publicKey: Buffer,
     secretKey: Buffer
   },
-  encryptionKey: string
+  driveKey?: string
+  encryptionKey?: string
   acl?: string[]
 }
 
