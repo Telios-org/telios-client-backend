@@ -19,16 +19,16 @@ export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, i
       .then(async (file: FileSchema) => {
 
         // SAVE TO IPFS
-        if(opts.ipfs) {
-          const _file = await opts.drive.metadb.get(file.hash)
+        // if(opts.ipfs) {
+        //   const _file = await opts.drive.metadb.get(file.hash)
 
-          if(_file && _file.value.path) {
-            const filesDir = opts.drive._filesDir
-            const stream = fs.createReadStream(filesDir + _file.value.path)
-            const { cid } = await saveFileToIPFS(opts.ipfs, stream)
-            file.cid = cid
-          }
-        }
+        //   if(_file && _file.value.path) {
+        //     const filesDir = opts.drive._filesDir
+        //     const stream = fs.createReadStream(filesDir + _file.value.path)
+        //     const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+        //     file.cid = cid
+        //   }
+        // }
 
         resolve(file)
       })
@@ -95,16 +95,16 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
             opts.file.updatedAt = UTCtimestamp()
 
             // SAVE TO IPFS
-            if(opts.ipfs) {
-              const _file = await opts.drive.metadb.get(file.hash)
+            // if(opts.ipfs) {
+            //   const _file = await opts.drive.metadb.get(file.hash)
 
-              if(_file && _file.path) {
-                const filesDir = opts.drive._filesDir
-                const stream = fs.createReadStream(filesDir + _file.value.path)
-                const { cid } = await saveFileToIPFS(opts.ipfs, stream)
-                opts.file.cid = cid
-              }
-            }
+            //   if(_file && _file.path) {
+            //     const filesDir = opts.drive._filesDir
+            //     const stream = fs.createReadStream(filesDir + _file.value.path)
+            //     const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+            //     opts.file.cid = cid
+            //   }
+            // }
 
             const doc: FileSchema = await File.insert(opts.file)
             resolve(doc)

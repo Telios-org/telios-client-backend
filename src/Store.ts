@@ -129,7 +129,7 @@ export class Store extends EventEmitter{
       swarmOpts: {
         server: true,
         client: true,
-        acl: [this.teliosPubKey, ...acl]
+        acl: [] // TODO: Add this back in [this.teliosPubKey, ...acl]
       },
       fullTextSearch: true
     })
