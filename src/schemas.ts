@@ -104,6 +104,8 @@ export interface EmailSchema {
 export interface AliasSchema {
   aliasId: string
   name: string
+  publicKey?: string
+  privateKey?: string
   description?: string | undefined
   namespaceKey: string | undefined
   fwdAddresses?: any
