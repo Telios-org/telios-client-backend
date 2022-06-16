@@ -59,28 +59,42 @@ export default class MesssageHandler {
     this.drive = this.store.getDrive()
 
     files = files.map(f => {
-      if (account) {
-        let publicKey
-        let privateKey
+      try {
+        if (account) {
+          let publicKey
+          let privateKey
 
-        if (account.secretBoxPubKey === f.account_key) {
-          publicKey = account.secretBoxPubKey
-          privateKey = account.secretBoxPrivKey
-        } else {
-          publicKey = keyPairs[f.account_key] && keyPairs[f.account_key].publicKey ? keyPairs[f.account_key].publicKey : null
-          privateKey = keyPairs[f.account_key] && keyPairs[f.account_key].privateKey ? keyPairs[f.account_key].privateKey : null
+          if (account.secretBoxPubKey === f.account_key) {
+            publicKey = account.secretBoxPubKey
+            privateKey = account.secretBoxPrivKey
+          } else {
+            publicKey = keyPairs[f.account_key] && keyPairs[f.account_key].publicKey ? keyPairs[f.account_key].publicKey : null
+            privateKey = keyPairs[f.account_key] && keyPairs[f.account_key].privateKey ? keyPairs[f.account_key].privateKey : null
+          }
+
+          const fileMeta = this.mailbox._decryptMailMeta(
+            f,
+            privateKey,
+            publicKey
+          )
+
+          f = { _id: f._id, ...fileMeta }
         }
 
-        const fileMeta = this.mailbox._decryptMailMeta(
-          f,
-          privateKey,
-          publicKey
-        )
+        return f
+      } catch(err:any) {
+        this.channel.send({
+          event: 'messageHandler:fetchError',
+          data: {
+            file: f,
+            message: err.message,
+            stack: err.stack
+          }
+        });
 
-        f = { _id: f._id, ...fileMeta }
+        f = {}
+        return f
       }
-
-      return f
     })
 
     const ipfsFiles = files.filter(file => file.cid)
