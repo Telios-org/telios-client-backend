@@ -83,15 +83,6 @@ export default class MesssageHandler {
 
         return f
       } catch(err:any) {
-        this.channel.send({
-          event: 'messageHandler:fetchError',
-          data: {
-            file: f,
-            message: err.message,
-            stack: err.stack
-          }
-        });
-
         f = {}
         return f
       }
