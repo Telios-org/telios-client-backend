@@ -55,6 +55,7 @@ test('sync account with another device/peer', async t => {
     channel2.send({
       event: 'account:sync',
       payload: {
+        deviceType: 'MOBILE', // MOBILE | DESKTOP
         driveKey: data.drive_key,
         email: data.email,
         password: 'letmein123'
