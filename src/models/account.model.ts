@@ -42,6 +42,30 @@ export class AccountModel {
     return this.collection.update(doc, props, opts)
   }
 
+  public setKeyPair(keyPair: { publicKey: string, secretKey: string }, password: string) {
+    const keyPairPath = path.join(`${this._store.acctPath}/Drive/device_keypair`)
+
+    const cipher = this._encrypt(JSON.stringify(keyPair), password)
+
+    fs.writeFileSync(keyPairPath, cipher)
+  }
+
+  public getKeyPair(password: string) {
+    try {
+      const keyPairPath = path.join(`${this._store.acctPath}/Drive/device_keypair`)
+
+      if (!fs.existsSync(keyPairPath)) throw { message: `Keypair file not found.` }
+
+      const cipher = fs.readFileSync(keyPairPath)
+
+      const deciphered = this._decrypt(cipher, password)
+
+      return JSON.parse(deciphered.toString())
+    } catch(err:any) {
+      return null
+    }
+  }
+
   public async setVault(
     password: string,
     type: 'recovery' | 'vault',

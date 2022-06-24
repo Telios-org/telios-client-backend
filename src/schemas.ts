@@ -57,6 +57,8 @@ export interface AccountSchema {
   driveEncryptionKey: string
   secretBoxPubKey: string
   secretBoxPrivKey: string
+  signingPubKey?: string
+  signingPrivKey?: string
   deviceSigningPubKey?: string
   deviceSigningPrivKey?: string
   serverSig?: string

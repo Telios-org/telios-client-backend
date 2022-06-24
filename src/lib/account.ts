@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
+const { v4: uuidv4 } = require('uuid')
 
 import { AccountOpts, DriveStatuses } from '../types'
 import { StoreSchema } from '../schemas'
@@ -44,6 +45,7 @@ export default async (props: AccountOpts) => {
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
+        syncFiles: false,
         keyPair: driveKeyPair
       })
 
@@ -123,6 +125,8 @@ export default async (props: AccountOpts) => {
 
       store.setAccount(acctDoc)
 
+      store.setAccountSecrets({ email: payload.email, password: payload.password })
+
       const auth = {
         claims: {
           account_key: secretBoxKeypair.publicKey,
@@ -165,119 +169,7 @@ export default async (props: AccountOpts) => {
    *  GET ACCOUNT/LOGIN
    ************************************************/
   if (event === 'account:login') {
-    const acctPath = `${userDataPath}/${payload.email}`
-
-    store.acctPath = acctPath
-    
-    let mnemonic
-    let encryptionKey
-    let keyPair
-    let drive
-
-    try {
-      // Initialize account collection
-      const accountModel = store.models.Account
-
-      try {
-        // Retrieve drive encryption key and keyPair from vault using master password
-        const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
-
-        if(encryptionKey && keyPair) {
-          // Notify the receiver the master password has been authenticated
-          channel.send({ event: 'account:authorized' })
-        }
-
-        // Initialize drive
-        drive = store.setDrive({
-          name: `${acctPath}/Drive`,
-          encryptionKey,
-          keyPair: {
-            publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-            secretKey: Buffer.from(keyPair.secretKey, 'hex'),
-          },
-        })
-
-        handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
-
-        await drive.ready()
-
-        store.setDriveStatus('ONLINE')
-
-        // Join Telios as a peer
-        joinPeer(store, store.teliosPubKey, channel)
-      } catch(err: any) {
-        
-        if(err?.type !== 'VAULTERROR') {
-          return channel.send({
-            event: 'account:login:callback',
-            error: { 
-              name: err.name, 
-              message: err.message, 
-              stack: err.stack 
-            }
-          })
-        }
-
-        try {
-          const data = await runMigrate(acctPath, '/Drive', payload.password, store)
-    
-          mnemonic = data?.mnemonic
-          encryptionKey = data?.encryptionKey
-          keyPair = data?.keyPair
-          drive = data?.drive
-    
-        } catch(err:any) {
-          return channel.send({
-            event: 'account:login:callback',
-            error: { 
-              name: err.name, 
-              message: err.message, 
-              stack: err.stack 
-            }
-          })
-        }
-      }
-
-      // Initialize models
-      await store.initModels()
-
-      // Get account
-      const account = await accountModel.findOne()
-
-      // Init local encrypted db. This does not sync with other peers!
-      const localDB = await drive._localHB
-      const deviceInfo = await localDB.get('device')
-
-      const fullAcct = { ...account, ...deviceInfo.value }
-
-      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
-
-      store.setAccount(fullAcct)
-
-      const auth = {
-        claims: {
-          account_key: fullAcct.secretBoxPubKey,
-          device_signing_key: fullAcct.deviceSigningPubKey,
-          device_id: fullAcct.deviceId,
-        },
-        device_signing_priv_key: fullAcct.deviceSigningPrivKey,
-        sig: fullAcct.serverSig,
-      }
-
-      store.setAuthPayload(auth)
-
-      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic }})
-    } catch (err: any) {
-      channel.send({
-        event: 'account:login:callback',
-        error: { 
-          name: err.name, 
-          message: err.message, 
-          stack: err.stack 
-        },
-        data: null,
-      })
-    }
+    login()
   }
 
   /*************************************************
@@ -303,6 +195,7 @@ export default async (props: AccountOpts) => {
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
+        syncFiles: false,
         keyPair: {
           publicKey: Buffer.from(keyPair.publicKey, 'hex'),
           secretKey: Buffer.from(keyPair.secretKey, 'hex')
@@ -344,7 +237,7 @@ export default async (props: AccountOpts) => {
   /*************************************************
    *  RECOVER ACCOUNT / Sync devices
    ************************************************/
-  // Step 1. Initiate account recovery by having a code emailed to the User's recovery email
+  // Step 0 - Initiate account recovery by having a code emailed to the User's recovery email
   if (event === 'account:recover') {
     const { email, recoveryEmail } = payload
     const Account = store.sdk.account
@@ -365,13 +258,18 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  // Step 1. Initiate sync
+  // Step 1 - Initiate sync
   if (event === 'account:createSyncCode') {
     const Account = store.sdk.account
 
+    const acctSecrets = store.getAccountSecrets()
     try {
       const { code } = await Account.createSyncCode()
-      channel.send({ event: 'account:createSyncCode:callback', data: { code } })
+      channel.send({ event: 'account:createSyncCode:callback', data: { 
+        code,
+        drive_key: store.drive.publicKey,
+        email: acctSecrets.email
+      } })
     } catch(err:any) {
       channel.send({
         event: 'account:createSyncCode:callback',
@@ -385,7 +283,7 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  // Step 2. Retrieve keys needed for syncing/replicating
+  // Step 2 - Retrieve keys needed for syncing/replicating
   if (event === 'account:getSyncInfo') {
     const { code } = payload
     const Account = store.sdk.account
@@ -406,57 +304,246 @@ export default async (props: AccountOpts) => {
     }
   }
   
-  // Step 3. Start sync
+  // Step 3 - Start sync
   if (event === 'account:sync') {
     const { driveKey, email, password } = payload
 
     const Account = store.sdk.account
-
-    channel.send({ event: 'debug', data: userDataPath })
     
-    // const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
-    // const parentAccountsDir = path.join(userDataPath)
-    // if (!fs.existsSync(parentAccountsDir)) {
-    //   fs.mkdirSync(parentAccountsDir)
-    // }
-    // const acctPath = path.join(userDataPath, `/${email}`)
-    // store.acctPath = acctPath
+    const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
+    const parentAccountsDir = path.join(userDataPath)
+    if (!fs.existsSync(parentAccountsDir)) {
+      fs.mkdirSync(parentAccountsDir)
+    }
+    const acctPath = path.join(userDataPath, `/${email}`)
+    store.acctPath = acctPath
 
-    // fs.mkdirSync(acctPath)
+    fs.mkdirSync(acctPath)
 
-    // // Generate account key bundle
-    // const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
+    // Generate account key bundle
+    const { signingKeypair } = Account.makeKeys()
 
-    // const driveKeyPair = {
-    //   publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-    //   secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
-    // }
+    const driveKeyPair = {
+      publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
+      secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
+    }
 
     // Create device drive
-    // const drive = store.setDrive({
-    //   name: `${acctPath}/Drive`,
-    //   driveKey: driveKey,
-    //   keyPair: driveKeyPair
-    // })
+    let drive = store.setDrive({
+      name: `${acctPath}/Drive`,
+      driveKey: driveKey,
+      keyPair: {
+        publicKey: driveKeyPair.publicKey,
+        secretKey: driveKeyPair.secretKey,
+      },
+      syncFiles: false,
+      includeFiles: ['/vault', '/recovery'],
+      blind: true
+    })
+
+    // Step 4. Begin replication
+    await drive.ready()
+
+    const accountModel = store.models.Account
+
+    let encryptionKey
+
+    let hasVault = false
+
+    // Once we sync the vault file we can use the master password to gain access to the drive
+    drive.on('file-sync', async (file:any) => {
+      if(file.path.indexOf('vault') > -1 && !hasVault) {
+        hasVault = true
+
+        const vault = accountModel.getVault(payload.password, 'vault')
+        encryptionKey = vault.drive_encryption_key
+
+        try {
+          // Close the drive so we can restart it with the encryption key
+          await drive.close()
+
+          const _drive = store.setDrive({
+            name: `${acctPath}/Drive`,
+            encryptionKey,
+            syncFiles: false,
+            includeFiles: ['/vault', '/recovery'],
+            driveKey: driveKey,
+            keyPair: {
+              publicKey: driveKeyPair.publicKey,
+              secretKey: driveKeyPair.secretKey,
+            }
+          })
+
+          // Step 5. Listen for when core sync is complete
+          _drive.once('remote-cores-downloaded', () => {
+            let ready = false
+
+            const coreInt = setInterval(async () => {
+              if(!ready) {
+                await store.initModels()
+                const accountModel = store.models.Account
+                const acct = await accountModel.find()
+
+                // Wait for when account collection is ready since every peer will have this
+                if(acct.length > 0) {
+                  ready = true
+                  clearInterval(coreInt)
+
+                  // Start syncing messages from other peers via IPFS
+                  const filesCollection = await _drive.database.collection('file')
+
+                  let files = await filesCollection.find()
+
+                  let filesToSync = []
+
+                  // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
+                  if(files.length) {
+                    // Initialize models
+                    const Email = store.models.Email.collection
+                    const File = store.models.File.collection
+
+                    for(const file of files) {
+                      let filePath = `${acctPath}/Drive/Files/`
+                      
+                      if(!file.deleted) {
+
+                        if(file.encrypted) {
+                          filePath = path.join(filePath, file.uuid)
+                        } else {
+                          filePath = path.join(filePath, file.path)
+                        }
+                        
+                        if (file.path.indexOf('email') > -1) {
+                          try {
+                            const email = await Email.findOne({ path: file.path })
+                            await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+                            if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
+                          } catch(err: any) {
+                            // file not found
+                          }
+                        }
+
+                        if (file.path.indexOf('file') > -1) {
+                          try {
+                            const f = await File.findOne({ hash: file.hash })
+                            if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
+                          } catch(err: any) {
+                            // file not found
+                          }
+                        }
+                      }
+                    }
+
+                    // Step 6. Start the sync status callbacks
+                    channel.send({ 
+                      event: 'account:sync:callback', 
+                      data: {
+                        files: {
+                          index: 0, 
+                          total: filesToSync.length, 
+                          done: filesToSync.length ? false : true 
+                        }
+                      } 
+                    })
+
+                    // Fetch the files from IPFS and save locally
+                    for(let i = 0; i < filesToSync.length; i++) {
+                      const file = filesToSync[i]
+                      const idx = i + 1
+
+                      // Batch requests and notify client when finished
+                      channel.send({ event: 'debug', data: file })
+
+                      // Notify client of the sync status
+                      channel.send({ 
+                        event: 'account:sync:callback', 
+                        data: {
+                          files: {
+                            index: idx, 
+                            total: filesToSync.length, 
+                            done: idx ===  filesToSync.length
+                          }
+                        } 
+                      })  
+                    }
+
+                    // Step 7. Rebuild search indexes
+                    const Contact = store.models.Contact
+
+                    try {
+                    
+                      const contacts = await Contact.find()
+
+                      if(contacts.length) {
+                        for(const contact of contacts) {
+                          await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
+                        }
+                      }
+
+                      channel.send({ 
+                        event: 'account:sync:callback', 
+                        data: {
+                          searchIndex: {
+                            emails: true,
+                            contacts: true
+                          }
+                        } 
+                      })
+                    } catch(err: any) {
+                      channel.send({ 
+                        event: 'debug', 
+                        data: err.stack
+                      })
+                    }
+
+                    // Step 8. Register new device with backend server
+                    try {
+                      const deviceId = uuidv4()
+
+                      const localDB = await _drive._localHB
+
+                      await localDB.put('device', {
+                        deviceSigningPubKey: driveKeyPair.publicKey.toString('hex'),
+                        deviceSigningPrivKey: driveKeyPair.secretKey.toString('hex'),
+                        deviceId: deviceId,
+                        deviceType: payload.deviceType
+                      })
+
+                      await _drive.close()
+
+                      login({
+                        publicKey: driveKeyPair.publicKey.toString('hex'),
+                        secretKey: driveKeyPair.secretKey.toString('hex')
+                      })
+                    } catch(err: any) {
+                      channel.send({ 
+                        event: 'debug', 
+                        data: err.stack
+                      })
+                    }
 
 
-    // // Step 4. Begin replication
-    // await drive.ready()
+                  }
+                }
+              }
+            }, 500)
+          })
 
-    // // Initialize models
-    // await store.initModels()
+          await _drive.ready()
 
-    // const accountModel = store.models.Account
-
-
-    // const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(payload.password, 'vault')
-
-
-    // Step 5. Listen for when sync is complete
-
-    // Step 6. Sync done, go login
-
-    // When loggin back in, check if new device needs to be registered.
+        } catch(err: any) {
+          channel.send({
+            event: 'account:sync:callback',
+            error: { 
+              name: err.name, 
+              message: err.message, 
+              stack: err.stack 
+            },
+            data: null
+          })
+        }
+      }
+    })
   }
 
   /*************************************************
@@ -585,6 +672,175 @@ export default async (props: AccountOpts) => {
     const drive = store.drive
     await drive.close()
   }
+
+  async function login(kp?: { publicKey: string, secretKey: string}) {
+    const acctPath = `${userDataPath}/${payload.email}`
+
+    store.acctPath = acctPath
+    
+    let mnemonic
+    let encryptionKey
+    let drive
+    let keyPair
+
+    try {
+      // Initialize account collection
+      const accountModel = store.models.Account
+
+      try {
+        // Retrieve drive encryption key from vault using master password
+        let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
+        
+        keyPair = accountModel.getKeyPair(payload.password)
+
+        // Existing account that already has a keyPair but has not created a keyPair file yet
+        if(!kp && !keyPair) {
+          accountModel.setKeyPair(_keyPair, payload.password)
+          keyPair = _keyPair
+        }
+
+        // New accounts that just finished syncing or recovery
+        if(kp) {
+          accountModel.setKeyPair(kp, payload.password)
+          keyPair = kp
+        }
+
+        if(encryptionKey && keyPair) {
+          // Notify the receiver the master password has been authenticated
+          channel.send({ event: 'account:authorized' })
+        }
+
+        // Initialize drive
+        drive = store.setDrive({
+          name: `${acctPath}/Drive`,
+          encryptionKey,
+          syncFiles: false,
+          includeFiles: ['/recovery', '/vault'],
+          keyPair: {
+            publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+            secretKey: Buffer.from(keyPair.secretKey, 'hex'),
+          },
+        })
+
+        handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+        await drive.ready()
+
+        store.setDriveStatus('ONLINE')
+
+        store.setAccountSecrets({ email: payload.email, password: payload.password })
+
+        // Join Telios as a peer
+        joinPeer(store, store.teliosPubKey, channel)
+      } catch(err: any) {
+        
+        if(err?.type !== 'VAULTERROR') {
+          return channel.send({
+            event: 'account:login:callback',
+            error: { 
+              name: err.name, 
+              message: err.message, 
+              stack: err.stack 
+            }
+          })
+        }
+
+        try {
+          const data = await runMigrate(acctPath, '/Drive', payload.password, store)
+    
+          mnemonic = data?.mnemonic
+          encryptionKey = data?.encryptionKey
+          keyPair = data?.keyPair
+          drive = data?.drive
+    
+        } catch(err:any) {
+          return channel.send({
+            event: 'account:login:callback',
+            error: { 
+              name: err.name, 
+              message: err.message, 
+              stack: err.stack 
+            }
+          })
+        }
+      }
+
+      // Initialize models
+      await store.initModels()
+
+      // Get account
+      const account = await accountModel.findOne()
+
+      // Init local encrypted db. This does not sync with other peers!
+      const localDB = await drive._localHB
+      let deviceInfo = await localDB.get('device')
+
+      let fullAcct = { ...account, ...deviceInfo.value }
+
+      // This is a new device trying to login so we need to register the device with the API server
+      if(!deviceInfo.value.serverSig) {
+        const { sig } = await Account.registerNewDevice({
+          device: {
+            type: payload.deviceType,
+            account_key: account.secretBoxPubKey,
+            device_id: deviceInfo.value.device_id,
+            device_signing_key: keyPair.publicKey
+          }
+        }, account.signingPrivKey)
+
+        deviceInfo = { serverSig: sig, ...deviceInfo.value }
+        fullAcct.serverSig = sig
+
+        await localDB.put('device', deviceInfo)
+      }
+
+      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
+
+      store.setAccount(fullAcct)
+
+      let auth = {
+        claims: {
+          account_key: fullAcct.secretBoxPubKey,
+          device_signing_key: fullAcct.deviceSigningPubKey,
+          device_id: fullAcct.deviceId,
+        },
+        device_signing_priv_key: fullAcct.deviceSigningPrivKey,
+        sig: fullAcct.serverSig,
+      }
+
+      store.setAuthPayload(auth)
+
+      if(!account.signingPubKey && !account.signingPrivKey) {
+        const keys = Account.makeKeys()
+
+        await Account.registerSigningKey({ signing_key: keys.signingKeypair.publicKey })
+
+        // Save account to drive's Account collection
+        await accountModel.update(
+          { 
+            accountId: account.accountId 
+          }, 
+          { 
+            signingPubKey: keys.signingKeypair.publicKey,
+            signingPrivKey: keys.signingKeypair.privateKey,
+            updatedAt: UTCtimestamp()
+          }
+        )
+      }
+
+      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic, deviceInfo }})
+    } catch (err: any) {
+      channel.send({
+        event: 'account:login:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
 }
 
 async function handleDriveMessages(
@@ -671,6 +927,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         const drive = store.setDrive({
           name: `${rootdir}/${drivePath}`,
           encryptionKey,
+          syncFiles: false,
           keyPair
         })
 

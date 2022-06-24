@@ -98,7 +98,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
             if(opts.ipfs) {
               const _file = await opts.drive.metadb.get(file.hash)
 
-              if(_file && _file.path) {
+              if(_file && _file.value.path) {
                 const filesDir = opts.drive._filesDir
                 const stream = fs.createReadStream(filesDir + _file.value.path)
                 const { cid } = await saveFileToIPFS(opts.ipfs, stream)

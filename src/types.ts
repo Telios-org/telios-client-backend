@@ -45,6 +45,7 @@ export interface AccountMessage {
   payload: {
     accountId: string,
     displayName: string,
+    deviceType: 'DESKTOP' | 'MOBILE'
     avatar: string,
     email: string
     password: string
@@ -188,6 +189,9 @@ export interface MigrateOpts {
 
 export interface setDriveOpts {
   name: string
+  syncFiles: boolean
+  includeFiles?: Array<string>
+  blind?: boolean
   keyPair?: {
     publicKey: Buffer,
     secretKey: Buffer

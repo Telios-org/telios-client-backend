@@ -88,6 +88,8 @@ export class Store extends EventEmitter{
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
       secretBoxPrivKey:  '',
+      signingPubKey:  '',
+      signingPrivKey:  '',
       deviceSigningPubKey:  '',
       deviceSigningPrivKey:  '',
       serverSig:  '',
@@ -116,7 +118,7 @@ export class Store extends EventEmitter{
   }
 
   public setDrive(props: setDriveOpts) {
-    const { name, driveKey, keyPair, encryptionKey, acl = [] } = props
+    const { name, driveKey, syncFiles, includeFiles, blind, keyPair, encryptionKey, acl = [] } = props
     
     this.encryptionKey = encryptionKey
     
@@ -126,10 +128,13 @@ export class Store extends EventEmitter{
       keyPair,
       encryptionKey: this.encryptionKey,
       checkNetworkStatus: true,
+      syncFiles: syncFiles,
+      includeFiles: includeFiles,
+      blind: blind ? blind : false,
       swarmOpts: {
         server: true,
         client: true,
-        acl: [this.teliosPubKey, ...acl]
+        acl: []
       },
       fullTextSearch: true
     })

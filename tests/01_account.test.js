@@ -124,6 +124,8 @@ test('account login success', async t => {
 
     _account = data
 
+    console.log('ACCT DATA', data)
+
     t.ok(data.uid)
   })
 })
