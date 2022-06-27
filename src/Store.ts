@@ -85,15 +85,18 @@ export class Store extends EventEmitter{
     
     this._account = {
       uid: '',
+      driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
       secretBoxPrivKey:  '',
       signingPubKey:  '',
       signingPrivKey:  '',
-      deviceSigningPubKey:  '',
-      deviceSigningPrivKey:  '',
-      serverSig:  '',
-      deviceId:  ''
+      deviceInfo: {
+        deviceSigningPubKey: '',
+        deviceSigningPrivKey: '',
+        deviceId: '',
+        serverSig: ''
+      }
     }
 
     this._authPayload = {
@@ -292,11 +295,11 @@ export class Store extends EventEmitter{
   public refreshToken() {
     const payload = {
       account_key: this._account.secretBoxPubKey,
-      device_signing_key: this._account.deviceSigningPubKey,
-      device_id: this._account.deviceId,
-      sig: this._account.serverSig
+      device_signing_key: this._account?.deviceInfo?.deviceSigningPubKey,
+      device_id: this._account?.deviceInfo?.deviceId,
+      sig: this._account?.deviceInfo?.serverSig
     }
 
-    return this.sdk.account.createAuthToken(payload, this._account.deviceSigningPrivKey);
+    return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.deviceSigningPrivKey);
   }
 }

@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid')
 import { AccountOpts, DriveStatuses } from '../types'
 import { StoreSchema } from '../schemas'
 import { Store } from '../Store'
+import { resolve } from 'path'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -104,6 +105,7 @@ export default async (props: AccountOpts) => {
         _id,
         accountId: _id.toString('hex'),
         uid: accountUID,
+        driveSyncingPublicKey: drive.publicKey,
         secretBoxPubKey: secretBoxKeypair.publicKey,
         secretBoxPrivKey: secretBoxKeypair.privateKey,
         driveEncryptionKey: encryptionKey,
@@ -263,11 +265,12 @@ export default async (props: AccountOpts) => {
     const Account = store.sdk.account
 
     const acctSecrets = store.getAccountSecrets()
+    const driveSyncingPublicKey = store.getAccount().driveSyncingPublicKey
     try {
       const { code } = await Account.createSyncCode()
       channel.send({ event: 'account:createSyncCode:callback', data: { 
         code,
-        drive_key: store.drive.publicKey,
+        drive_key: driveSyncingPublicKey,
         email: acctSecrets.email
       } })
     } catch(err:any) {
@@ -768,17 +771,25 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
+      // const _acct = await accountModel.find()
+      // channel.send({ event: 'debug', data: _acct })
+
       // Get account
+      // const _acct = await accountModel.find()
+      // // channel.send({ event: 'debug', data: _acct })
       const account = await accountModel.findOne()
 
       // Init local encrypted db. This does not sync with other peers!
       const localDB = await drive._localHB
       let deviceInfo = await localDB.get('device')
 
-      let fullAcct = { ...account, ...deviceInfo.value }
+      let fullAcct = { ...account, deviceInfo: { ...deviceInfo.value } }
 
       // This is a new device trying to login so we need to register the device with the API server
+      // channel.send({ event: 'debug', data: deviceInfo.value })
+
       if(!deviceInfo.value.serverSig) {
+        // channel.send({ event: 'debug', data: 'REGISTER DEVICE'})
         const { sig } = await Account.registerNewDevice({
           device: {
             type: payload.deviceType,
@@ -788,8 +799,10 @@ export default async (props: AccountOpts) => {
           }
         }, account.signingPrivKey)
 
+        // channel.send({ event: 'debug', data: `DEVICE REGISTERED ${sig}` })
+
         deviceInfo = { serverSig: sig, ...deviceInfo.value }
-        fullAcct.serverSig = sig
+        fullAcct.deviceInfo.serverSig = sig
 
         await localDB.put('device', deviceInfo)
       }
@@ -801,11 +814,11 @@ export default async (props: AccountOpts) => {
       let auth = {
         claims: {
           account_key: fullAcct.secretBoxPubKey,
-          device_signing_key: fullAcct.deviceSigningPubKey,
-          device_id: fullAcct.deviceId,
+          device_signing_key: fullAcct.deviceInfo.deviceSigningPubKey,
+          device_id: fullAcct.deviceInfo.deviceId,
         },
-        device_signing_priv_key: fullAcct.deviceSigningPrivKey,
-        sig: fullAcct.serverSig,
+        device_signing_priv_key: fullAcct.deviceInfo.deviceSigningPrivKey,
+        sig: fullAcct.deviceInfo.serverSig,
       }
 
       store.setAuthPayload(auth)
@@ -821,6 +834,7 @@ export default async (props: AccountOpts) => {
             accountId: account.accountId 
           }, 
           { 
+            driveSyncingPublicKey: drive.publicKey,
             signingPubKey: keys.signingKeypair.publicKey,
             signingPrivKey: keys.signingKeypair.privateKey,
             updatedAt: UTCtimestamp()
@@ -828,7 +842,7 @@ export default async (props: AccountOpts) => {
         )
       }
 
-      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic, deviceInfo }})
+      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic }})
     } catch (err: any) {
       channel.send({
         event: 'account:login:callback',
@@ -949,11 +963,8 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
           uid: account.uid,
           secretBoxPubKey: account.secretBoxPubKey,
           secretBoxPrivKey: account.secretBoxPrivKey,
+          driveSyncingPublicKey: drive.publicKey,
           driveEncryptionKey: encryptionKey,
-          deviceSigningPubKey: account.deviceSigningPubKey,
-          deviceSigningPrivKey: account.deviceSigningPrivKey,
-          serverSig: account.serverSig,
-          deviceId: account.deviceId,
           createdAt: UTCtimestamp(),
           updatedAt: UTCtimestamp(),
         })

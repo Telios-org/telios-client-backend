@@ -130,8 +130,8 @@ export default async (props: EmailOpts) => {
             privateKey: account.secretBoxPrivKey
           },
           signingKeypair: {
-            publicKey: account.deviceSigningPubKey,
-            privateKey: account.deviceSigningPrivKey
+            publicKey: account.deviceInfo?.deviceSigningPubKey,
+            privateKey: account.deviceInfo?.deviceSigningPrivKey
           }
         }
       })

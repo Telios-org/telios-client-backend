@@ -80,12 +80,17 @@ test('sync account with another device/peer', async t => {
     // 6. Device B - Listen for successful login. Once we're here the user can go to the main mailbox view
     channel2.on('account:login:callback', cb => {
       const { error, data } = cb
-      
-      if(error) t.fail(error.message)
 
-      t.ok(data.serverSig, 'New device has been registered and recieved a certificate from the API server')
-      t.ok(data.signingPubKey, 'New device has an account signing public key')
-      t.ok(data.signingPrivKey, 'New device has an account private key')
+
+      
+      if(error) t.fail(error.stack)
+
+      if(data) {
+        console.log(data)
+        t.ok(data.serverSig, 'New device has been registered and recieved a certificate from the API server')
+        t.ok(data.signingPubKey, 'New device has an account signing public key')
+        t.ok(data.signingPrivKey, 'New device has an account private key')
+      }
 
       t.teardown(() => {
         channel1.kill()

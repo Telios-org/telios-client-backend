@@ -54,15 +54,18 @@ export interface AccountSchema {
   displayName?: string
   avatar?: string
   uid: string
+  driveSyncingPublicKey: string
   driveEncryptionKey: string
   secretBoxPubKey: string
   secretBoxPrivKey: string
   signingPubKey?: string
   signingPrivKey?: string
-  deviceSigningPubKey?: string
-  deviceSigningPrivKey?: string
-  serverSig?: string
-  deviceId?: string
+  deviceInfo? : {
+    deviceSigningPubKey: string,
+    deviceSigningPrivKey: string,
+    deviceId: string,
+    serverSig: string
+  }
   // Timestamps
   createdAt?: string
   updatedAt?: string
