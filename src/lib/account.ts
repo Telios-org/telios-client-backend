@@ -359,7 +359,6 @@ export default async (props: AccountOpts) => {
 
         const vault = accountModel.getVault(payload.password, 'vault')
         encryptionKey = vault.drive_encryption_key
-
         try {
           // Close the drive so we can restart it with the encryption key
           await drive.close()
@@ -685,8 +684,6 @@ export default async (props: AccountOpts) => {
     }
 
     try {
-      channel.send({ event: 'debug', data: deviceInfo })
-
       try {
         // Retrieve drive encryption key from vault using master password
         let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
@@ -694,8 +691,8 @@ export default async (props: AccountOpts) => {
         // Existing account that already has a keyPair but has not created a deviceInfo file
         if(!kp && !deviceInfo) {
           keyPair = {
-            publicKey: _keyPair.publicKey.toString('hex'),
-            secretKey: _keyPair.secretKey.toString('hex')
+            publicKey: Buffer.from(_keyPair.publicKey, 'hex').toString('hex'),
+            secretKey:  Buffer.from(_keyPair.secretKey,'hex').toString('hex')
           }
         }
 

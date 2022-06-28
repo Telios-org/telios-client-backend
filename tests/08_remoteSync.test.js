@@ -62,16 +62,6 @@ test('sync account with another device/peer', async t => {
       }
     })
 
-    // channel2.send({
-    //   event: 'account:sync',
-    //   payload: {
-    //     deviceType: 'MOBILE', // MOBILE | DESKTOP
-    //     driveKey: '',
-    //     email: '',
-    //     password: ''
-    //   }
-    // })
-
     // 5. Device B - Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
     channel2.on('account:sync:callback', cb => {
       const { error, data } = cb
@@ -91,12 +81,9 @@ test('sync account with another device/peer', async t => {
     channel2.on('account:login:callback', cb => {
       const { error, data } = cb
 
-
-      
       if(error) t.fail(error.stack)
 
       if(data) {
-        console.log('DATA', data)
         t.ok(data.deviceInfo.serverSig, 'New device has been registered and recieved a certificate from the API server')
         t.ok(data.signingPubKey, 'New device has an account signing public key')
         t.ok(data.signingPrivKey, 'New device has an account private key')
