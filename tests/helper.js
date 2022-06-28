@@ -27,6 +27,7 @@ class Channel extends EventEmitter {
     })
 
     this.process.stderr.on('error', data => {
+      console.log(data.toString())
       this.emit('error', data.toString())
     })
   }

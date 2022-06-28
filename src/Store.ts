@@ -4,7 +4,7 @@ const Drive = require('@telios/nebula')
 
 import envAPI from './env_api'
 import { setDriveOpts, AuthPayload, AccountSecrets, ModelType, DriveStatuses } from './types'
-import { AccountSchema } from './schemas'
+import { AccountSchema, DeviceSchema } from './schemas'
 import { AccountModel } from './models/account.model'
 import { AliasModel } from './models/alias.model'
 import { AliasNamespaceModel } from './models/aliasNamespace.model'
@@ -92,8 +92,10 @@ export class Store extends EventEmitter{
       signingPubKey:  '',
       signingPrivKey:  '',
       deviceInfo: {
-        deviceSigningPubKey: '',
-        deviceSigningPrivKey: '',
+        keyPair: {
+          publicKey: '',
+          secretKey: ''
+        },
         deviceId: '',
         serverSig: ''
       }
@@ -121,18 +123,21 @@ export class Store extends EventEmitter{
   }
 
   public setDrive(props: setDriveOpts) {
-    const { name, driveKey, syncFiles, includeFiles, blind, keyPair, encryptionKey, acl = [] } = props
+    const { name, driveKey, blind, keyPair, encryptionKey, acl = [] } = props
     
     this.encryptionKey = encryptionKey
     
     if(encryptionKey && !Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
 
     this.drive = new Drive(name, driveKey, {
-      keyPair,
+      keyPair: {
+        publicKey: Buffer.from(keyPair?.publicKey, 'hex'),
+        secretKey: Buffer.from(keyPair?.secretKey, 'hex')
+      },
       encryptionKey: this.encryptionKey,
       checkNetworkStatus: true,
-      syncFiles: syncFiles,
-      includeFiles: includeFiles,
+      syncFiles: false,
+      includeFiles: ['/vault', '/recovery'],
       blind: blind ? blind : false,
       swarmOpts: {
         server: true,
@@ -295,11 +300,11 @@ export class Store extends EventEmitter{
   public refreshToken() {
     const payload = {
       account_key: this._account.secretBoxPubKey,
-      device_signing_key: this._account?.deviceInfo?.deviceSigningPubKey,
+      device_signing_key: this._account?.deviceInfo?.keyPair?.publicKey,
       device_id: this._account?.deviceInfo?.deviceId,
       sig: this._account?.deviceInfo?.serverSig
     }
 
-    return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.deviceSigningPrivKey);
+    return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.keyPair?.secretKey);
   }
 }

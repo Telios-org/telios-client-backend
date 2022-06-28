@@ -189,12 +189,10 @@ export interface MigrateOpts {
 
 export interface setDriveOpts {
   name: string
-  syncFiles: boolean
-  includeFiles?: Array<string>
   blind?: boolean
-  keyPair?: {
-    publicKey: Buffer,
-    secretKey: Buffer
+  keyPair: {
+    publicKey: string,
+    secretKey: string
   },
   driveKey?: string
   encryptionKey?: string
@@ -219,11 +217,11 @@ export interface ChannelError {
 export interface AuthPayload {
   claims: {
     account_key: string
-    device_signing_key: string
-    device_id: string
+    device_signing_key?: string
+    device_id?: string
   }
-  device_signing_priv_key: string
-  sig: string
+  device_signing_priv_key?: string
+  sig?: string
 }
 
 export interface AccountSecrets {

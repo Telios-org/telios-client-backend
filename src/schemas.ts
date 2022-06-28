@@ -48,6 +48,17 @@ export declare interface StoreSchema {
   refreshToken(): any
 }
 
+export interface DeviceSchema {
+  keyPair: {
+    publicKey: string,
+    secretKey: string
+  }
+  deviceId?: string
+  deviceType?: string,
+  serverSig?: string
+  driveSyncingPublicKey?: string
+}
+
 export interface AccountSchema {
   _id?: any,
   accountId?: string
@@ -60,12 +71,9 @@ export interface AccountSchema {
   secretBoxPrivKey: string
   signingPubKey?: string
   signingPrivKey?: string
-  deviceInfo? : {
-    deviceSigningPubKey: string,
-    deviceSigningPrivKey: string,
-    deviceId: string,
-    serverSig: string
-  }
+  deviceId?: string
+  serverSig?: string
+  deviceInfo? : DeviceSchema
   // Timestamps
   createdAt?: string
   updatedAt?: string

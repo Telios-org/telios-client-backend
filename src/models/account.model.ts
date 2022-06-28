@@ -4,7 +4,7 @@ const sodium = require('sodium-native')
 const MemStream = require('memorystream')
 const blake = require('blakejs')
 
-import { AccountSchema, StoreSchema } from '../schemas'
+import { AccountSchema, StoreSchema, DeviceSchema } from '../schemas'
 
 export class AccountModel {
   public collection: any
@@ -42,7 +42,28 @@ export class AccountModel {
     return this.collection.update(doc, props, opts)
   }
 
-  public setKeyPair(keyPair: { publicKey: string, secretKey: string }, password: string) {
+  public setDeviceInfo(payload: DeviceSchema, password: string) {
+    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+
+    const cipher = this._encrypt(JSON.stringify(payload), password)
+
+    fs.writeFileSync(filePath, cipher)
+  }
+
+  public getDeviceInfo(password: string): DeviceSchema {
+
+      const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+
+      if (!fs.existsSync(filePath)) throw { message: `Device file not found.` }
+
+      const cipher = fs.readFileSync(filePath)
+
+      const deciphered = this._decrypt(cipher, password)
+
+      return JSON.parse(deciphered.toString())
+  }
+
+  public setKeyPair(keyPair: { publicKey: Buffer, secretKey: Buffer }, password: string) {
     const keyPairPath = path.join(`${this._store.acctPath}/Drive/device_keypair`)
 
     const cipher = this._encrypt(JSON.stringify(keyPair), password)
@@ -72,7 +93,6 @@ export class AccountModel {
     payload: {
       master_pass?: string
       drive_encryption_key?: any
-      keyPair?: any
     },
   ) {
     const memStream = new MemStream()
@@ -86,7 +106,7 @@ export class AccountModel {
   public getVault(
     password: string,
     type: 'recovery' | 'vault',
-  ): { drive_encryption_key: any; keyPair: any, master_pass: any } {
+  ): { drive_encryption_key: any, keyPair: any, master_pass: any } {
     const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
 
     if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }

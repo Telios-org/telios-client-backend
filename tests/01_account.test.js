@@ -78,7 +78,7 @@ test('Reset password with passphrase', async t => {
   channel.on('account:resetPassword:callback', cb => {
     const { error, data } = cb
     
-    if(error) t.fail(error.message)
+    if(error) t.fail(error.stack)
    
     t.ok(data.reset)
   })
@@ -99,6 +99,10 @@ test('account login success', async t => {
       email: 'bob@telios.io',
       password: 'letmein123'
     }
+  })
+
+  _channel.on('debug', data => {
+    console.log('DEBUG', data)
   })
 
   // _channel.on('drive:peer:updated', cb => {

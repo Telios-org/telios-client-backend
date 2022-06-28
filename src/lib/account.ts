@@ -8,6 +8,7 @@ import { AccountOpts, DriveStatuses } from '../types'
 import { StoreSchema } from '../schemas'
 import { Store } from '../Store'
 import { resolve } from 'path'
+import { sign } from 'crypto'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -37,17 +38,15 @@ export default async (props: AccountOpts) => {
       const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
 
       const encryptionKey = Crypto.generateAEDKey()
-      const driveKeyPair = {
-        publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-        secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
-      }
 
       // Create account Nebula drive
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
-        syncFiles: false,
-        keyPair: driveKeyPair
+        keyPair: {
+          publicKey: signingKeypair.publicKey,
+          secretKey: signingKeypair.privateKey
+        }
       })
 
       handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
@@ -71,8 +70,7 @@ export default async (props: AccountOpts) => {
 
       // Create vault file with drive enryption key
       await accountModel.setVault(payload.password, 'vault', {
-        drive_encryption_key: encryptionKey,
-        keyPair: driveKeyPair,
+        drive_encryption_key: encryptionKey
       })
 
       const opts = {
@@ -113,15 +111,16 @@ export default async (props: AccountOpts) => {
         updatedAt: UTCtimestamp()
       })
 
-      // Init local encrypted db. This does not sync with other peers!
-      const localDB = await drive._localHB
-
-      await localDB.put('device', {
-        deviceSigningPubKey: signingKeypair.publicKey,
-        deviceSigningPrivKey: signingKeypair.privateKey,
+      // Save and encrypt device info. Needed for bootstrapping drive.
+      accountModel.setDeviceInfo({
+        keyPair: {
+          publicKey: signingKeypair.publicKey,
+          secretKey: signingKeypair.privateKey
+        },
         deviceId: account.device_id,
+        deviceType: payload.deviceType || 'DESKTOP',
         serverSig: serverSig
-      })
+      }, payload.password)
 
       handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
@@ -191,16 +190,18 @@ export default async (props: AccountOpts) => {
       const { master_pass } = accountModel.getVault(passphrase, 'recovery')
       
       // Retrieve drive encryption key and keyPair from vault using old master password
-      const { drive_encryption_key: encryptionKey, keyPair } = accountModel.getVault(master_pass, 'vault')
+      const { drive_encryption_key: encryptionKey } = accountModel.getVault(master_pass, 'vault')
+
+      // Get device keypair
+      const deviceInfo = accountModel.getDeviceInfo(master_pass)
 
       // Initialize drive
       const drive = store.setDrive({
         name: `${acctPath}/Drive`,
         encryptionKey,
-        syncFiles: false,
         keyPair: {
-          publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-          secretKey: Buffer.from(keyPair.secretKey, 'hex')
+          publicKey: deviceInfo.keyPair.publicKey,
+          secretKey: deviceInfo.keyPair.secretKey
         }
       })
 
@@ -215,7 +216,10 @@ export default async (props: AccountOpts) => {
       await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
 
       // Update vault file with new password
-      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey, keyPair })
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+
+      // Re-encrypt device info file with new pass
+      await accountModel.setDeviceInfo(deviceInfo, newPass)
 
       channel.send({
         event: 'account:resetPassword:callback',
@@ -326,21 +330,16 @@ export default async (props: AccountOpts) => {
     // Generate account key bundle
     const { signingKeypair } = Account.makeKeys()
 
-    const driveKeyPair = {
-      publicKey: Buffer.from(signingKeypair.publicKey, 'hex'),
-      secretKey: Buffer.from(signingKeypair.privateKey, 'hex')
+    const keyPair = {
+      publicKey: signingKeypair.publicKey,
+      secretKey: signingKeypair.privateKey
     }
 
     // Create device drive
     let drive = store.setDrive({
       name: `${acctPath}/Drive`,
       driveKey: driveKey,
-      keyPair: {
-        publicKey: driveKeyPair.publicKey,
-        secretKey: driveKeyPair.secretKey,
-      },
-      syncFiles: false,
-      includeFiles: ['/vault', '/recovery'],
+      keyPair,
       blind: true
     })
 
@@ -368,13 +367,8 @@ export default async (props: AccountOpts) => {
           const _drive = store.setDrive({
             name: `${acctPath}/Drive`,
             encryptionKey,
-            syncFiles: false,
-            includeFiles: ['/vault', '/recovery'],
             driveKey: driveKey,
-            keyPair: {
-              publicKey: driveKeyPair.publicKey,
-              secretKey: driveKeyPair.secretKey,
-            }
+            keyPair
           })
 
           // Step 5. Listen for when core sync is complete
@@ -503,28 +497,22 @@ export default async (props: AccountOpts) => {
                     try {
                       const deviceId = uuidv4()
 
-                      const localDB = await _drive._localHB
-
-                      await localDB.put('device', {
-                        deviceSigningPubKey: driveKeyPair.publicKey.toString('hex'),
-                        deviceSigningPrivKey: driveKeyPair.secretKey.toString('hex'),
+                      accountModel.setDeviceInfo({
+                        keyPair,
                         deviceId: deviceId,
-                        deviceType: payload.deviceType
-                      })
+                        deviceType: payload.deviceType,
+                        driveSyncingPublicKey: driveKey,
+                      }, payload.password)
 
                       await _drive.close()
 
-                      login({
-                        publicKey: driveKeyPair.publicKey.toString('hex'),
-                        secretKey: driveKeyPair.secretKey.toString('hex')
-                      })
+                      login(keyPair)
                     } catch(err: any) {
                       channel.send({ 
                         event: 'debug', 
                         data: err.stack
                       })
                     }
-
 
                   }
                 }
@@ -690,22 +678,21 @@ export default async (props: AccountOpts) => {
       // Initialize account collection
       const accountModel = store.models.Account
 
+      let deviceInfo = accountModel.getDeviceInfo(payload.password)
+
+      channel.send({ event: 'debug', data: deviceInfo })
+
       try {
         // Retrieve drive encryption key from vault using master password
         let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
-        
-        keyPair = accountModel.getKeyPair(payload.password)
 
-        // Existing account that already has a keyPair but has not created a keyPair file yet
-        if(!kp && !keyPair) {
-          accountModel.setKeyPair(_keyPair, payload.password)
+        // Existing account that already has a keyPair but has not created a deviceInfo file
+        if(!kp && !deviceInfo) {
           keyPair = _keyPair
         }
 
-        // New accounts that just finished syncing or recovery
-        if(kp) {
-          accountModel.setKeyPair(kp, payload.password)
-          keyPair = kp
+        if(deviceInfo?.keyPair) {
+          keyPair = deviceInfo.keyPair
         }
 
         if(encryptionKey && keyPair) {
@@ -716,17 +703,13 @@ export default async (props: AccountOpts) => {
         // Initialize drive
         drive = store.setDrive({
           name: `${acctPath}/Drive`,
+          driveKey: deviceInfo?.driveSyncingPublicKey,
           encryptionKey,
-          syncFiles: false,
-          includeFiles: ['/recovery', '/vault'],
-          keyPair: {
-            publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-            secretKey: Buffer.from(keyPair.secretKey, 'hex'),
-          },
+          keyPair
         })
 
         handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
-
+        
         await drive.ready()
 
         store.setDriveStatus('ONLINE')
@@ -771,54 +754,47 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      // const _acct = await accountModel.find()
-      // channel.send({ event: 'debug', data: _acct })
-
       // Get account
-      // const _acct = await accountModel.find()
-      // // channel.send({ event: 'debug', data: _acct })
-      const account = await accountModel.findOne()
+      let account = await accountModel.findOne()
 
-      // Init local encrypted db. This does not sync with other peers!
-      const localDB = await drive._localHB
-      let deviceInfo = await localDB.get('device')
+      // Monkey patch: Support older accounts when this info was stored in the account collection
+      if(!deviceInfo && account.deviceId && account.serverSig) {
+        const _deviceInfo = {
+          keyPair: keyPair,
+          deviceId: account.deviceId,
+          serverSig: account.serverSig
+        }
 
-      let fullAcct = { ...account, deviceInfo: { ...deviceInfo.value } }
+        accountModel.setDeviceInfo({ ..._deviceInfo }, payload.password)
+      }
 
       // This is a new device trying to login so we need to register the device with the API server
-      // channel.send({ event: 'debug', data: deviceInfo.value })
-
-      if(!deviceInfo.value.serverSig) {
-        // channel.send({ event: 'debug', data: 'REGISTER DEVICE'})
+      if(deviceInfo && !deviceInfo.serverSig) {
         const { sig } = await Account.registerNewDevice({
           device: {
             type: payload.deviceType,
             account_key: account.secretBoxPubKey,
-            device_id: deviceInfo.value.device_id,
-            device_signing_key: keyPair.publicKey
+            device_id: deviceInfo.deviceId,
+            device_signing_key: keyPair.publicKey.toString('hex')
           }
         }, account.signingPrivKey)
 
-        // channel.send({ event: 'debug', data: `DEVICE REGISTERED ${sig}` })
-
-        deviceInfo = { serverSig: sig, ...deviceInfo.value }
-        fullAcct.deviceInfo.serverSig = sig
-
-        await localDB.put('device', deviceInfo)
+        deviceInfo = { serverSig: sig, ...deviceInfo }
+        accountModel.setDeviceInfo(deviceInfo, payload.password)
       }
 
-      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
+      handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
 
-      store.setAccount(fullAcct)
+      store.setAccount({...account, deviceInfo })
 
       let auth = {
         claims: {
-          account_key: fullAcct.secretBoxPubKey,
-          device_signing_key: fullAcct.deviceInfo.deviceSigningPubKey,
-          device_id: fullAcct.deviceInfo.deviceId,
+          account_key: account.secretBoxPubKey,
+          device_signing_key: deviceInfo?.keyPair?.publicKey,
+          device_id: deviceInfo?.deviceId,
         },
-        device_signing_priv_key: fullAcct.deviceInfo.deviceSigningPrivKey,
-        sig: fullAcct.deviceInfo.serverSig,
+        device_signing_priv_key: deviceInfo?.keyPair?.secretKey,
+        sig: deviceInfo?.serverSig
       }
 
       store.setAuthPayload(auth)
@@ -842,7 +818,7 @@ export default async (props: AccountOpts) => {
         )
       }
 
-      channel.send({ event: 'account:login:callback', error: null, data: { ...fullAcct, mnemonic }})
+      channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
       channel.send({
         event: 'account:login:callback',
@@ -941,7 +917,6 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         const drive = store.setDrive({
           name: `${rootdir}/${drivePath}`,
           encryptionKey,
-          syncFiles: false,
           keyPair
         })
 
@@ -975,10 +950,7 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         })
 
         // Create vault file with drive enryption key
-        await accountModel.setVault(password, 'vault', {
-          drive_encryption_key: encryptionKey,
-          keyPair
-        })
+        await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
 
         return { 
           mnemonic,
