@@ -66,9 +66,9 @@ test('sync account with another device/peer', async t => {
     //   event: 'account:sync',
     //   payload: {
     //     deviceType: 'MOBILE', // MOBILE | DESKTOP
-    //     driveKey: data.drive_key,
-    //     email: data.email,
-    //     password: 'letmein123'
+    //     driveKey: '',
+    //     email: '',
+    //     password: ''
     //   }
     // })
 

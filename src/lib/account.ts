@@ -673,13 +673,18 @@ export default async (props: AccountOpts) => {
     let encryptionKey
     let drive
     let keyPair
+    let deviceInfo
+
+    // Initialize account collection
+    const accountModel = store.models.Account
 
     try {
-      // Initialize account collection
-      const accountModel = store.models.Account
+      deviceInfo = accountModel.getDeviceInfo(payload.password)
+    } catch(err:any) {
+      // file does not exist
+    }
 
-      let deviceInfo = accountModel.getDeviceInfo(payload.password)
-
+    try {
       channel.send({ event: 'debug', data: deviceInfo })
 
       try {
@@ -688,7 +693,10 @@ export default async (props: AccountOpts) => {
 
         // Existing account that already has a keyPair but has not created a deviceInfo file
         if(!kp && !deviceInfo) {
-          keyPair = _keyPair
+          keyPair = {
+            publicKey: _keyPair.publicKey.toString('hex'),
+            secretKey: _keyPair.secretKey.toString('hex')
+          }
         }
 
         if(deviceInfo?.keyPair) {
@@ -759,13 +767,14 @@ export default async (props: AccountOpts) => {
 
       // Monkey patch: Support older accounts when this info was stored in the account collection
       if(!deviceInfo && account.deviceId && account.serverSig) {
-        const _deviceInfo = {
-          keyPair: keyPair,
+        deviceInfo = {
+          keyPair,
+          deviceType: 'DESKTOP',
           deviceId: account.deviceId,
           serverSig: account.serverSig
         }
 
-        accountModel.setDeviceInfo({ ..._deviceInfo }, payload.password)
+        accountModel.setDeviceInfo({ ...deviceInfo }, payload.password)
       }
 
       // This is a new device trying to login so we need to register the device with the API server

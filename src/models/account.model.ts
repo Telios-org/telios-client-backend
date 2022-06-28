@@ -50,11 +50,11 @@ export class AccountModel {
     fs.writeFileSync(filePath, cipher)
   }
 
-  public getDeviceInfo(password: string): DeviceSchema {
+  public getDeviceInfo(password: string): any {
 
       const filePath = path.join(`${this._store.acctPath}/Drive/device`)
 
-      if (!fs.existsSync(filePath)) throw { message: `Device file not found.` }
+      if (!fs.existsSync(filePath)) return null 
 
       const cipher = fs.readFileSync(filePath)
 
