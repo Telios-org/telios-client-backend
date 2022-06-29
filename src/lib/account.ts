@@ -387,7 +387,7 @@ export default async (props: AccountOpts) => {
     const metaFileStream = drive.metadb.createReadStream({ live: true })
 
     metaFileStream.on('data', async (data:any) => {
-      if(data.value.toString().indexOf('hyperbee') === -1) {
+      if(data?.value?.toString().indexOf('hyperbee') === -1) {
         const op = HyperbeeMessages.Node.decode(data.value)
         const node = {
           key: op.key.toString('utf8'),
@@ -397,7 +397,7 @@ export default async (props: AccountOpts) => {
 
         const file = node.value
 
-        if(file?.custom_data?.cid && (file?.path.indexOf('vault') > -1 || file?.path.indexOf('recovery') > -1)) {
+        if(file?.custom_data?.cid && (file?.path?.indexOf('vault') > -1 || file?.path?.indexOf('recovery') > -1)) {
           try {
             const fileData = await FileUtil.getFileByCID(file.custom_data.cid)
             const filesDir = `${acctPath}/Drive/Files/`
@@ -408,7 +408,7 @@ export default async (props: AccountOpts) => {
           }
         }
 
-        if(file?.path.indexOf('vault') > -1 && !hasVault) {
+        if(file?.path?.indexOf('vault') > -1 && !hasVault) {
           hasVault = true
 
           try {
