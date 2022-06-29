@@ -3,6 +3,7 @@ const path = require('path')
 const sodium = require('sodium-native')
 const MemStream = require('memorystream')
 const blake = require('blakejs')
+import * as FileUtil from '../util/file.util'
 
 import { AccountSchema, StoreSchema, DeviceSchema } from '../schemas'
 
@@ -63,30 +64,6 @@ export class AccountModel {
       return JSON.parse(deciphered.toString())
   }
 
-  public setKeyPair(keyPair: { publicKey: Buffer, secretKey: Buffer }, password: string) {
-    const keyPairPath = path.join(`${this._store.acctPath}/Drive/device_keypair`)
-
-    const cipher = this._encrypt(JSON.stringify(keyPair), password)
-
-    fs.writeFileSync(keyPairPath, cipher)
-  }
-
-  public getKeyPair(password: string) {
-    try {
-      const keyPairPath = path.join(`${this._store.acctPath}/Drive/device_keypair`)
-
-      if (!fs.existsSync(keyPairPath)) throw { message: `Keypair file not found.` }
-
-      const cipher = fs.readFileSync(keyPairPath)
-
-      const deciphered = this._decrypt(cipher, password)
-
-      return JSON.parse(deciphered.toString())
-    } catch(err:any) {
-      return null
-    }
-  }
-
   public async setVault(
     password: string,
     type: 'recovery' | 'vault',
@@ -100,7 +77,11 @@ export class AccountModel {
 
     memStream.end(cipher)
 
-    return this._drive.writeFile(`/${type}`, memStream, { encrypted: false })
+    let { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, memStream)
+
+    await this._drive._localDB.put('vault', { isSet: true })
+
+    return this._drive.writeFile(`/${type}`, memStream, { encrypted: false, customData: { cid: cid } })
   }
 
   public getVault(

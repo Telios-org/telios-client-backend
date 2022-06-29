@@ -55,6 +55,8 @@ export class Store extends EventEmitter{
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
+    this.env = env
+
     
     this.models = {
       // @ts-ignore
@@ -137,7 +139,6 @@ export class Store extends EventEmitter{
       encryptionKey: this.encryptionKey,
       checkNetworkStatus: true,
       syncFiles: false,
-      includeFiles: ['/vault', '/recovery'],
       blind: blind ? blind : false,
       swarmOpts: {
         server: true,

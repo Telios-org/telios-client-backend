@@ -16,6 +16,10 @@ test('create account', async t => {
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
 
+  channel.on('debug', data => {
+    console.log(data)
+  })
+
   channel.on('drive:network:updated', cb => {
     const { data } = cb
     const { network } = data
@@ -35,7 +39,9 @@ test('create account', async t => {
       email: 'bob@telios.io',
       password: 'letmein321',
       vcode: 'testcode123',
-      recoveryEmail: 'bob@mail.com'
+      recoveryEmail: 'bob@mail.com',
+      encryptionKey: 'c3eeb95e5ecb007d74053278574a47b0502c04973b62e60c2e9f4abafeecb8d2', // Only pass these in to initialize with existing key
+      mnemonic: 'forward neck limb trim bottom teach theme miracle warrior beef steel jazz bulb job host silver anxiety ring old always polar option stereo pride' // Only pass these in to initialize with existing mnemonic
     }
   })
 

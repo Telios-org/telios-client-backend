@@ -54,7 +54,9 @@ export interface AccountMessage {
     code: string
     passphrase: string
     newPass: string,
-    driveKey: string
+    driveKey: string,
+    encryptionKey: string
+    mnemonic: string
   }
 }
 

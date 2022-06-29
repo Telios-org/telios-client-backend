@@ -3,12 +3,12 @@ const path = require('path')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 const { v4: uuidv4 } = require('uuid')
+const HyperbeeMessages = require('hyperbee/lib/messages.js')
+
 
 import { AccountOpts, DriveStatuses } from '../types'
 import { StoreSchema } from '../schemas'
-import { Store } from '../Store'
-import { resolve } from 'path'
-import { sign } from 'crypto'
+import * as FileUtil from '../util/file.util'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -35,9 +35,21 @@ export default async (props: AccountOpts) => {
       fs.mkdirSync(acctPath)
 
       // Generate account key bundle
-      const { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
+      let { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
 
-      const encryptionKey = Crypto.generateAEDKey()
+      if(payload.mnemonic) {
+        mnemonic = payload.mnemonic
+      }
+      
+      let encryptionKey = Crypto.generateAEDKey()
+
+      channel.send({ event: 'debug', data: encryptionKey.toString('hex')})
+
+      if(!payload.encryptionKey) {
+        encryptionKey = Crypto.generateAEDKey()
+      } else {
+        encryptionKey = Buffer.from(payload.encryptionKey, 'hex')
+      }
 
       // Create account Nebula drive
       const drive = store.setDrive({
@@ -62,16 +74,6 @@ export default async (props: AccountOpts) => {
       await store.initModels()
 
       const accountModel = store.models.Account
-
-      // Create recovery file with master pass
-      await accountModel.setVault(mnemonic, 'recovery', {
-        master_pass: payload.password,
-      })
-
-      // Create vault file with drive enryption key
-      await accountModel.setVault(payload.password, 'vault', {
-        drive_encryption_key: encryptionKey
-      })
 
       const opts = {
         account: {
@@ -139,6 +141,16 @@ export default async (props: AccountOpts) => {
       }
 
       store.setAuthPayload(auth)
+
+      // Create recovery file with master pass
+      await accountModel.setVault(mnemonic, 'recovery', {
+        master_pass: payload.password,
+      })
+
+      // Create vault file with drive enryption key
+      await accountModel.setVault(payload.password, 'vault', {
+        drive_encryption_key: encryptionKey
+      })
 
       channel.send({
         event: 'account:create:callback',
@@ -212,6 +224,20 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
+      const account = await accountModel.findOne()
+
+      let auth = {
+        claims: {
+          account_key: account.secretBoxPubKey,
+          device_signing_key: deviceInfo?.keyPair?.publicKey,
+          device_id: deviceInfo?.deviceId,
+        },
+        device_signing_priv_key: deviceInfo?.keyPair?.secretKey,
+        sig: deviceInfo?.serverSig
+      }
+
+      store.setAuthPayload(auth)
+
       // Update recovery file with new password
       await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
 
@@ -220,6 +246,11 @@ export default async (props: AccountOpts) => {
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
+
+      await drive.close()
+
+      store.setAccountSecrets({ email: undefined, password: undefined })
+      store.setAccount(null)
 
       channel.send({
         event: 'account:resetPassword:callback',
@@ -348,189 +379,220 @@ export default async (props: AccountOpts) => {
 
     const accountModel = store.models.Account
 
-    let encryptionKey
+    let encryptionKey = ''
 
     let hasVault = false
 
     // Once we sync the vault file we can use the master password to gain access to the drive
-    drive.on('file-sync', async (file:any) => {
-      if(file.path.indexOf('vault') > -1 && !hasVault) {
-        hasVault = true
+    const metaFileStream = drive.metadb.createReadStream({ live: true })
 
-        const vault = accountModel.getVault(payload.password, 'vault')
-        encryptionKey = vault.drive_encryption_key
-        try {
-          // Close the drive so we can restart it with the encryption key
-          await drive.close()
+    metaFileStream.on('data', async (data:any) => {
+      if(data.value.toString().indexOf('hyperbee') === -1) {
+        const op = HyperbeeMessages.Node.decode(data.value)
+        const node = {
+          key: op.key.toString('utf8'),
+          value: JSON.parse(op.value.toString('utf8')),
+          seq: data.seq
+        }
 
-          const _drive = store.setDrive({
-            name: `${acctPath}/Drive`,
-            encryptionKey,
-            driveKey: driveKey,
-            keyPair
-          })
+        const file = node.value
 
-          // Step 5. Listen for when core sync is complete
-          _drive.once('remote-cores-downloaded', () => {
-            let ready = false
+        if(file?.custom_data?.cid && (file?.path.indexOf('vault') > -1 || file?.path.indexOf('recovery') > -1)) {
+          try {
+            const fileData = await FileUtil.getFileByCID(file.custom_data.cid)
+            const filesDir = `${acctPath}/Drive/Files/`
 
-            const coreInt = setInterval(async () => {
-              if(!ready) {
-                await store.initModels()
-                const accountModel = store.models.Account
-                const acct = await accountModel.find()
+            fs.writeFileSync(path.join(filesDir, file.path), fileData)
+          } catch(err:any) {
+            channel.send({ event: 'debug', data: err })
+          }
+        }
 
-                // Wait for when account collection is ready since every peer will have this
-                if(acct.length > 0) {
-                  ready = true
-                  clearInterval(coreInt)
+        if(file?.path.indexOf('vault') > -1 && !hasVault) {
+          hasVault = true
 
-                  // Start syncing messages from other peers via IPFS
-                  const filesCollection = await _drive.database.collection('file')
+          try {
+            const vault = accountModel.getVault(payload.password, 'vault')
+            encryptionKey = vault.drive_encryption_key
+          } catch(err: any) {
+            channel.send({ event: 'debug', data: { msg: err.message, stack: err.stack } })
+          }
 
-                  let files = await filesCollection.find()
+          try {
+            // Close the drive so we can restart it with the encryption key
+            await drive.close()
 
-                  let filesToSync = []
+            const _drive = store.setDrive({
+              name: `${acctPath}/Drive`,
+              encryptionKey,
+              driveKey: driveKey,
+              keyPair
+            })
 
-                  // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
-                  if(files.length) {
-                    // Initialize models
-                    const Email = store.models.Email.collection
-                    const File = store.models.File.collection
+            // Step 5. Listen for when core sync is complete
+            _drive.once('remote-cores-downloaded', () => {
+              let ready = false
 
-                    for(const file of files) {
-                      let filePath = `${acctPath}/Drive/Files/`
-                      
-                      if(!file.deleted) {
+              const coreInt = setInterval(async () => {
+                if(!ready) {
+                  await store.initModels()
+                  const accountModel = store.models.Account
+                  const acct = await accountModel.find()
 
-                        if(file.encrypted) {
-                          filePath = path.join(filePath, file.uuid)
-                        } else {
-                          filePath = path.join(filePath, file.path)
-                        }
+                  // Wait for when account collection is ready since every peer will have this
+                  if(acct.length > 0) {
+                    ready = true
+                    clearInterval(coreInt)
+
+                    // Start syncing messages from other peers via IPFS
+                    const filesCollection = await _drive.database.collection('file')
+
+                    let files = await filesCollection.find()
+
+                    let filesToSync = []
+
+                    // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
+                    if(files.length) {
+                      // Initialize models
+                      const Email = store.models.Email.collection
+                      const File = store.models.File.collection
+
+                      for(const file of files) {
+                        let filePath = `${acctPath}/Drive/Files/`
                         
-                        if (file.path.indexOf('email') > -1) {
-                          try {
-                            const email = await Email.findOne({ path: file.path })
-                            await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
-                            if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
-                          } catch(err: any) {
-                            // file not found
-                          }
-                        }
+                        if(!file.deleted) {
 
-                        if (file.path.indexOf('file') > -1) {
-                          try {
-                            const f = await File.findOne({ hash: file.hash })
-                            if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
-                          } catch(err: any) {
-                            // file not found
+                          if(file.encrypted) {
+                            filePath = path.join(filePath, file.uuid)
+                          } else {
+                            filePath = path.join(filePath, file.path)
+                          }
+                          
+                          if (file.path.indexOf('email') > -1) {
+                            try {
+                              const email = await Email.findOne({ path: file.path })
+                              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+                              if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
+                            } catch(err: any) {
+                              // file not found
+                            }
+                          }
+
+                          if (file.path.indexOf('file') > -1) {
+                            try {
+                              const f = await File.findOne({ hash: file.hash })
+                              if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
+                            } catch(err: any) {
+                              // file not found
+                            }
                           }
                         }
                       }
-                    }
 
-                    // Step 6. Start the sync status callbacks
-                    channel.send({ 
-                      event: 'account:sync:callback', 
-                      data: {
-                        files: {
-                          index: 0, 
-                          total: filesToSync.length, 
-                          done: filesToSync.length ? false : true 
-                        }
-                      } 
-                    })
-
-                    // Fetch the files from IPFS and save locally
-                    for(let i = 0; i < filesToSync.length; i++) {
-                      const file = filesToSync[i]
-                      const idx = i + 1
-
-                      // Batch requests and notify client when finished
-                      channel.send({ event: 'debug', data: file })
-
-                      // Notify client of the sync status
+                      // Step 6. Start the sync status callbacks
                       channel.send({ 
                         event: 'account:sync:callback', 
                         data: {
                           files: {
-                            index: idx, 
+                            index: 0, 
                             total: filesToSync.length, 
-                            done: idx ===  filesToSync.length
+                            done: filesToSync.length ? false : true 
                           }
                         } 
-                      })  
-                    }
+                      })
 
-                    // Step 7. Rebuild search indexes
-                    const Contact = store.models.Contact
+                      // Fetch the files from IPFS and save locally
+                      for(let i = 0; i < filesToSync.length; i++) {
+                        const file = filesToSync[i]
+                        const idx = i + 1
 
-                    try {
-                    
-                      const contacts = await Contact.find()
+                        // Batch requests and notify client when finished
+                        channel.send({ event: 'debug', data: file })
 
-                      if(contacts.length) {
-                        for(const contact of contacts) {
-                          await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
-                        }
+                        // Notify client of the sync status
+                        channel.send({ 
+                          event: 'account:sync:callback', 
+                          data: {
+                            files: {
+                              index: idx, 
+                              total: filesToSync.length, 
+                              done: idx ===  filesToSync.length
+                            }
+                          } 
+                        })  
                       }
 
-                      channel.send({ 
-                        event: 'account:sync:callback', 
-                        data: {
-                          searchIndex: {
-                            emails: true,
-                            contacts: true
+                      // Step 7. Rebuild search indexes
+                      const Contact = store.models.Contact
+
+                      try {
+                      
+                        const contacts = await Contact.find()
+
+                        if(contacts.length) {
+                          for(const contact of contacts) {
+                            await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
                           }
-                        } 
-                      })
-                    } catch(err: any) {
-                      channel.send({ 
-                        event: 'debug', 
-                        data: err.stack
-                      })
+                        }
+
+                        channel.send({ 
+                          event: 'account:sync:callback', 
+                          data: {
+                            searchIndex: {
+                              emails: true,
+                              contacts: true
+                            }
+                          } 
+                        })
+                      } catch(err: any) {
+                        channel.send({ 
+                          event: 'debug', 
+                          data: err.stack
+                        })
+                      }
+
+                      // Step 8. Set Device info and login
+                      try {
+                        const deviceId = uuidv4()
+
+                        accountModel.setDeviceInfo({
+                          keyPair,
+                          deviceId: deviceId,
+                          deviceType: payload.deviceType,
+                          driveSyncingPublicKey: driveKey,
+                        }, payload.password)
+
+                        await _drive._localDB.put('vault', { isSet: true })
+
+                        await _drive.close()
+
+                        login(keyPair)
+                      } catch(err: any) {
+                        channel.send({ 
+                          event: 'debug', 
+                          data: err.stack
+                        })
+                      }
+
                     }
-
-                    // Step 8. Register new device with backend server
-                    try {
-                      const deviceId = uuidv4()
-
-                      accountModel.setDeviceInfo({
-                        keyPair,
-                        deviceId: deviceId,
-                        deviceType: payload.deviceType,
-                        driveSyncingPublicKey: driveKey,
-                      }, payload.password)
-
-                      await _drive.close()
-
-                      login(keyPair)
-                    } catch(err: any) {
-                      channel.send({ 
-                        event: 'debug', 
-                        data: err.stack
-                      })
-                    }
-
                   }
                 }
-              }
-            }, 500)
-          })
+              }, 500)
+            })
 
-          await _drive.ready()
+            await _drive.ready()
 
-        } catch(err: any) {
-          channel.send({
-            event: 'account:sync:callback',
-            error: { 
-              name: err.name, 
-              message: err.message, 
-              stack: err.stack 
-            },
-            data: null
-          })
+          } catch(err: any) {
+            channel.send({
+              event: 'account:sync:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              },
+              data: null
+            })
+          }
         }
       }
     })
@@ -824,6 +886,10 @@ export default async (props: AccountOpts) => {
         )
       }
 
+      // Check if Drive's Vault and Recovery files needs to be pushed out to IPFS
+      // TODO: Deprecate this in the future. New accounts won't need to do this
+      await migrateVaultToIPFS()
+      
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
       channel.send({
@@ -835,6 +901,52 @@ export default async (props: AccountOpts) => {
         },
         data: null,
       })
+    }
+  }
+
+  async function migrateVaultToIPFS() {
+    const drive = store.getDrive()
+    const localDB = drive._localDB
+    const vault = await localDB.get('vault')
+
+    if(!vault?.isSet) {
+      const vFileStream = fs.createReadStream(path.join(store.acctPath, '/Drive/Files/vault'))
+      let vFile = await FileUtil.saveFileToIPFS(store.sdk.ipfs, vFileStream)
+
+      if(vFile.cid) {
+        const file = await drive._collections.files.findOne({ path: 'vault'})
+        await updateFileMeta(drive, { ...file, custom_data: { cid: vFile.cid }})
+      }
+
+      const rFileStream = fs.createReadStream(path.join(store.acctPath, '/Drive/Files/recovery'))
+      let rFile = await FileUtil.saveFileToIPFS(store.sdk.ipfs, rFileStream)
+
+      if(rFile.cid) {
+        const file = await drive._collections.files.findOne({ path: 'recovery'})
+        await updateFileMeta(drive, { ...file, custom_data: { cid: vFile.cid }})
+      }
+
+      await localDB.put('vault', { isSet: true })
+    }
+
+    async function updateFileMeta(drive: any, file: any) {
+      await drive.metadb.put(file.hash, {
+        uuid: file.uuid,
+        size: file.size,
+        hash: file.hash,
+        path: file.path,
+        peer_key: file.peer_key,
+        discovery_key: file.discovery_key,
+        custom_data: file.custom_data
+      })
+
+      await drive._collections.files.update(
+        {_id: file._id }, 
+        { 
+          custom_data: file.custom_data, 
+          updatedAt: new Date().toISOString() 
+        }
+      )
     }
   }
 }
