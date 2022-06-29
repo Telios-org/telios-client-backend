@@ -408,192 +408,192 @@ export default async (props: AccountOpts) => {
           } catch(err:any) {
             channel.send({ event: 'debug', data: err })
           }
-        }
 
-        if(file?.path?.indexOf('vault') > -1 && !hasVault) {
-          hasVault = true
+          if(file?.path?.indexOf('vault') > -1 && !hasVault) {
+            hasVault = true
 
-          try {
-            const vault = accountModel.getVault(payload.password, 'vault')
-            encryptionKey = vault.drive_encryption_key
-          } catch(err: any) {
-            channel.send({ event: 'debug', data: { msg: err.message, stack: err.stack } })
-          }
+            try {
+              const vault = accountModel.getVault(payload.password, 'vault')
+              encryptionKey = vault.drive_encryption_key
+            } catch(err: any) {
+              channel.send({ event: 'debug', data: { msg: err.message, stack: err.stack } })
+            }
 
-          try {
-            // Close the drive so we can restart it with the encryption key
-            await drive.close()
+            try {
+              // Close the drive so we can restart it with the encryption key
+              await drive.close()
 
-            const _drive = store.setDrive({
-              name: `${acctPath}/Drive`,
-              encryptionKey,
-              driveKey: driveKey,
-              keyPair
-            })
+              const _drive = store.setDrive({
+                name: `${acctPath}/Drive`,
+                encryptionKey,
+                driveKey: driveKey,
+                keyPair
+              })
 
-            // Step 5. Listen for when core sync is complete
-            _drive.once('remote-cores-downloaded', () => {
-              let ready = false
+              // Step 5. Listen for when core sync is complete
+              _drive.once('remote-cores-downloaded', () => {
+                let ready = false
 
-              const coreInt = setInterval(async () => {
-                if(!ready) {
-                  await store.initModels()
-                  const accountModel = store.models.Account
-                  const acct = await accountModel.find()
+                const coreInt = setInterval(async () => {
+                  if(!ready) {
+                    await store.initModels()
+                    const accountModel = store.models.Account
+                    const acct = await accountModel.find()
 
-                  // Wait for when account collection is ready since every peer will have this
-                  if(acct.length > 0) {
-                    ready = true
-                    clearInterval(coreInt)
+                    // Wait for when account collection is ready since every peer will have this
+                    if(acct.length > 0) {
+                      ready = true
+                      clearInterval(coreInt)
 
-                    // Start syncing messages from other peers via IPFS
-                    const filesCollection = await _drive.database.collection('file')
+                      // Start syncing messages from other peers via IPFS
+                      const filesCollection = await _drive.database.collection('file')
 
-                    let files = await filesCollection.find()
+                      let files = await filesCollection.find()
 
-                    let filesToSync = []
+                      let filesToSync = []
 
-                    // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
-                    if(files.length) {
-                      // Initialize models
-                      const Email = store.models.Email.collection
-                      const File = store.models.File.collection
+                      // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
+                      if(files.length) {
+                        // Initialize models
+                        const Email = store.models.Email.collection
+                        const File = store.models.File.collection
 
-                      for(const file of files) {
-                        let filePath = `${acctPath}/Drive/Files/`
-                        
-                        if(!file.deleted) {
-
-                          if(file.encrypted) {
-                            filePath = path.join(filePath, file.uuid)
-                          } else {
-                            filePath = path.join(filePath, file.path)
-                          }
+                        for(const file of files) {
+                          let filePath = `${acctPath}/Drive/Files/`
                           
-                          if (file.path.indexOf('email') > -1) {
-                            try {
-                              const email = await Email.findOne({ path: file.path })
-                              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
-                              if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
-                            } catch(err: any) {
-                              // file not found
-                            }
-                          }
+                          if(!file.deleted) {
 
-                          if (file.path.indexOf('file') > -1) {
-                            try {
-                              const f = await File.findOne({ hash: file.hash })
-                              if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
-                            } catch(err: any) {
-                              // file not found
+                            if(file.encrypted) {
+                              filePath = path.join(filePath, file.uuid)
+                            } else {
+                              filePath = path.join(filePath, file.path)
+                            }
+                            
+                            if (file.path.indexOf('email') > -1) {
+                              try {
+                                const email = await Email.findOne({ path: file.path })
+                                await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+                                if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
+                              } catch(err: any) {
+                                // file not found
+                              }
+                            }
+
+                            if (file.path.indexOf('file') > -1) {
+                              try {
+                                const f = await File.findOne({ hash: file.hash })
+                                if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
+                              } catch(err: any) {
+                                // file not found
+                              }
                             }
                           }
                         }
-                      }
 
-                      // Step 6. Start the sync status callbacks
-                      channel.send({ 
-                        event: 'account:sync:callback', 
-                        data: {
-                          files: {
-                            index: 0, 
-                            total: filesToSync.length, 
-                            done: filesToSync.length ? false : true 
-                          }
-                        } 
-                      })
-
-                      // Fetch the files from IPFS and save locally
-                      for(let i = 0; i < filesToSync.length; i++) {
-                        const file = filesToSync[i]
-                        const idx = i + 1
-
-                        // Batch requests and notify client when finished
-                        channel.send({ event: 'debug', data: file })
-
-                        // Notify client of the sync status
+                        // Step 6. Start the sync status callbacks
                         channel.send({ 
                           event: 'account:sync:callback', 
                           data: {
                             files: {
-                              index: idx, 
+                              index: 0, 
                               total: filesToSync.length, 
-                              done: idx ===  filesToSync.length
+                              done: filesToSync.length ? false : true 
                             }
                           } 
-                        })  
-                      }
+                        })
 
-                      // Step 7. Rebuild search indexes
-                      const Contact = store.models.Contact
+                        // Fetch the files from IPFS and save locally
+                        for(let i = 0; i < filesToSync.length; i++) {
+                          const file = filesToSync[i]
+                          const idx = i + 1
 
-                      try {
-                      
-                        const contacts = await Contact.find()
+                          // Batch requests and notify client when finished
+                          channel.send({ event: 'debug', data: file })
 
-                        if(contacts.length) {
-                          for(const contact of contacts) {
-                            await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
-                          }
+                          // Notify client of the sync status
+                          channel.send({ 
+                            event: 'account:sync:callback', 
+                            data: {
+                              files: {
+                                index: idx, 
+                                total: filesToSync.length, 
+                                done: idx ===  filesToSync.length
+                              }
+                            } 
+                          })  
                         }
 
-                        channel.send({ 
-                          event: 'account:sync:callback', 
-                          data: {
-                            searchIndex: {
-                              emails: true,
-                              contacts: true
+                        // Step 7. Rebuild search indexes
+                        const Contact = store.models.Contact
+
+                        try {
+                        
+                          const contacts = await Contact.find()
+
+                          if(contacts.length) {
+                            for(const contact of contacts) {
+                              await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
                             }
-                          } 
-                        })
-                      } catch(err: any) {
-                        channel.send({ 
-                          event: 'debug', 
-                          data: err.stack
-                        })
+                          }
+
+                          channel.send({ 
+                            event: 'account:sync:callback', 
+                            data: {
+                              searchIndex: {
+                                emails: true,
+                                contacts: true
+                              }
+                            } 
+                          })
+                        } catch(err: any) {
+                          channel.send({ 
+                            event: 'debug', 
+                            data: err.stack
+                          })
+                        }
+
+                        // Step 8. Set Device info and login
+                        try {
+                          const deviceId = uuidv4()
+
+                          accountModel.setDeviceInfo({
+                            keyPair,
+                            deviceId: deviceId,
+                            deviceType: payload.deviceType,
+                            driveSyncingPublicKey: driveKey,
+                          }, payload.password)
+
+                          await _drive._localDB.put('vault', { isSet: true })
+
+                          await _drive.close()
+
+                          login(keyPair)
+                        } catch(err: any) {
+                          channel.send({ 
+                            event: 'debug', 
+                            data: err.stack
+                          })
+                        }
+
                       }
-
-                      // Step 8. Set Device info and login
-                      try {
-                        const deviceId = uuidv4()
-
-                        accountModel.setDeviceInfo({
-                          keyPair,
-                          deviceId: deviceId,
-                          deviceType: payload.deviceType,
-                          driveSyncingPublicKey: driveKey,
-                        }, payload.password)
-
-                        await _drive._localDB.put('vault', { isSet: true })
-
-                        await _drive.close()
-
-                        login(keyPair)
-                      } catch(err: any) {
-                        channel.send({ 
-                          event: 'debug', 
-                          data: err.stack
-                        })
-                      }
-
                     }
                   }
-                }
-              }, 500)
-            })
+                }, 500)
+              })
 
-            await _drive.ready()
+              await _drive.ready()
 
-          } catch(err: any) {
-            channel.send({
-              event: 'account:sync:callback',
-              error: { 
-                name: err.name, 
-                message: err.message, 
-                stack: err.stack 
-              },
-              data: null
-            })
+            } catch(err: any) {
+              channel.send({
+                event: 'account:sync:callback',
+                error: { 
+                  name: err.name, 
+                  message: err.message, 
+                  stack: err.stack 
+                },
+                data: null
+              })
+            }
           }
         }
       }
