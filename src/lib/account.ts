@@ -383,9 +383,10 @@ export default async (props: AccountOpts) => {
 
     let hasVault = false
 
-    // Once we sync the vault file we can use the master password to gain access to the drive
     const metaFileStream = drive.metadb.createReadStream({ live: true })
 
+    // Loop through the file meta to extract the vault file. Once we have the vault file we can use
+    // the master password to decipher this file and grab the drive encryption key
     metaFileStream.on('data', async (data:any) => {
       if(data?.value?.toString().indexOf('hyperbee') === -1) {
         const op = HyperbeeMessages.Node.decode(data.value)
@@ -395,8 +396,9 @@ export default async (props: AccountOpts) => {
           seq: data.seq
         }
 
-        const file = node.value
+        const file = node?.value
 
+        // Once we sync the vault file we can use the master password to gain access to the drive
         if(file?.custom_data?.cid && (file?.path?.indexOf('vault') > -1 || file?.path?.indexOf('recovery') > -1)) {
           try {
             const fileData = await FileUtil.getFileByCID(file.custom_data.cid)
