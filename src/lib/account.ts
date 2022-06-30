@@ -796,7 +796,7 @@ export default async (props: AccountOpts) => {
       // Fully sync account when registering a new device.
       // This method will fetch and sync all files from IPFS
       if(kp) {
-        await syncNewDevice()
+        await syncNewDevice(drive)
       }
 
       // Check if Drive's Vault and Recovery files needs to be pushed out to IPFS
@@ -865,9 +865,9 @@ export default async (props: AccountOpts) => {
     }
   }
 
-  async function syncNewDevice() {
+  async function syncNewDevice(drive: any) {
     // Start syncing messages from other peers via IPFS
-    const filesCollection = await store.drive.database.collection('file')
+    const filesCollection = await drive.database.collection('file')
 
     let files = await filesCollection.find()
 
