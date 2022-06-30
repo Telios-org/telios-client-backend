@@ -83,12 +83,20 @@ export default class MesssageHandler {
 
         return f
       } catch(err:any) {
+        this.channel.send({
+          event: 'messageHandler:fetchError',
+          data: {
+            file: {...f, failed: 99},
+            message: err && err.message,
+            stack: err && err.stack
+          }
+        });
         f = {}
         return f
       }
     })
 
-    const ipfsFiles = files.filter(file => file.cid)
+    const ipfsFiles = files.filter(file => JSON.stringify(file) !== '{}' && file.cid)
     const nebulaFiles = files.filter(file => !file.cid)
 
     // If files have an IPFS content identifier (cid) then fetch files from SIA/IPFS

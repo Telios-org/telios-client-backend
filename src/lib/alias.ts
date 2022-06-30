@@ -72,15 +72,6 @@ export default async (props: AliasOpts) => {
 
       const namespaces: AliasNamespaceSchema[] = await AliasNamespace.find({ mailboxId: payload.id }).sort('name', 1)
 
-      for (const namespace of namespaces) {
-        const keypair = {
-          publicKey: namespace.publicKey,
-          privateKey: namespace.privateKey
-        }
-
-        store.setKeypair(keypair)
-      }
-
       channel.send({
         event: 'alias:getMailboxNamespaces:callback',
         data: namespaces
@@ -187,15 +178,6 @@ export default async (props: AliasOpts) => {
 
       const promises = aliases.map( async (a: AliasSchema) => {
         const Email = store.models.Email
-
-        if(a.publicKey && a.privateKey) {
-          const keypair = {
-            publicKey: a.publicKey,
-            privateKey: a.privateKey
-          }
-  
-          store.setKeypair(keypair)
-        }
 
         // Making sure the folder count is accurate
         const { count } = await Alias.findOne({ aliasId: a.aliasId })
