@@ -442,7 +442,14 @@ export default async (props: AccountOpts) => {
                   if(!ready) {
                     await store.initModels()
                     const accountModel = store.models.Account
-                    const acct = await accountModel.find()
+
+                    let acct:any[] = []
+ 
+                    try {
+                      acct = await accountModel.find()
+                    } catch(err: any) {
+                      channel.send({ event: 'debug', data: err.stack })
+                    }
 
                     // Wait for when account collection is ready since every peer will have this
                     if(acct.length > 0) {
@@ -476,7 +483,7 @@ export default async (props: AccountOpts) => {
                       }
                     }
                   }
-                }, 500)
+                }, 2000)
               })
 
               await _drive.ready()
