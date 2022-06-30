@@ -4,4 +4,5 @@ node_modules
 /tests/Drive/*
 /tests/Accounts/**
 /tests/Accounts2/**
+scratch.js
 .env

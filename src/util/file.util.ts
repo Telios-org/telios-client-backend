@@ -254,7 +254,7 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
   })
 }
 
-export const getFileByCID = async (cid: string, ipfsGateway?: string) => {
+export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
 
   return new Promise((resolve: any, reject: any) => {
     // axios({
@@ -282,7 +282,7 @@ export const getFileByCID = async (cid: string, ipfsGateway?: string) => {
     //   });
   
 
-  fetch(`https://ipfs.filebase.io/ipfs/${cid}`, { 
+  fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
     method: 'get',
     headers: {
       'Content-Type': 'application/octet-stream'
@@ -292,6 +292,8 @@ export const getFileByCID = async (cid: string, ipfsGateway?: string) => {
       let buffArr:Array<Buffer> = []
 
       const stream = data.body
+
+      if(opts.async) return resolve(stream)
 
       stream.on('data', (chunk: Buffer) => {
         buffArr.push(chunk)

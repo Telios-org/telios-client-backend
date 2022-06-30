@@ -195,6 +195,10 @@ const payload = {
 }
 ```
 
+#### `channel.on('account:collection:updated', (data) => {} })`
+
+Fires whenever a collection is updated from a synced device or remote peer. Returns the collection name and updated values.
+
 ## Mailbox API
 
 #### `channel.send({ event: 'mailbox:register', payload })`
