@@ -464,7 +464,10 @@ export default async (props: AccountOpts) => {
 
                         await _drive.close()
 
-                        login(keyPair)
+                        setTimeout(() => {
+                          login(keyPair)
+                        }, 1000)
+                        
                       } catch(err: any) {
                         channel.send({ 
                           event: 'debug', 
@@ -996,7 +999,7 @@ export default async (props: AccountOpts) => {
 
   function handleDriveSyncEvents() {
     store.drive.on('collection-update', (data: any) => {
-      if(data.collection) {
+      if(data?.collection) {
         // TODO: Handle CRUD
         channel.send({ event: 'account:collection:updated', data })
       }
