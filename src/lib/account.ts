@@ -866,93 +866,103 @@ export default async (props: AccountOpts) => {
   }
 
   async function syncNewDevice(drive: any) {
-    // Start syncing messages from other peers via IPFS
-    const filesCollection = await drive.database.collection('file')
+    try {
+      // Start syncing messages from other peers via IPFS
+      const filesCollection = await drive.database.collection('file')
 
-    let files = await filesCollection.find()
+      let files = await filesCollection.find()
 
-    let filesToSync = []
+      let filesToSync = []
 
-    // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
-    if(files.length) {
-      // Initialize models
-      const Email = store.models.Email.collection
-      const File = store.models.File.collection
+      // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
+      if(files.length) {
+        // Initialize models
+        const Email = store.models.Email.collection
+        const File = store.models.File.collection
 
-      for(const file of files) {
-        let filePath = `${store.acctPath}/Drive/Files/`
-        
-        if(!file.deleted) {
-
-          if(file.encrypted) {
-            filePath = path.join(filePath, file.uuid)
-          } else {
-            filePath = path.join(filePath, file.path)
-          }
+        for(const file of files) {
+          let filePath = `${store.acctPath}/Drive/Files/`
           
-          if (file.path.indexOf('email') > -1) {
-            try {
-              const email = await Email.findOne({ path: file.path })
-              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
-              if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
-            } catch(err: any) {
-              // file not found
-            }
-          }
+          if(!file.deleted) {
 
-          if (file.path.indexOf('file') > -1) {
-            try {
-              const f = await File.findOne({ hash: file.hash })
-              if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
-            } catch(err: any) {
-              // file not found
+            if(file.encrypted) {
+              filePath = path.join(filePath, file.uuid)
+            } else {
+              filePath = path.join(filePath, file.path)
+            }
+            
+            if (file.path.indexOf('email') > -1) {
+              try {
+                const email = await Email.findOne({ path: file.path })
+                await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+                if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
+              } catch(err: any) {
+                // file not found
+              }
+            }
+
+            if (file.path.indexOf('file') > -1) {
+              try {
+                const f = await File.findOne({ hash: file.hash })
+                if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
+              } catch(err: any) {
+                // file not found
+              }
             }
           }
         }
-      }
 
-      // Step 6. Start the sync status callbacks
-      channel.send({ 
-        event: 'account:sync:callback', 
-        data: {
-          files: {
-            index: 0, 
-            total: filesToSync.length, 
-            done: filesToSync.length ? false : true 
-          }
-        } 
-      })
-
-      // Fetch the files from IPFS and save locally
-      await syncFileBatch(filesToSync)
-
-      // Step 7. Rebuild search indexes
-      const Contact = store.models.Contact
-
-      try {
-        const contacts = await Contact.find()
-
-        if(contacts.length) {
-          for(const contact of contacts) {
-            await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
-          }
-        }
-
+        // Step 6. Start the sync status callbacks
         channel.send({ 
           event: 'account:sync:callback', 
           data: {
-            searchIndex: {
-              emails: true,
-              contacts: true
+            files: {
+              index: 0, 
+              total: filesToSync.length, 
+              done: filesToSync.length ? false : true 
             }
           } 
         })
-      } catch(err: any) {
-        channel.send({ 
-          event: 'debug', 
-          data: err.stack
-        })
+
+        // Fetch the files from IPFS and save locally
+        await syncFileBatch(filesToSync)
+
+        // Step 7. Rebuild search indexes
+        const Contact = store.models.Contact
+
+        try {
+          const contacts = await Contact.find()
+
+          if(contacts.length) {
+            for(const contact of contacts) {
+              await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [contact])
+            }
+          }
+
+          channel.send({ 
+            event: 'account:sync:callback', 
+            data: {
+              searchIndex: {
+                emails: true,
+                contacts: true
+              }
+            } 
+          })
+        } catch(err: any) {
+          channel.send({ 
+            event: 'debug', 
+            data: err.stack
+          })
+        }
       }
+    } catch(err: any) {
+      channel.send({ 
+        event: 'debug', 
+        data: {
+          error: err.message,
+          stack: err.stack
+        }
+      })
     }
   }
 
