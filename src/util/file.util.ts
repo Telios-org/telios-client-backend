@@ -205,37 +205,34 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
     ipfs.add(stream)
       .then(async (file: { uuid: string, key?: string, header?: string, size?: number }) => {
         // Check when file upload is done!
-        //@ts-ignore
-        process.send(({ event: 'debug', data: { file }}))
-        //const statusInterval = setInterval(async () => {
+
           try {
-            //@ts-ignore
-            process.send(({ event: 'debug', data: { msg: 'PRE STATUS', file }}))
+            // const status = await ipfs.status(file.uuid)
 
-            const status = await ipfs.status(file.uuid)
+            // //@ts-ignore
+            // process.send(({ event: 'debug', data: { status }}))
 
-            //@ts-ignore
-            process.send(({ event: 'debug', data: { status }}))
+            // if(status.error) {
+            //   //clearInterval(statusInterval)
+            //   return reject(status.error)
+            // }
+            // if(status.done) {
+            //   //@ts-ignore
+            //   process.send(({ event: 'debug', data: { status }}))
+            //   //clearInterval(statusInterval)
 
-            if(status.error) {
-              //clearInterval(statusInterval)
-              return reject(status.error)
-            }
-            if(status.done) {
-              //@ts-ignore
-              process.send(({ event: 'debug', data: { status }}))
-              //clearInterval(statusInterval)
+            //   if(!status.cid) return reject('IPFS CID not found.')
 
-              if(!status.cid) return reject('IPFS CID not found.')
+            //   return resolve({ cid: status.cid })
+            // }
 
-              return resolve({ cid: status.cid })
-            }
+            const cid = await checkStatus(ipfs, file.uuid)
+
+            return resolve({ cid })
           } catch(err:any) {
             //@ts-ignore
             process.send(({ event: 'debug', data: { error: err }}))
           }
-        //}, 1000)
-        
       }).catch((err: any) => {
         //@ts-ignore
         process.send(({ event: 'debug', data: { error: err }}))
@@ -338,4 +335,33 @@ export const deleteIPFSFile = async (ipfs: any, cid: string) : Promise<Stream> =
 
 export const decodeB64 = (base64: string) => {
   return Buffer.from(base64, 'base64')
+}
+
+async function checkStatus(ipfs: any, fileId: string) : Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const status = await ipfs.status(fileId)
+
+      if(status.error) return reject(status.error)
+
+      //@ts-ignore
+      process.send(({ event: 'debug', data: { status }}))
+
+      if(status.done) {
+        //@ts-ignore
+        process.send(({ event: 'debug', data: { status }}))
+        //clearInterval(statusInterval)
+
+        if(!status.cid) return reject('IPFS CID not found.')
+
+        return resolve(status.cid)
+      } else {
+        setTimeout(() => {
+          checkStatus(ipfs, fileId)
+        }, 1000)
+      }
+    } catch(err:any) {
+      reject(err)
+    }
+  })
 }
