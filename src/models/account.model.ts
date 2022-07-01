@@ -77,17 +77,15 @@ export class AccountModel {
 
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
-    cidStream.end(cipher)
+    // cidStream.end(cipher)
 
-    let { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, cidStream)
+    // let { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, cidStream)
 
-    await this._drive._localDB.put('vault', { isSet: true })
+    // await this._drive._localDB.put('vault', { isSet: true })
 
-    setTimeout(() => {
-      fileStream.end(cipher)
-    })
+    fileStream.end(cipher)
 
-    await this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: cid } })
+    return this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: 'cid' } })
   }
 
   public getVault(
