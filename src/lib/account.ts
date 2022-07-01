@@ -46,8 +46,6 @@ export default async (props: AccountOpts) => {
       
       let encryptionKey = Crypto.generateAEDKey()
 
-      channel.send({ event: 'debug', data: encryptionKey.toString('hex')})
-
       if(!payload.encryptionKey) {
         encryptionKey = Crypto.generateAEDKey()
       } else {
@@ -411,7 +409,15 @@ export default async (props: AccountOpts) => {
             const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
             fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
           } catch(err:any) {
-            channel.send({ event: 'debug', data: err })
+            channel.send({
+              event: 'account:sync:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              },
+              data: null
+            })
             return
           }
         }
@@ -423,18 +429,31 @@ export default async (props: AccountOpts) => {
             const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
             fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
           } catch(err:any) {
-            channel.send({ event: 'debug', data: err })
+            channel.send({
+              event: 'account:sync:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              },
+              data: null
+            })
             return
           }
 
           try {
-            if (!fs.existsSync(path.join(`${acctPath}/Drive/Files/`, file.path))) {
-              channel.send({ event: 'debug', data: 'Vault file not found' })
-            }
             const vault = accountModel.getVault(payload.password, 'vault')
             encryptionKey = vault.drive_encryption_key
           } catch(err: any) {
-            channel.send({ event: 'debug', data: { error: err.message, stack: err.stack } })
+            channel.send({
+              event: 'account:sync:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              },
+              data: null
+            })
             return
           }
 
@@ -463,7 +482,15 @@ export default async (props: AccountOpts) => {
                   try {
                     acct = await accountModel.find()
                   } catch(err: any) {
-                    channel.send({ event: 'debug', data: err.stack })
+                    channel.send({
+                      event: 'account:sync:callback',
+                      error: { 
+                        name: err.name, 
+                        message: err.message, 
+                        stack: err.stack 
+                      },
+                      data: null
+                    })
                   }
 
                   // Wait for when account collection is ready since every peer will have this
@@ -491,9 +518,14 @@ export default async (props: AccountOpts) => {
                       }, 1000)
                       
                     } catch(err: any) {
-                      channel.send({ 
-                        event: 'debug', 
-                        data: err.stack
+                      channel.send({
+                        event: 'account:sync:callback',
+                        error: { 
+                          name: err.name, 
+                          message: err.message, 
+                          stack: err.stack 
+                        },
+                        data: null
                       })
                     }
                   }
