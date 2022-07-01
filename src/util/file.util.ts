@@ -205,38 +205,15 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
     ipfs.add(stream)
       .then(async (file: { uuid: string, key?: string, header?: string, size?: number }) => {
         // Check when file upload is done!
-
-          try {
-            // const status = await ipfs.status(file.uuid)
-
-            // //@ts-ignore
-            // process.send(({ event: 'debug', data: { status }}))
-
-            // if(status.error) {
-            //   //clearInterval(statusInterval)
-            //   return reject(status.error)
-            // }
-            // if(status.done) {
-            //   //@ts-ignore
-            //   process.send(({ event: 'debug', data: { status }}))
-            //   //clearInterval(statusInterval)
-
-            //   if(!status.cid) return reject('IPFS CID not found.')
-
-            //   return resolve({ cid: status.cid })
-            // }
-
-            const cid = await checkStatus(ipfs, file.uuid)
-
-            return resolve({ cid })
-          } catch(err:any) {
-            //@ts-ignore
-            process.send(({ event: 'debug', data: { error: err }}))
-          }
+        try {
+          const cid = await checkStatus(ipfs, file.uuid)
+          return resolve({ cid })
+        } catch(err:any) {
+          //@ts-ignore
+          return reject(err)
+        }
       }).catch((err: any) => {
-        //@ts-ignore
-        process.send(({ event: 'debug', data: { error: err }}))
-        reject(err)
+        return reject(err)
       })
   })
 }
@@ -344,14 +321,7 @@ async function checkStatus(ipfs: any, fileId: string) : Promise<string> {
 
       if(status.error) return reject(status.error)
 
-      //@ts-ignore
-      process.send(({ event: 'debug', data: { status }}))
-
       if(status.done) {
-        //@ts-ignore
-        process.send(({ event: 'debug', data: { status }}))
-        //clearInterval(statusInterval)
-
         if(!status.cid) return reject('IPFS CID not found.')
 
         return resolve(status.cid)

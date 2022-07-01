@@ -77,20 +77,11 @@ export class AccountModel {
 
     const memStream = new MemStream()
 
-    //@ts-ignore
-    process.send(({ event: 'debug', data: { payload : JSON.stringify(payload) }}))
-
     const cipher = this._encrypt(JSON.stringify(payload), password)
-
-    //@ts-ignore
-    process.send(({ event: 'debug', data: { cipher }}))
 
     memStream.end(cipher)
 
     const { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, memStream)
-
-    //@ts-ignore
-    process.send(({ event: 'debug', data: { cid }}))
 
     await this._drive._localDB.put('vault', { isSet: true })
 
