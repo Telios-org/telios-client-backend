@@ -80,13 +80,13 @@ export class AccountModel {
 
     let { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, cidStream)
 
-    // await this._drive._localDB.put('vault', { isSet: true })
-
     const fileStream = new MemStream()
-    
+
     fileStream.end(cipher)
 
-    return this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: cid } })
+    await this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: cid } })
+
+    await this._drive._localDB.put('vault', { isSet: true })
   }
 
   public getVault(
