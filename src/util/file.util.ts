@@ -248,7 +248,8 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
 }
 
 export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
-
+  //@ts-ignore
+  process.send({ event: 'debug', data: opts })
   return new Promise((resolve: any, reject: any) => {
     axios({
       method: 'get',
@@ -261,13 +262,15 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
       .then((response: any) => {
         //handle success
         //@ts-ignore
-        process.send({ event: 'debug', data: { response: typeof response.data }})
+        process.send({ event: 'debug', data: 'GOT RESPONSE' })
+        //@ts-ignore
+        process.send({ event: 'debug', data: { response: typeof response?.data }})
         resolve(response.data)
       })
       .catch((err: any) => {
         //handle error
         //@ts-ignore
-        process.send({ event: 'debug', data: { error: err, err: err.response.data }})
+        process.send({ event: 'debug', data: { error: err, err: err?.response?.data }})
         reject(err)
       });
   
