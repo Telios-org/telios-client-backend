@@ -188,7 +188,7 @@ Initializes replication of remote drive. This event will resolve after replicati
 
 ```js
 const payload = {
-  deviceType: 'MOIBILE' | 'DESKTOP',
+  deviceType: 'MOBILE' | 'DESKTOP',
   driveKey,
   email,
   password
