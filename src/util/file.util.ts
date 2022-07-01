@@ -253,11 +253,15 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
     axios({
       method: 'get',
       url: `https://ipfs.filebase.io/ipfs/${opts.cid}`,
-      responseType: 'stream'
+      responseType: 'stream',
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
     })
       .then((response: any) => {
         //handle success
         //@ts-ignore
+        process.send({ event: 'debug', data: { response: typeof response.data }})
         resolve(response.data)
       })
       .catch((err: any) => {
