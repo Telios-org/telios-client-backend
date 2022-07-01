@@ -239,11 +239,11 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      // // Update recovery file with new password
-      // await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
+      // Update recovery file with new password
+      await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
 
-      // // Update vault file with new password
-      // await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+      // Update vault file with new password
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
@@ -423,101 +423,76 @@ export default async (props: AccountOpts) => {
         }
         
         if(file?.custom_data?.cid && !hasVault && file?.path?.indexOf('vault') > -1) {
-          try {
-            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
-            channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:fileData.toString('hex') }})
-            fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
-          } catch(err:any) {
-            channel.send({
-              event: 'account:sync:callback',
-              error: { 
-                name: err.name, 
-                message: err.message, 
-                stack: err.stack 
-              },
-              data: null
-            })
-            return
-          }
+          hasVault = true
+          // try {
+          //   const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
+          //   channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:fileData.toString('hex') }})
+          //   fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
+          // } catch(err:any) {
+          //   channel.send({
+          //     event: 'account:sync:callback',
+          //     error: { 
+          //       name: err.name, 
+          //       message: err.message, 
+          //       stack: err.stack 
+          //     },
+          //     data: null
+          //   })
+          //   return
+          // }
 
-          try {
-            const vault = accountModel.getVault(payload.password, 'vault')
-            encryptionKey = vault.drive_encryption_key
-            hasVault = true
-          } catch(err: any) {
-            channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
-            // channel.send({
-            //   event: 'account:sync:callback',
-            //   error: { 
-            //     name: err.name, 
-            //     message: err.message, 
-            //     stack: err.stack 
-            //   },
-            //   data: null
-            // })
-            return
-          }
+          const stream = await FileUtil.getFileByCID({ cid: file.custom_data.cid, async: true })
+          const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
 
-          try {
-            // Close the drive so we can restart it with the encryption key
-            await drive.close()
+          pump(stream, ws, async (err: any) => {
 
-            const _drive = store.setDrive({
-              name: `${acctPath}/Drive`,
-              encryptionKey,
-              driveKey: driveKey,
-              keyPair
-            })
+            if(err) return channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
 
-            // Step 5. Listen for when core sync is complete
-            _drive.once('remote-cores-downloaded', () => {
-              let ready = false
+            try {
+              const _fileData = fs.readFileSync(path.join(`${acctPath}/Drive/Files/`, file.path))
+              channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:_fileData.toString('hex') }})
 
-              const coreInt = setInterval(async () => {
-                if(!ready) {
-                  await store.initModels()
-                  const accountModel = store.models.Account
+              const vault = accountModel.getVault(payload.password, 'vault')
+              encryptionKey = vault.drive_encryption_key
 
-                  let acct:any[] = []
+            } catch(err: any) {
+              channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
+              // channel.send({
+              //   event: 'account:sync:callback',
+              //   error: { 
+              //     name: err.name, 
+              //     message: err.message, 
+              //     stack: err.stack 
+              //   },
+              //   data: null
+              // })
+              return
+            }
 
-                  try {
-                    acct = await accountModel.find()
-                  } catch(err: any) {
-                    channel.send({
-                      event: 'account:sync:callback',
-                      error: { 
-                        name: err.name, 
-                        message: err.message, 
-                        stack: err.stack 
-                      },
-                      data: null
-                    })
-                  }
+            try {
+              // Close the drive so we can restart it with the encryption key
+              await drive.close()
 
-                  // Wait for when account collection is ready since every peer will have this
-                  if(acct.length > 0) {
-                    ready = true
-                    clearInterval(coreInt)
+              const _drive = store.setDrive({
+                name: `${acctPath}/Drive`,
+                encryptionKey,
+                driveKey: driveKey,
+                keyPair
+              })
 
-                    // Step 6. Set Device info and login
+              // Step 5. Listen for when core sync is complete
+              _drive.once('remote-cores-downloaded', () => {
+                let ready = false
+
+                const coreInt = setInterval(async () => {
+                  if(!ready) {
+                    await store.initModels()
+                    const accountModel = store.models.Account
+
+                    let acct:any[] = []
+
                     try {
-                      const deviceId = uuidv4()
-
-                      accountModel.setDeviceInfo({
-                        keyPair,
-                        deviceId: deviceId,
-                        deviceType: payload.deviceType,
-                        driveSyncingPublicKey: driveKey,
-                      }, payload.password)
-
-                      await _drive._localDB.put('vault', { isSet: true })
-
-                      await _drive.close()
-
-                      setTimeout(() => {
-                        login(keyPair)
-                      }, 1000)
-                      
+                      acct = await accountModel.find()
                     } catch(err: any) {
                       channel.send({
                         event: 'account:sync:callback',
@@ -529,24 +504,61 @@ export default async (props: AccountOpts) => {
                         data: null
                       })
                     }
+
+                    // Wait for when account collection is ready since every peer will have this
+                    if(acct.length > 0) {
+                      ready = true
+                      clearInterval(coreInt)
+
+                      // Step 6. Set Device info and login
+                      try {
+                        const deviceId = uuidv4()
+
+                        accountModel.setDeviceInfo({
+                          keyPair,
+                          deviceId: deviceId,
+                          deviceType: payload.deviceType,
+                          driveSyncingPublicKey: driveKey,
+                        }, payload.password)
+
+                        await _drive._localDB.put('vault', { isSet: true })
+
+                        await _drive.close()
+
+                        setTimeout(() => {
+                          login(keyPair)
+                        }, 1000)
+                        
+                      } catch(err: any) {
+                        channel.send({
+                          event: 'account:sync:callback',
+                          error: { 
+                            name: err.name, 
+                            message: err.message, 
+                            stack: err.stack 
+                          },
+                          data: null
+                        })
+                      }
+                    }
                   }
-                }
-              }, 2000)
-            })
+                }, 2000)
+              })
 
-            await _drive.ready()
+              await _drive.ready()
 
-          } catch(err: any) {
-            channel.send({
-              event: 'account:sync:callback',
-              error: { 
-                name: err.name, 
-                message: err.message, 
-                stack: err.stack 
-              },
-              data: null
-            })
-          }
+            } catch(err: any) {
+              channel.send({
+                event: 'account:sync:callback',
+                error: { 
+                  name: err.name, 
+                  message: err.message, 
+                  stack: err.stack 
+                },
+                data: null
+              })
+            }
+          })
         }
       }
     })
