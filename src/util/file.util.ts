@@ -251,58 +251,58 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
   //@ts-ignore
   process.send({ event: 'debug', data: opts })
   return new Promise((resolve: any, reject: any) => {
-    axios({
-      method: 'get',
-      url: `https://ipfs.filebase.io/ipfs/${opts.cid}`,
-      responseType: 'stream',
-      headers: {
-        'Content-Type': 'application/octet-stream'
-      }
-    })
-      .then((response: any) => {
-        //handle success
-        //@ts-ignore
-        process.send({ event: 'debug', data: 'GOT RESPONSE' })
-        //@ts-ignore
-        process.send({ event: 'debug', data: { response: typeof response?.data }})
-        resolve(response.data)
-      })
-      .catch((err: any) => {
-        //handle error
-        //@ts-ignore
-        process.send({ event: 'debug', data: { error: err, err: err?.response?.data }})
-        reject(err)
-      });
+    // axios({
+    //   method: 'get',
+    //   url: `https://ipfs.filebase.io/ipfs/${opts.cid}`,
+    //   responseType: 'stream',
+    //   headers: {
+    //     'Content-Type': 'application/octet-stream'
+    //   }
+    // })
+    //   .then((response: any) => {
+    //     //handle success
+    //     //@ts-ignore
+    //     process.send({ event: 'debug', data: 'GOT RESPONSE' })
+    //     //@ts-ignore
+    //     process.send({ event: 'debug', data: { response: typeof response?.data }})
+    //     resolve(response.data)
+    //   })
+    //   .catch((err: any) => {
+    //     //handle error
+    //     //@ts-ignore
+    //     process.send({ event: 'debug', data: { error: err, err: err?.response?.data }})
+    //     reject(err)
+    //   });
   
 
-  // fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
-  //   method: 'get',
-  //   headers: {
-  //     'Content-Type': 'application/octet-stream'
-  //   }
-  // })
-  //   .then(async (data: any) => {
-  //     let buffArr:Array<Buffer> = []
+  fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+    method: 'get',
+    headers: {
+      'Content-Type': 'application/octet-stream'
+    }
+  })
+    .then(async (data: any) => {
+      let buffArr:Array<Buffer> = []
 
-  //     const stream = data.body
+      const stream = data.body
 
-  //     if(opts.async) return resolve(stream)
+      if(opts.async) return resolve(stream)
 
-  //     stream.on('data', (chunk: Buffer) => {
-  //       buffArr.push(chunk)
-  //     })
+      stream.on('data', (chunk: Buffer) => {
+        buffArr.push(chunk)
+      })
 
-  //     stream.on('end', () => {
-  //       resolve(Buffer.concat(buffArr))
-  //     })
+      stream.on('end', () => {
+        resolve(Buffer.concat(buffArr))
+      })
 
-  //     stream.on('error', (err:any) => {
-  //       reject(err)
-  //     })
-  //   })
-  //   .catch((err: any) => {
-  //     reject(err)
-  //   });
+      stream.on('error', (err:any) => {
+        reject(err)
+      })
+    })
+    .catch((err: any) => {
+      reject(err)
+    });
   })
 
 }
