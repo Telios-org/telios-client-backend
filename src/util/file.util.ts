@@ -5,8 +5,8 @@ import { UTCtimestamp } from '../util/date.util'
 const MemoryStream = require('memorystream')
 const { v4: uuidv4 } = require('uuid')
 const fetch = require('node-fetch')
-const axios = require('axios')
 const fs = require('fs')
+const path = require('path')
 
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
   return new Promise((resolve, reject) => {
@@ -248,74 +248,45 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
 }
 
 export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
-  //@ts-ignore
-  process.send({ event: 'debug', data: opts })
-  return new Promise((resolve: any, reject: any) => {
-    // axios({
-    //   method: 'get',
-    //   url: `https://ipfs.filebase.io/ipfs/${opts.cid}`,
-    //   responseType: 'stream',
-    //   headers: {
-    //     'Content-Type': 'application/octet-stream'
-    //   }
-    // })
-    //   .then((response: any) => {
-    //     //handle success
-    //     //@ts-ignore
-    //     process.send({ event: 'debug', data: 'GOT RESPONSE' })
-    //     //@ts-ignore
-    //     process.send({ event: 'debug', data: { response: typeof response?.data }})
-    //     resolve(response.data)
-    //   })
-    //   .catch((err: any) => {
-    //     //handle error
-    //     //@ts-ignore
-    //     process.send({ event: 'debug', data: { error: err, err: err?.response?.data }})
-    //     reject(err)
-    //   });
-  
 
-  fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
-    method: 'get',
-    headers: {
-      'Content-Type': 'application/octet-stream'
+  return new Promise((resolve: any, reject: any) => {
+    //@ts-ignore
+    const env = process.env.NODE_ENV;
+    
+    if(env === 'test_sdk') {
+      const stream = fs.createReadStream(path.join(__dirname, '../../tests/data', opts.cid))
+      resolve(stream)
+    } else {
+      fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+          method: 'get',
+          headers: {
+            'Content-Type': 'application/octet-stream'
+          }
+        })
+        .then(async (data: any) => {
+          let buffArr:Array<Buffer> = []
+
+          const stream = data.body
+
+          if(opts.async) return resolve(stream)
+
+          stream.on('data', (chunk: Buffer) => {
+            buffArr.push(chunk)
+          })
+
+          stream.on('end', () => {
+            resolve(Buffer.concat(buffArr))
+          })
+
+          stream.on('error', (err:any) => {
+            reject(err)
+          })
+        })
+        .catch((err: any) => {
+          reject(err)
+        });
     }
   })
-    .then(async (data: any) => {
-      let buffArr:Array<Buffer> = []
-
-      const stream = data.body
-
-      //@ts-ignore
-      stream.on('data', (chunk) => {
-        //@ts-ignore
-        process.send({ event: 'debug', data: chunk.toString()})
-      })
-
-      stream.on('error', (err:any) => {
-        //@ts-ignore
-        process.send({ event: 'debug', data: { type: 'error', error: err }})
-      })
-
-      if(opts.async) return resolve(stream)
-
-      stream.on('data', (chunk: Buffer) => {
-        buffArr.push(chunk)
-      })
-
-      stream.on('end', () => {
-        resolve(Buffer.concat(buffArr))
-      })
-
-      stream.on('error', (err:any) => {
-        reject(err)
-      })
-    })
-    .catch((err: any) => {
-      reject(err)
-    });
-  })
-
 }
 
 export const deleteIPFSFile = async (ipfs: any, cid: string) : Promise<Stream> => {

@@ -9,7 +9,7 @@
     "migrations/*"
   ],
   "scripts": {
-    "test": "env-cmd npm run build; env-cmd tape tests/*.test.js | tap-spec",
+    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
     "test-main": "npm run build; tape tests/*.test.js | tap-spec",
     "prepare": "npm run build",
     "build": "tsc",

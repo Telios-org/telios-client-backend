@@ -427,48 +427,26 @@ export default async (props: AccountOpts) => {
         
         if(file?.custom_data?.cid && !hasVault && file?.path?.indexOf('vault') > -1) {
           hasVault = true
-          // try {
-          //   const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
-          //   channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:fileData.toString('hex') }})
-          //   fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
-          // } catch(err:any) {
-          //   channel.send({
-          //     event: 'account:sync:callback',
-          //     error: { 
-          //       name: err.name, 
-          //       message: err.message, 
-          //       stack: err.stack 
-          //     },
-          //     data: null
-          //   })
-          //   return
-          // }
-
           const stream = await FileUtil.getFileByCID({ cid: file.custom_data.cid, async: true })
           const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
 
           pump(stream, ws, async (err: any) => {
-
             if(err) return channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
 
             try {
-              const _fileData = fs.readFileSync(path.join(`${acctPath}/Drive/Files/`, file.path))
-              channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:_fileData.toString('hex') }})
-
               const vault = accountModel.getVault(payload.password, 'vault')
               encryptionKey = vault.drive_encryption_key
 
             } catch(err: any) {
-              channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
-              // channel.send({
-              //   event: 'account:sync:callback',
-              //   error: { 
-              //     name: err.name, 
-              //     message: err.message, 
-              //     stack: err.stack 
-              //   },
-              //   data: null
-              // })
+              channel.send({
+                event: 'account:sync:callback',
+                error: { 
+                  name: err.name, 
+                  message: err.message, 
+                  stack: err.stack 
+                },
+                data: null
+              })
               return
             }
 
