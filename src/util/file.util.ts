@@ -209,12 +209,21 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
         process.send(({ event: 'debug', data: { file }}))
         const statusInterval = setInterval(async () => {
           try {
+            //@ts-ignore
+            process.send(({ event: 'debug', data: 'PRE STATUS'}))
+
             const status = await ipfs.status(file.uuid)
+
+            //@ts-ignore
+            process.send(({ event: 'debug', data: { status }}))
+
             if(status.error) {
               clearInterval(statusInterval)
               return reject(status.error)
             }
             if(status.done) {
+              //@ts-ignore
+              process.send(({ event: 'debug', data: { status }}))
               clearInterval(statusInterval)
 
               if(!status.cid) return reject('IPFS CID not found.')
