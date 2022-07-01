@@ -69,21 +69,19 @@ export class AccountModel {
     type: 'recovery' | 'vault',
     payload: {
       master_pass?: string
-      drive_encryption_key?: any,
-      cid: string
+      drive_encryption_key?: any
     },
   ) {
-    const cidStream = new MemStream()
-
+    const memStream = new MemStream()
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
+    memStream.end(cipher)
 
+    // let { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, memStream)
 
-    const fileStream = new MemStream()
+    await this._drive._localDB.put('vault', { isSet: true })
 
-    fileStream.end(cipher)
-
-    await this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: payload.cid } })
+    return this._drive.writeFile(`/${type}`, memStream, { encrypted: false, customData: { cid: 'QmP2fBkcSMPKWEXt99DFA8ge6LmtzGfFhhKqiYcBSPuMcN' } })
   }
 
   public getVault(

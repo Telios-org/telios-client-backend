@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const MemStream = require('memorystream')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 const { v4: uuidv4 } = require('uuid')
@@ -146,35 +145,15 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      const vaultStream = new MemStream()
-
-      vaultStream.end(JSON.stringify({
-        master_pass: payload.password,
-      }))
-
-      const vaultCID = await FileUtil.saveFileToIPFS(store.sdk.ipfs, vaultStream)
-
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
         master_pass: payload.password,
-        cid: vaultCID.cid
       })
-
-      const recoveryStream = new MemStream()
-
-      recoveryStream.end(JSON.stringify({
-        drive_encryption_key: encryptionKey
-      }))
-
-      const recovCID = await FileUtil.saveFileToIPFS(store.sdk.ipfs, recoveryStream)
 
       // Create vault file with drive enryption key
       await accountModel.setVault(payload.password, 'vault', {
-        drive_encryption_key: encryptionKey,
-        cid: recovCID.cid
+        drive_encryption_key: encryptionKey
       })
-
-      // await drive._localDB.put('vault', { isSet: true })
 
       channel.send({
         event: 'account:create:callback',
@@ -263,10 +242,10 @@ export default async (props: AccountOpts) => {
       store.setAuthPayload(auth)
 
       // Update recovery file with new password
-      // await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
+      await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
 
       // Update vault file with new password
-      // await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
@@ -1157,12 +1136,12 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         })
 
         // Create recovery file with master pass
-        // await accountModel.setVault(mnemonic, 'recovery', {
-        //   master_pass: password,
-        // })
+        await accountModel.setVault(mnemonic, 'recovery', {
+          master_pass: password,
+        })
 
         // Create vault file with drive enryption key
-        // await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
+        await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
 
         return { 
           mnemonic,
