@@ -286,6 +286,9 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
 
       const stream = data.body
 
+      //@ts-ignore
+      process.send({ event: 'debug', data: JSON.stringify(data.body)})
+
       if(opts.async) return resolve(stream)
 
       stream.on('data', (chunk: Buffer) => {
