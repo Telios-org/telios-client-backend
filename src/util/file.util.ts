@@ -210,7 +210,6 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
           const cid = await checkStatus(ipfs, file.uuid)
           return resolve({ cid })
         } catch(err:any) {
-          //@ts-ignore
           return reject(err)
         }
       }).catch((err: any) => {
@@ -309,12 +308,12 @@ async function checkStatus(ipfs: any, fileId: string) : Promise<string> {
 
         return resolve(status.cid)
       } else {
-        setTimeout(() => {
-          checkStatus(ipfs, fileId)
+        setTimeout( () => {
+          return checkStatus(ipfs, fileId)
         }, 1000)
       }
     } catch(err:any) {
-      reject(err)
+      return reject(err)
     }
   })
 }

@@ -52,16 +52,15 @@ export class AccountModel {
   }
 
   public getDeviceInfo(password: string): any {
+    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
 
-      const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+    if (!fs.existsSync(filePath)) return null 
 
-      if (!fs.existsSync(filePath)) return null 
+    const cipher = fs.readFileSync(filePath)
 
-      const cipher = fs.readFileSync(filePath)
+    const deciphered = this._decrypt(cipher, password)
 
-      const deciphered = this._decrypt(cipher, password)
-
-      return JSON.parse(deciphered.toString())
+    return JSON.parse(deciphered.toString())
   }
 
   public async setVault(
