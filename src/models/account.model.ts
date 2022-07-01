@@ -92,9 +92,11 @@ export class AccountModel {
     //@ts-ignore
     process.send(({ event: 'debug', data: { cid }}))
 
-    await this._drive._localDB.put('vault', { isSet: true })
+    if(type == 'vault') {
+      await this._drive._localDB.put('vault', { isSet: true })
+    }
 
-    return this._drive.writeFile(`/${type}`, memStream, { encrypted: false, customData: { cid: cid } })
+    await this._drive.writeFile(`/${type}`, memStream, { encrypted: false, customData: { cid: cid } })
   }
 
   public getVault(
