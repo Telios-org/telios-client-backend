@@ -413,93 +413,95 @@ export default async (props: AccountOpts) => {
             channel.send({ event: 'debug', data: err })
           }
 
-          if(file?.path?.indexOf('vault') > -1 && !hasVault) {
-            hasVault = true
+          setTimeout(() => {
+            if(file?.path?.indexOf('vault') > -1 && !hasVault) {
+              hasVault = true
 
-            try {
-              const vault = accountModel.getVault(payload.password, 'vault')
-              encryptionKey = vault.drive_encryption_key
-            } catch(err: any) {
-              channel.send({ event: 'debug', data: { error: err.message, stack: err.stack } })
-            }
+              try {
+                const vault = accountModel.getVault(payload.password, 'vault')
+                encryptionKey = vault.drive_encryption_key
+              } catch(err: any) {
+                channel.send({ event: 'debug', data: { error: err.message, stack: err.stack } })
+              }
 
-            try {
-              // Close the drive so we can restart it with the encryption key
-              await drive.close()
+              try {
+                // Close the drive so we can restart it with the encryption key
+                await drive.close()
 
-              const _drive = store.setDrive({
-                name: `${acctPath}/Drive`,
-                encryptionKey,
-                driveKey: driveKey,
-                keyPair
-              })
+                const _drive = store.setDrive({
+                  name: `${acctPath}/Drive`,
+                  encryptionKey,
+                  driveKey: driveKey,
+                  keyPair
+                })
 
-              // Step 5. Listen for when core sync is complete
-              _drive.once('remote-cores-downloaded', () => {
-                let ready = false
+                // Step 5. Listen for when core sync is complete
+                _drive.once('remote-cores-downloaded', () => {
+                  let ready = false
 
-                const coreInt = setInterval(async () => {
-                  if(!ready) {
-                    await store.initModels()
-                    const accountModel = store.models.Account
+                  const coreInt = setInterval(async () => {
+                    if(!ready) {
+                      await store.initModels()
+                      const accountModel = store.models.Account
 
-                    let acct:any[] = []
- 
-                    try {
-                      acct = await accountModel.find()
-                    } catch(err: any) {
-                      channel.send({ event: 'debug', data: err.stack })
-                    }
-
-                    // Wait for when account collection is ready since every peer will have this
-                    if(acct.length > 0) {
-                      ready = true
-                      clearInterval(coreInt)
-
-                      // Step 6. Set Device info and login
+                      let acct:any[] = []
+  
                       try {
-                        const deviceId = uuidv4()
-
-                        accountModel.setDeviceInfo({
-                          keyPair,
-                          deviceId: deviceId,
-                          deviceType: payload.deviceType,
-                          driveSyncingPublicKey: driveKey,
-                        }, payload.password)
-
-                        await _drive._localDB.put('vault', { isSet: true })
-
-                        await _drive.close()
-
-                        setTimeout(() => {
-                          login(keyPair)
-                        }, 1000)
-                        
+                        acct = await accountModel.find()
                       } catch(err: any) {
-                        channel.send({ 
-                          event: 'debug', 
-                          data: err.stack
-                        })
+                        channel.send({ event: 'debug', data: err.stack })
+                      }
+
+                      // Wait for when account collection is ready since every peer will have this
+                      if(acct.length > 0) {
+                        ready = true
+                        clearInterval(coreInt)
+
+                        // Step 6. Set Device info and login
+                        try {
+                          const deviceId = uuidv4()
+
+                          accountModel.setDeviceInfo({
+                            keyPair,
+                            deviceId: deviceId,
+                            deviceType: payload.deviceType,
+                            driveSyncingPublicKey: driveKey,
+                          }, payload.password)
+
+                          await _drive._localDB.put('vault', { isSet: true })
+
+                          await _drive.close()
+
+                          setTimeout(() => {
+                            login(keyPair)
+                          }, 1000)
+                          
+                        } catch(err: any) {
+                          channel.send({ 
+                            event: 'debug', 
+                            data: err.stack
+                          })
+                        }
                       }
                     }
-                  }
-                }, 2000)
-              })
+                  }, 2000)
+                })
 
-              await _drive.ready()
+                await _drive.ready()
 
-            } catch(err: any) {
-              channel.send({
-                event: 'account:sync:callback',
-                error: { 
-                  name: err.name, 
-                  message: err.message, 
-                  stack: err.stack 
-                },
-                data: null
-              })
+              } catch(err: any) {
+                channel.send({
+                  event: 'account:sync:callback',
+                  error: { 
+                    name: err.name, 
+                    message: err.message, 
+                    stack: err.stack 
+                  },
+                  data: null
+                })
+              }
             }
-          }
+          }, 1000)
         }
       }
     })
