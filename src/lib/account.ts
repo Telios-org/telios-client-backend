@@ -427,6 +427,7 @@ export default async (props: AccountOpts) => {
 
           try {
             const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
+            channel.send({ event: 'debug', data: fileData.toString('hex')})
             fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
           } catch(err:any) {
             channel.send({
