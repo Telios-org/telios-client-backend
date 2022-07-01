@@ -210,7 +210,7 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
         const statusInterval = setInterval(async () => {
           try {
             //@ts-ignore
-            process.send(({ event: 'debug', data: 'PRE STATUS'}))
+            process.send(({ event: 'debug', data: { msg: 'PRE STATUS', file }}))
 
             const status = await ipfs.status(file.uuid)
 
@@ -234,7 +234,7 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
             //@ts-ignore
             process.send(({ event: 'debug', data: { error: err }}))
           }
-        }, 500)
+        }, 1000)
         
       }).catch((err: any) => {
         //@ts-ignore
