@@ -1157,12 +1157,12 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
         })
 
         // Create recovery file with master pass
-        await accountModel.setVault(mnemonic, 'recovery', {
-          master_pass: password,
-        })
+        // await accountModel.setVault(mnemonic, 'recovery', {
+        //   master_pass: password,
+        // })
 
         // Create vault file with drive enryption key
-        await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
+        // await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
 
         return { 
           mnemonic,
