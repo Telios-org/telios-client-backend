@@ -76,7 +76,14 @@ export class AccountModel {
     process.send(({ event: 'debug', data: `CREATE /${type}`}))
 
     const memStream = new MemStream()
+
+    //@ts-ignore
+    process.send(({ event: 'debug', data: { payload :JSON.stringify(payload) }}))
+
     const cipher = this._encrypt(JSON.stringify(payload), password)
+
+    //@ts-ignore
+    process.send(({ event: 'debug', data: { cipher }}))
 
     memStream.end(cipher)
 
