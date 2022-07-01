@@ -271,6 +271,7 @@ export default async (props: EmailOpts) => {
                 // Recipient is an alias.
                 if(alias) {
                   isAlias = true
+                  aliasId = localPart
                 }
               } catch(err: any) {
                 // not found
