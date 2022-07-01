@@ -413,7 +413,7 @@ export default async (props: AccountOpts) => {
             channel.send({ event: 'debug', data: err })
           }
 
-          setTimeout(() => {
+          setTimeout(async () => {
             if(file?.path?.indexOf('vault') > -1 && !hasVault) {
               hasVault = true
 
