@@ -239,11 +239,11 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      // Update recovery file with new password
-      await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
+      // // Update recovery file with new password
+      // await accountModel.setVault(passphrase, 'recovery', { master_pass: newPass })
 
-      // Update vault file with new password
-      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+      // // Update vault file with new password
+      // await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
