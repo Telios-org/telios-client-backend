@@ -155,6 +155,8 @@ export default async (props: AccountOpts) => {
         drive_encryption_key: encryptionKey
       })
 
+      await drive._localDB.put('vault', { isSet: true })
+
       channel.send({
         event: 'account:create:callback',
         data: {

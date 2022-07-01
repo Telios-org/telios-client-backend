@@ -68,11 +68,11 @@ test('sync account with another device/peer', async t => {
       
       if(error) t.fail(error.message)
 
-      if(data?.files?.done) {
+      if(data && data.files && data.files.done) {
         t.ok(1, 'Drive finished syncing all files')
       }
 
-      if(data?.searchIndex?.emails && data?.searchIndex?.contacts) {
+      if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
         t.ok(1, 'Drive finished creating new search indexes')
       }
     })
