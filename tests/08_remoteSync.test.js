@@ -58,7 +58,7 @@ test('sync account with another device/peer', async t => {
         deviceType: 'MOBILE', // MOBILE | DESKTOP
         driveKey: data.drive_key,
         email: data.email,
-        password: 'let me in 123'
+        password: 'letmein123'
       }
     })
 
