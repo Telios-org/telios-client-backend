@@ -264,6 +264,7 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
         //handle error
         //@ts-ignore
         process.send({ event: 'debug', data: { error: err, err: err.response.data }})
+        reject(err)
       });
   
 
