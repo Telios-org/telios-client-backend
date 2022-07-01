@@ -423,8 +423,6 @@ export default async (props: AccountOpts) => {
         }
         
         if(file?.custom_data?.cid && !hasVault && file?.path?.indexOf('vault') > -1) {
-          hasVault = true
-
           try {
             const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
             channel.send({ event: 'debug', data: { cid: file.custom_data.cid, fileData:fileData.toString('hex') }})
@@ -445,16 +443,18 @@ export default async (props: AccountOpts) => {
           try {
             const vault = accountModel.getVault(payload.password, 'vault')
             encryptionKey = vault.drive_encryption_key
+            hasVault = true
           } catch(err: any) {
-            channel.send({
-              event: 'account:sync:callback',
-              error: { 
-                name: err.name, 
-                message: err.message, 
-                stack: err.stack 
-              },
-              data: null
-            })
+            channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
+            // channel.send({
+            //   event: 'account:sync:callback',
+            //   error: { 
+            //     name: err.name, 
+            //     message: err.message, 
+            //     stack: err.stack 
+            //   },
+            //   data: null
+            // })
             return
           }
 
