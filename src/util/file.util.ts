@@ -205,22 +205,31 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
     ipfs.add(stream)
       .then((file: { uuid: string, key?: string, header?: string, size?: number }) => {
         // Check when file upload is done!
+        //@ts-ignore
+        process.send(({ event: 'debug', data: { file }}))
         const statusInterval = setInterval(async () => {
-          const status = await ipfs.status(file.uuid)
-          if(status.error) {
-            clearInterval(statusInterval)
-            return reject(status.error)
-          }
-          if(status.done) {
-            clearInterval(statusInterval)
+          try {
+            const status = await ipfs.status(file.uuid)
+            if(status.error) {
+              clearInterval(statusInterval)
+              return reject(status.error)
+            }
+            if(status.done) {
+              clearInterval(statusInterval)
 
-            if(!status.cid) return reject('IPFS CID not found.')
+              if(!status.cid) return reject('IPFS CID not found.')
 
-            return resolve({ cid: status.cid })
+              return resolve({ cid: status.cid })
+            }
+          } catch(err:any) {
+            //@ts-ignore
+            process.send(({ event: 'debug', data: { error: err }}))
           }
         }, 500)
         
       }).catch((err: any) => {
+        //@ts-ignore
+        process.send(({ event: 'debug', data: { error: err }}))
         reject(err)
       })
   })
