@@ -72,6 +72,9 @@ export class AccountModel {
       drive_encryption_key?: any
     },
   ) {
+    //@ts-ignore
+    process.send(({ event: 'debug', data: `CREATE /${type}`}))
+
     const memStream = new MemStream()
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
