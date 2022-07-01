@@ -406,8 +406,11 @@ export default async (props: AccountOpts) => {
           hasRecovery = true
           
           try {
-            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid })
-            fs.writeFileSync(path.join(`${acctPath}/Drive/Files/`, file.path), fileData)
+            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid, async: true })
+            
+            const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
+
+            pump(fileData, ws, async (err: any) => {})
           } catch(err:any) {
             channel.send({
               event: 'account:sync:callback',

@@ -5,6 +5,7 @@ import { UTCtimestamp } from '../util/date.util'
 const MemoryStream = require('memorystream')
 const { v4: uuidv4 } = require('uuid')
 const fetch = require('node-fetch')
+const axios = require('axios')
 const fs = require('fs')
 
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
@@ -249,59 +250,51 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
 export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
 
   return new Promise((resolve: any, reject: any) => {
-    // axios({
-    //   method: 'get',
-    //   url: `https://ipfs.filebase.io/ipfs/${cid}`,
-    //   responseType: 'stream',
-    //   headers: {
-    //     'Content-Type': 'binary/octet-stream'
-    //   }
-    // })
-    //   .then((response: any) => {
-    //     //handle success
-    //     resolve(response.data);
-    //   })
-    //   .catch((err: any) => {
-    //     //handle error
-    //     let error = new Error();
-    //     if (!err.response) {
-    //       error.message = 'Could not connect to the server.';
-    //       reject(error);
-    //     } else {
-    //       error.message = err.response.data.error_msg || err.res;
-    //       reject(error);
-    //     }
-    //   });
+    axios({
+      method: 'get',
+      url: `https://ipfs.filebase.io/ipfs/${opts.cid}`,
+      responseType: 'stream'
+    })
+      .then((response: any) => {
+        //handle success
+        //@ts-ignore
+        resolve(response.data)
+      })
+      .catch((err: any) => {
+        //handle error
+        //@ts-ignore
+        process.send({ event: 'debug', data: { error: err, err: err.response.data }})
+      });
   
 
-  fetch(`https://ipfs.filebase.io/ipfs/QmP2fBkcSMPKWEXt99DFA8ge6LmtzGfFhhKqiYcBSPuMcN`, { 
-    method: 'get',
-    headers: {
-      'Content-Type': 'application/octet-stream'
-    }
-  })
-    .then(async (data: any) => {
-      let buffArr:Array<Buffer> = []
+  // fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+  //   method: 'get',
+  //   headers: {
+  //     'Content-Type': 'application/octet-stream'
+  //   }
+  // })
+  //   .then(async (data: any) => {
+  //     let buffArr:Array<Buffer> = []
 
-      const stream = data.body
+  //     const stream = data.body
 
-      if(opts.async) return resolve(stream)
+  //     if(opts.async) return resolve(stream)
 
-      stream.on('data', (chunk: Buffer) => {
-        buffArr.push(chunk)
-      })
+  //     stream.on('data', (chunk: Buffer) => {
+  //       buffArr.push(chunk)
+  //     })
 
-      stream.on('end', () => {
-        resolve(Buffer.concat(buffArr))
-      })
+  //     stream.on('end', () => {
+  //       resolve(Buffer.concat(buffArr))
+  //     })
 
-      stream.on('error', (err:any) => {
-        reject(err)
-      })
-    })
-    .catch((err: any) => {
-      reject(err)
-    });
+  //     stream.on('error', (err:any) => {
+  //       reject(err)
+  //     })
+  //   })
+  //   .catch((err: any) => {
+  //     reject(err)
+  //   });
   })
 
 }
