@@ -274,7 +274,7 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
     //   });
   
 
-  fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+  fetch(`https://ipfs.filebase.io/ipfs/QmP2fBkcSMPKWEXt99DFA8ge6LmtzGfFhhKqiYcBSPuMcN`, { 
     method: 'get',
     headers: {
       'Content-Type': 'application/octet-stream'
