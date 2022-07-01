@@ -83,9 +83,11 @@ export class AccountModel {
 
     await this._drive._localDB.put('vault', { isSet: true })
 
-    fileStream.end(cipher)
+    setTimeout(() => {
+      fileStream.end(cipher)
+    })
 
-    return this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: cid } })
+    await this._drive.writeFile(`/${type}`, fileStream, { encrypted: false, customData: { cid: cid } })
   }
 
   public getVault(
