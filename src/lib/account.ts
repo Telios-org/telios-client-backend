@@ -145,10 +145,10 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      // Create recovery file with master pass
-      await accountModel.setVault(mnemonic, 'recovery', {
-        master_pass: payload.password,
-      })
+      // // Create recovery file with master pass
+      // await accountModel.setVault(mnemonic, 'recovery', {
+      //   master_pass: payload.password,
+      // })
 
       // Create vault file with drive enryption key
       await accountModel.setVault(payload.password, 'vault', {
