@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const MemStream = require('memorystream')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 const { v4: uuidv4 } = require('uuid')
@@ -145,14 +146,32 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
+      const vaultStream = new MemStream()
+
+      vaultStream.end(JSON.stringify({
+        master_pass: payload.password,
+      }))
+
+      const vaultCID = await FileUtil.saveFileToIPFS(store.sdk.ipfs, vaultStream)
+
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
         master_pass: payload.password,
+        cid: vaultCID.cid
       })
+
+      const recoveryStream = new MemStream()
+
+      recoveryStream.end(JSON.stringify({
+        drive_encryption_key: encryptionKey
+      }))
+
+      const recovCID = await FileUtil.saveFileToIPFS(store.sdk.ipfs, recoveryStream)
 
       // Create vault file with drive enryption key
       await accountModel.setVault(payload.password, 'vault', {
-        drive_encryption_key: encryptionKey
+        drive_encryption_key: encryptionKey,
+        cid: recovCID.cid
       })
 
       // await drive._localDB.put('vault', { isSet: true })
