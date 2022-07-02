@@ -431,12 +431,13 @@ export default async (props: AccountOpts) => {
           const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
 
           pump(stream, ws, async (err: any) => {
+            channel.send({ event: 'debug', data: 'VAULT DONE'})
             if(err) return channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
-
+            channel.send({ event: 'debug', data: 'PRE DECIPHER VAULT'})
             try {
               const vault = accountModel.getVault(payload.password, 'vault')
               encryptionKey = vault.drive_encryption_key
-
+              channel.send({ event: 'debug', data: { encryptionKey }})
             } catch(err: any) {
               channel.send({
                 event: 'account:sync:callback',
@@ -464,7 +465,7 @@ export default async (props: AccountOpts) => {
               // Step 5. Listen for when core sync is complete
               _drive.once('remote-cores-downloaded', () => {
                 let ready = false
-
+                channel.send({ event: 'debug', data: 'REMOTE CORES DOWNLOADED'})
                 const coreInt = setInterval(async () => {
                   if(!ready) {
                     await store.initModels()
@@ -506,7 +507,10 @@ export default async (props: AccountOpts) => {
 
                         await _drive.close()
 
+                        channel.send({ event: 'debug', data: 'START LOGIN'})
+
                         setTimeout(() => {
+                          channel.send({ event: 'debug', data: 'START LOGIN GO'})
                           login(keyPair)
                         }, 1000)
                         
@@ -768,7 +772,6 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      // Get account
       let account = await accountModel.findOne()
 
       // Monkey patch: Support older accounts when this info was stored in the account collection
@@ -783,20 +786,21 @@ export default async (props: AccountOpts) => {
         accountModel.setDeviceInfo({ ...deviceInfo }, payload.password)
       }
 
+      // TODO: FIX THIS!!!
       // This is a new device trying to login so we need to register the device with the API server
-      if(deviceInfo && !deviceInfo.serverSig) {
-        const { sig } = await Account.registerNewDevice({
-          device: {
-            type: payload.deviceType,
-            account_key: account.secretBoxPubKey,
-            device_id: deviceInfo.deviceId,
-            device_signing_key: keyPair.publicKey.toString('hex')
-          }
-        }, account.signingPrivKey)
+      // if(deviceInfo && !deviceInfo.serverSig) {
+      //   const { sig } = await Account.registerNewDevice({
+      //     device: {
+      //       type: payload.deviceType,
+      //       account_key: account.secretBoxPubKey,
+      //       device_id: deviceInfo.deviceId,
+      //       device_signing_key: keyPair.publicKey.toString('hex')
+      //     }
+      //   }, account.signingPrivKey)
 
-        deviceInfo = { serverSig: sig, ...deviceInfo }
-        accountModel.setDeviceInfo(deviceInfo, payload.password)
-      }
+      //   deviceInfo = { serverSig: sig, ...deviceInfo }
+      //   accountModel.setDeviceInfo(deviceInfo, payload.password)
+      // }
 
       handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
 

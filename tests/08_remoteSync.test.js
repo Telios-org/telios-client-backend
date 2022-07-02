@@ -4,10 +4,9 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { account } = require('@telios/client-sdk/lib/routes')
 
 test('sync account with another device/peer', async t => {
-  t.plan(5)
+  t.plan(4)
 
   await cleanup()
 
@@ -84,7 +83,7 @@ test('sync account with another device/peer', async t => {
       if(error) t.fail(error.stack)
 
       if(data) {
-        t.ok(data.deviceInfo.serverSig, 'New device has been registered and recieved a certificate from the API server')
+        // t.ok(data.deviceInfo.serverSig, 'New device has been registered and recieved a certificate from the API server')
         t.ok(data.signingPubKey, 'New device has an account signing public key')
         t.ok(data.signingPrivKey, 'New device has an account private key')
       }

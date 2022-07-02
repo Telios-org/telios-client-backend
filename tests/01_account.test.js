@@ -10,7 +10,7 @@ let _channel
 let _account
 
 test('create account', async t => {
-  t.plan(5)
+  t.plan(3)
   let connectedCount = 0
   await cleanup()
 
