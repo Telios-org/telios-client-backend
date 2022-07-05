@@ -143,7 +143,7 @@ export class Store extends EventEmitter{
       swarmOpts: {
         server: true,
         client: true,
-        acl: []
+        acl: [] // TODO: Add this back in [this.teliosPubKey, ...acl]
       },
       fullTextSearch: true
     })
@@ -186,8 +186,30 @@ export class Store extends EventEmitter{
     }
   }
 
-  public setAccount(account: AccountSchema) {
+  public async setAccount(account: AccountSchema) {
     this._account = account
+
+    if(account) {
+      const Alias = this.models.Alias
+      const AliasNamespace = this.models.AliasNamespace
+      let aliasArr = []
+
+      const namespaces = await AliasNamespace.find()
+      const aliases = await Alias.find()
+      
+      aliasArr = [...aliases, ...namespaces]
+
+      for (const alias of aliasArr) {
+        if(alias.publicKey && alias.privateKey) {
+          const keypair = {
+            publicKey: alias.publicKey,
+            privateKey: alias.privateKey
+          }
+
+          this.setKeypair(keypair)
+        }
+      }
+    }
   }
   
   public getAccount() : AccountSchema {

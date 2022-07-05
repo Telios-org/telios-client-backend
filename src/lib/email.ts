@@ -263,11 +263,25 @@ export default async (props: EmailOpts) => {
           case 'Incoming':
             // Assign email into appropriate folder/alias
             for await (const recipient of msg.email.to) {
-              // Recipient is an alias
+              const localPart = recipient.address.split('@')[0]
+
+              try {
+                const alias: AliasSchema = await Alias.findOne({ name: localPart })
+
+                // Recipient is an alias.
+                if(alias) {
+                  isAlias = true
+                  aliasId = localPart
+                }
+              } catch(err: any) {
+                // not found
+              }
+
+              // Recipient is an alias. Check if we need to create a new on-the-fly alias
               if (recipient.address.indexOf('#') > -1) {
                 folderId = 0
                 isAlias = true
-                const localPart = recipient.address.split('@')[0]
+                
                 const recipAliasName = localPart.split('#')[0]
                 const recipAliasAddress = localPart.split('#')[1]
 

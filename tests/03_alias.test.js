@@ -59,6 +59,34 @@ test('get alias namespaces', async t => {
   })
 })
 
+test('register uid alias address', async t => {
+  t.plan(1)
+
+  const payload = {
+    namespaceName: null,
+    domain: 'dev.telios.io',
+    address: '447c6024eccb',
+    description: '',
+    fwdAddresses: '',
+    disabled: false,
+    count: 0,
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
+  }
+
+  channel.send({ event: 'alias:registerAliasAddress', payload })
+
+  channel.once('alias:registerAliasAddress:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS :: ', data)
+    
+    t.equals(data.aliasId, '447c6024eccb')
+  })
+})
+
 test('register new alias address', async t => {
   t.plan(1)
 
@@ -89,7 +117,7 @@ test('register new alias address', async t => {
 })
 
 test('get alias addresses', async t => {
-  t.plan(1)
+  t.plan(2)
 
   const payload = {
     namespaceKeys: ['alice2022']
@@ -104,8 +132,10 @@ test('get alias addresses', async t => {
     if(error) t.fail(error.message)
 
     console.log('SUCCESS :: ', data)
-    
-    t.equals(data[0].aliasId, 'alice2022#netflix')
+
+    for(let address of data) {
+      t.ok(address.aliasId)
+    }
   })
 })
 
@@ -172,10 +202,13 @@ test('increment alias message count', async t => {
 
         if(error) t.fail(error.message)
 
-        console.log('SUCCESS :: ', data[0])
+        for(let address of data) {
+          if(address.namespaceKey === 'alice2022') {
+            console.log('SUCCESS :: ', address)
+            t.equals(address.count, 1)
+          }
+        }
         
-        t.equals(data[0].count, 1)
-
         const payloadRM = {
           messageIds: [eml.emailId]
         }
@@ -249,7 +282,7 @@ test('remove alias address', async t => {
 
       if(error) t.fail(error.message)
 
-      t.equals(data.length, 0)
+      t.equals(data.length, 1)
     })
   })
 

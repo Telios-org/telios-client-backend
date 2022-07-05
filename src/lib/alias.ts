@@ -72,15 +72,6 @@ export default async (props: AliasOpts) => {
 
       const namespaces: AliasNamespaceSchema[] = await AliasNamespace.find({ mailboxId: payload.id }).sort('name', 1)
 
-      for (const namespace of namespaces) {
-        const keypair = {
-          publicKey: namespace.publicKey,
-          privateKey: namespace.privateKey
-        }
-
-        store.setKeypair(keypair)
-      }
-
       channel.send({
         event: 'alias:getMailboxNamespaces:callback',
         data: namespaces
@@ -114,23 +105,45 @@ export default async (props: AliasOpts) => {
     } = payload
 
     try {
+      let aliasAddress
+      let aliasId
+      let keypair
+
       const Alias = store.models.Alias
+      const Crypto = store.sdk.crypto
+      const account: AccountSchema = store.getAccount()
+
+      if(namespaceName) {
+        aliasAddress = `${namespaceName}#${address}@${domain}`;
+        aliasId = `${namespaceName}#${address}`
+      } else {
+        keypair = Crypto.boxKeypairFromStr(`${account.secretBoxPrivKey}${address}@${store.domain.mail}`)
+
+        store.setKeypair(keypair)
+
+        aliasAddress = `${address}@${domain}`;
+        aliasId = address
+      }
+    
 
       const { registered } = await Mailbox.registerAliasAddress({
-        alias_address: `${namespaceName}#${address}@${domain}`,
+        alias_address: aliasAddress,
         forwards_to: fwdAddresses,
         whitelisted: true,
+        key: keypair ? keypair.publicKey : null,
         disabled
       })
 
       const output = await Alias.insert({
-        aliasId: `${namespaceName}#${address}`,
+        aliasId: aliasId,
         name: address,
         namespaceKey: namespaceName,
         count: 0,
         description,
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
+        publicKey: keypair ? keypair.publicKey : null,
+        privateKey: keypair ? keypair.privateKey : null,
         whitelisted: true,
         createdAt: createdAt || UTCtimestamp(),
         updatedAt: updatedAt || UTCtimestamp()
@@ -161,11 +174,7 @@ export default async (props: AliasOpts) => {
     try {
       const Alias = store.models.Alias.collection
 
-      const aliases = await Alias.find({ 
-        namespaceKey: { 
-          $in: payload.namespaceKeys 
-        } 
-      }).sort('createdAt', -1)
+      const aliases = await Alias.find().sort('createdAt', -1)
 
       const promises = aliases.map( async (a: AliasSchema) => {
         const Email = store.models.Email
@@ -272,8 +281,13 @@ export default async (props: AliasOpts) => {
     try {
       const Alias = store.models.Alias
 
-      await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
-      await Alias.remove({ aliasId: `${namespaceName}#${address}` })
+      if(namespaceName) {
+        await Mailbox.removeAliasAddress(`${namespaceName}#${address}@${domain}`)
+        await Alias.remove({ aliasId: `${namespaceName}#${address}` })
+      } else {
+        await Mailbox.removeAliasAddress(`${address}@${domain}`)
+        await Alias.remove({ aliasId: `${address}` })
+      }
 
       channel.send({ event: 'alias:removeAliasAddress:callback', data: null })
     } catch(err:any) {

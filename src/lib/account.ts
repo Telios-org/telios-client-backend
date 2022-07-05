@@ -127,7 +127,7 @@ export default async (props: AccountOpts) => {
 
       handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
-      store.setAccount(acctDoc)
+      await store.setAccount(acctDoc)
 
       store.setAccountSecrets({ email: payload.email, password: payload.password })
 
@@ -225,11 +225,16 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      const account = await accountModel.findOne()
+      // Get account
+      const fullAcct = await accountModel.findOne()
+
+      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
+
+      await store.setAccount(fullAcct)
 
       let auth = {
         claims: {
-          account_key: account.secretBoxPubKey,
+          account_key: fullAcct.secretBoxPubKey,
           device_signing_key: deviceInfo?.keyPair?.publicKey,
           device_id: deviceInfo?.deviceId,
         },
@@ -626,7 +631,7 @@ export default async (props: AccountOpts) => {
   if (event === 'account:logout') {
     try {
       store.setAccountSecrets({ email: undefined, password: undefined })
-      store.setAccount(null)
+      await store.setAccount(null)
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 
