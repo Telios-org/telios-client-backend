@@ -11,22 +11,31 @@ const path = require('path')
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
   return new Promise((resolve, reject) => {
     const readStream = new MemoryStream()
-    readStream.end(JSON.stringify(opts.email))
 
     if(!opts.email.path) {
       opts.email.path = `/email/${uuidv4()}.json`
     }
+
+    readStream.end(JSON.stringify(opts.email))
 
     opts.drive.writeFile(opts.email.path, readStream, { encrypted: true })
       .then(async (file: FileSchema) => {
 
         // SAVE TO IPFS
         if(opts.ipfs) {
-          const _file = await opts.drive.metadb.get(file.hash)
 
-          if(_file && _file.value.path) {
-            const filesDir = opts.drive._filesDir
-            const stream = fs.createReadStream(filesDir + _file.value.path)
+          if(file && file.path) {
+            const filesDir = opts.drive._filesDir;
+
+            let fp
+
+            if(file.encrypted) {
+              fp = file.uuid
+            } else {
+              fp = file.path
+            }
+
+            const stream = fs.createReadStream(path.join(filesDir, fp))
             const { cid } = await saveFileToIPFS(opts.ipfs, stream)
             file.cid = cid
           }
@@ -98,14 +107,19 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
             // SAVE TO IPFS
             if(opts.ipfs) {
-              const _file = await opts.drive.metadb.get(file.hash)
+              const filesDir = opts.drive._filesDir;
 
-              if(_file && _file.value.path) {
-                const filesDir = opts.drive._filesDir
-                const stream = fs.createReadStream(filesDir + _file.value.path)
-                const { cid } = await saveFileToIPFS(opts.ipfs, stream)
-                opts.file.cid = cid
+              let fp
+
+              if(file.encrypted) {
+                fp = file.uuid
+              } else {
+                fp = file.path
               }
+
+              const stream = fs.createReadStream(path.join(filesDir, fp))
+              const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+              file.cid = cid
             }
 
             const doc: FileSchema = await File.insert(opts.file)

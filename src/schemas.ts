@@ -159,6 +159,7 @@ export interface FileSchema {
   header?: any
   hash: string
   feed?: string
+  encrypted?: boolean
   discoveryKey?: any
   discovery_key?: any
   // Timestamps

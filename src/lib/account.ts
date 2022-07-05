@@ -1064,10 +1064,58 @@ export default async (props: AccountOpts) => {
   }
 
   function handleDriveSyncEvents() {
-    store.drive.on('collection-update', (data: any) => {
+
+    store.drive.on('collection-update', async (data: any) => {
+      const Email = store.models.Email.collection
+      const Contact = store.models.Contact.collection
+      const File = store.models.File.collection
+
       if(data?.collection) {
-        // TODO: Handle CRUD
-        channel.send({ event: 'account:collection:updated', data })
+        if(data.collection === 'Email' && data.value && data.type !== 'del') {
+          await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [data.value])
+        }
+
+        if(data.collection === 'Contact' && data.value && data.type !== 'del') {
+          await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
+        }
+
+        if(data.collection === 'file' && data.value && data.type !== 'del') {
+          let filePath = `${store.acctPath}/Drive/Files/`
+
+          const file = data.value
+
+          if(file.encrypted) {
+            filePath = path.join(filePath, file.uuid)
+          } else {
+            filePath = path.join(filePath, file.path)
+          }
+          
+          if (file.path.indexOf('email') > -1) {
+            try {
+              const email = await Email.findOne({ path: file.path })
+              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+              
+              // Fetch the files from IPFS and save locally
+              await syncFileBatch([{ cid: email.cid, key: email.key, header: email.header, path: filePath }])
+            } catch(err: any) {
+              // file not found
+            }
+          }
+
+          if (file.path.indexOf('file') > -1) {
+            try {
+              const f = await File.findOne({ hash: file.hash })
+              await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
+            } catch(err: any) {
+              // file not found
+            }
+          }
+
+        }
+
+        if(data.collection !== 'file') {
+          channel.send({ event: 'account:collection:updated', data })
+        }
       }
     })
   }
