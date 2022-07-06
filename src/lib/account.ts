@@ -793,19 +793,36 @@ export default async (props: AccountOpts) => {
 
       // TODO: FIX THIS!!!
       // This is a new device trying to login so we need to register the device with the API server
-      // if(deviceInfo && !deviceInfo.serverSig) {
-      //   const { sig } = await Account.registerNewDevice({
-      //     device: {
-      //       type: payload.deviceType,
-      //       account_key: account.secretBoxPubKey,
-      //       device_id: deviceInfo.deviceId,
-      //       device_signing_key: keyPair.publicKey.toString('hex')
-      //     }
-      //   }, account.signingPrivKey)
+      if(deviceInfo && !deviceInfo.serverSig) {
+        
+        channel.send({ event: 'debug', data: {
+          device: {
+            type: payload.deviceType,
+            account_key: account.secretBoxPubKey,
+            device_id: deviceInfo.deviceId,
+            device_signing_key: keyPair.publicKey.toString('hex')
+          },
+          accountSignginPrivKey: account.signingPrivKey
+        } })
 
-      //   deviceInfo = { serverSig: sig, ...deviceInfo }
-      //   accountModel.setDeviceInfo(deviceInfo, payload.password)
-      // }
+        try {
+          const { sig } = await Account.registerNewDevice({
+            device: {
+              type: payload.deviceType,
+              account_key: account.secretBoxPubKey,
+              device_id: deviceInfo.deviceId,
+              device_signing_key: keyPair.publicKey.toString('hex')
+            }
+          }, account.signingPrivKey)
+
+          channel.send({ event: 'REGISTER NEW DEVICE SIG', data: sig })
+        } catch(err: any) {
+          channel.send({ event: 'REGISTER NEW DEVICE ERR', data: { message: err.message, stack: err.stack } })
+        }
+
+        // deviceInfo = { serverSig: sig, ...deviceInfo }
+        // accountModel.setDeviceInfo(deviceInfo, payload.password)
+      }
 
       handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
 
