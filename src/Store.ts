@@ -125,7 +125,7 @@ export class Store extends EventEmitter{
   }
 
   public setDrive(props: setDriveOpts) {
-    const { name, driveKey, blind, keyPair, encryptionKey, acl = [] } = props
+    const { name, driveKey, blind, keyPair, encryptionKey, broadcast = true, acl = [] } = props
     
     this.encryptionKey = encryptionKey
     
@@ -140,6 +140,7 @@ export class Store extends EventEmitter{
       checkNetworkStatus: true,
       syncFiles: false,
       blind: blind ? blind : false,
+      broadcast,
       swarmOpts: {
         server: true,
         client: true,

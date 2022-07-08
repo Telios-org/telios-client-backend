@@ -198,6 +198,7 @@ export interface setDriveOpts {
   },
   driveKey?: string
   encryptionKey?: string
+  broadcast?: boolean
   acl?: string[]
 }
 

@@ -378,7 +378,8 @@ export default async (props: AccountOpts) => {
       name: `${acctPath}/Drive`,
       driveKey: driveKey,
       keyPair,
-      blind: true
+      blind: true,
+      broadcast: false
     })
 
     // Step 4. Begin replication
@@ -485,7 +486,6 @@ export default async (props: AccountOpts) => {
                     
                       acct = await accountModel.find()
                     
-
                     // Wait for when account collection is ready since every peer will have this
                     if(acct.length > 0) {
                       ready = false
@@ -1090,7 +1090,8 @@ export default async (props: AccountOpts) => {
 
     store.drive.on('collection-update', async (data: any) => {
       const Email = store.models.Email.collection
-      const Contact = store.models.Contact.collection
+      const Contact = store.models.Contact
+
       const File = store.models.File.collection
 
       if(data?.collection) {
@@ -1099,7 +1100,11 @@ export default async (props: AccountOpts) => {
         }
 
         if(data.collection === 'Contact' && data.value && data.type !== 'del') {
-          await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
+          try {
+            await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
+          } catch(err: any) {
+            channel.send({ event: 'debug', data: err.stack })
+          }
         }
 
         if(data.collection === 'file' && data.value && data.type !== 'del') {
