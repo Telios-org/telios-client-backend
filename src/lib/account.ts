@@ -1127,6 +1127,7 @@ export default async (props: AccountOpts) => {
               await syncFileBatch([{ cid: email.cid, key: email.key, header: email.header, path: filePath }])
             } catch(err: any) {
               // file not found
+              channel.send({ event: 'debug', data: err.stack })
             }
           }
 
@@ -1136,6 +1137,7 @@ export default async (props: AccountOpts) => {
               await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
             } catch(err: any) {
               // file not found
+              channel.send({ event: 'debug', data: err.stack })
             }
           }
 
