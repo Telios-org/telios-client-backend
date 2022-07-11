@@ -806,38 +806,35 @@ export default async (props: AccountOpts) => {
         accountModel.setDeviceInfo({ ...deviceInfo }, payload.password)
       }
 
-      // TODO: FIX THIS!!!
       // This is a new device trying to login so we need to register the device with the API server
-      // if(deviceInfo && !deviceInfo.serverSig) {
+      if(deviceInfo && !deviceInfo.serverSig) {
         
-      //   channel.send({ event: 'debug', data: {
-      //     device: {
-      //       type: payload.deviceType,
-      //       account_key: account.secretBoxPubKey,
-      //       device_id: deviceInfo.deviceId,
-      //       device_signing_key: keyPair.publicKey.toString('hex')
-      //     },
-      //     accountSigningPrivKey: account.signingPrivKey
-      //   } })
+        channel.send({ event: 'debug', data: {
+          device: {
+            type: payload.deviceType,
+            account_key: account.secretBoxPubKey,
+            device_id: deviceInfo.deviceId,
+            device_signing_key: keyPair.publicKey.toString('hex')
+          },
+          accountSigningPrivKey: account.signingPrivKey
+        } })
 
-      //   try {
-      //     const { sig } = await Account.registerNewDevice({
-      //       device: {
-      //         type: payload.deviceType,
-      //         account_key: account.secretBoxPubKey,
-      //         device_id: deviceInfo.deviceId,
-      //         device_signing_key: keyPair.publicKey.toString('hex')
-      //       }
-      //     }, account.signingPrivKey)
+        try {
+          const { sig } = await Account.registerNewDevice({
+            type: payload.deviceType,
+            account_key: account.secretBoxPubKey,
+            device_id: deviceInfo.deviceId,
+            device_signing_key: keyPair.publicKey.toString('hex')
+          }, account.signingPrivKey)
 
-      //     deviceInfo = { serverSig: sig, ...deviceInfo }
-      //     accountModel.setDeviceInfo(deviceInfo, payload.password)
+          deviceInfo = { serverSig: sig, ...deviceInfo }
+          accountModel.setDeviceInfo(deviceInfo, payload.password)
 
-      //     channel.send({ event: 'debug', data: { sig } })
-      //   } catch(err: any) {
-      //     channel.send({ event: 'debug', data: { message: err.message, stack: err.stack } })
-      //   }
-      // }
+          channel.send({ event: 'debug', data: { sig } })
+        } catch(err: any) {
+          channel.send({ event: 'debug', data: { message: err.message, stack: err.stack } })
+        }
+      }
 
       handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
 

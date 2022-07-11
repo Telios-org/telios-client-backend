@@ -4,11 +4,10 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { MockEmail } = require('./helper')
 const { account } = require('@telios/client-sdk/lib/routes')
 
 test('sync account with another device/peer', async t => {
-  t.plan(99999)
+  t.plan(5)
 
   await cleanup()
 
@@ -18,24 +17,8 @@ test('sync account with another device/peer', async t => {
     console.log('DEBUG', data)
   })
 
-  channel.on('account:collection:updated', cb => {
-    const { data } = cb
-
+  channel.on('account:collection:updated', data => {
     console.log(data)
-
-    if(data.collection === 'Contact') {
-      const payload = {
-        id: data.value.contactId
-      }
-    
-      channel.send({ event: 'contact:removeContact', payload })
-
-      channel.on('contact:removeContact:callback', cb => {
-        const { error, data } = cb
-
-        console.log('DELETED', { data, error })
-       })
-    }
   })
 
   // Start sync with Device A sync data
@@ -43,9 +26,9 @@ test('sync account with another device/peer', async t => {
     event: 'account:sync',
     payload: {
       deviceType: 'MOBILE', // MOBILE | DESKTOP
-      driveKey: '931ec456ee0d005b8c2375b501e90bf9b8b445cab410920b244613bef2cee01d',
-      email: 'newtst@telios.io',
-      password: 'let me in 123'
+      driveKey: '',
+      email: '',
+      password: ''
     }
   })
 
@@ -53,7 +36,7 @@ test('sync account with another device/peer', async t => {
   channel.on('account:sync:callback', cb => {
     const { error, data } = cb
     
-    // if(error) t.fail(error.message)
+    if(error) t.fail(error.message)
 
     if(data && data.files && data.files.done) {
       t.ok(1, 'Drive finished syncing all files')
@@ -89,34 +72,18 @@ test('sync account with another device/peer', async t => {
       t.ok(data.signingPrivKey, 'New device has an account private key')
 
       setTimeout(() => {
-        // const payload = {
-        //   contactList: [{
-        //     name: "gary hartey",
-        //     givenName: 'gary',
-        //     familyName: 'hartey',
-        //     nickname: 'ghartey ',
-        //     email: 'ghartey@gmail.com'
-        //   }]
-        // }
+        const payload = {
+          contactList: [{
+            name: "Jake Bridges",
+            givenName: 'Jake',
+            familyName: 'Bridges',
+            nickname: 'jake.bridges',
+            email: 'jake.bridge@gmail.com'
+          }]
+        }
       
-        // console.log('ADD CONTACT!')
-        // channel.send({ event: 'contact:createContacts', payload })
-
-
-
-        // const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
-
-        // const payload = {
-        //   type: 'Incoming',
-        //   messages: [mockEmail],
-        // }
-      
-        // channel.send({ event: 'email:saveMessageToDB', payload })
-      
-        // channel.once('email:saveMessageToDB:callback', cb => {
-        //   console.log(cb)
-        // })
-
+        console.log('ADD CONTACT!')
+        channel.send({ event: 'contact:createContacts', payload })
       }, 10000)
     }
 
