@@ -383,7 +383,13 @@ export default async (props: AccountOpts) => {
     })
 
     // Step 4. Begin replication
-    await drive.ready()
+    try {
+      await drive.ready()
+    } catch(err) {
+      //@ts-ignore
+      process.send({ event: 'debug', data: err.stack })
+      throw err
+    }
 
     const accountModel = store.models.Account
 
@@ -478,65 +484,68 @@ export default async (props: AccountOpts) => {
                     ready = true
 
                     try {
-                    await store.initModels()
-                    const accountModel = store.models.Account
+                      await store.initModels()
+                      const accountModel = store.models.Account
 
-                    let acct:any[] = []
+                      let acct:any[] = []
 
                     
                       acct = await accountModel.find()
-                    
-                    // Wait for when account collection is ready since every peer will have this
-                    if(acct.length > 0) {
-                      ready = false
-                      clearInterval(coreInt)
 
-                      // Step 6. Set Device info and login
-                      try {
-                        const deviceId = uuidv4()
-
-                        accountModel.setDeviceInfo({
-                          keyPair,
-                          deviceId: deviceId,
-                          deviceType: payload.deviceType,
-                          driveSyncingPublicKey: driveKey,
-                        }, payload.password)
-
-                        await _drive._localDB.put('vault', { isSet: true })
-
-                        await _drive.close()
-
-                        channel.send({ event: 'debug', data: 'START LOGIN'})
-
-                        setTimeout(() => {
-                          channel.send({ event: 'debug', data: 'START LOGIN GO'})
-                          login(keyPair)
-                        }, 1000)
+                      // Wait for when account collection is ready since every peer will have this
+                      if(acct.length > 0) {
+                        ready = false
                         
-                      } catch(err: any) {
-                        channel.send({
-                          event: 'account:sync:callback',
-                          error: { 
-                            name: err.name, 
-                            message: err.message, 
-                            stack: err.stack 
-                          },
-                          data: null
-                        })
+                        // Step 6. Set Device info and login
+                        try {
+                          const deviceId = uuidv4()
+
+                          accountModel.setDeviceInfo({
+                            keyPair,
+                            deviceId: deviceId,
+                            deviceType: payload.deviceType,
+                            driveSyncingPublicKey: driveKey,
+                          }, payload.password)
+
+                          await _drive._localDB.put('vault', { isSet: true })
+
+                          await _drive.close()
+
+                          channel.send({ event: 'debug', data: 'START LOGIN'})
+
+                          setTimeout(() => {
+                            clearInterval(coreInt)
+                            channel.send({ event: 'debug', data: 'START LOGIN GO'})
+                            login(keyPair)
+                          }, 1000)
+                          
+                        } catch(err: any) {
+                          ready = false
+                          channel.send({
+                            event: 'account:sync:callback',
+                            error: { 
+                              name: err.name, 
+                              message: err.message, 
+                              stack: err.stack 
+                            },
+                            data: null
+                          })
+                        }
+                      } else {
+                        ready = false
                       }
+                    } catch(err: any) {
+                      ready = false
+                      // channel.send({
+                      //   event: 'account:sync:callback',
+                      //   error: { 
+                      //     name: err.name, 
+                      //     message: err.message, 
+                      //     stack: err.stack 
+                      //   },
+                      //   data: null
+                      // })
                     }
-                  } catch(err: any) {
-                    ready = false
-                    channel.send({
-                      event: 'account:sync:callback',
-                      error: { 
-                        name: err.name, 
-                        message: err.message, 
-                        stack: err.stack 
-                      },
-                      data: null
-                    })
-                  }
                   }
                 }, 2000)
               })
@@ -1089,18 +1098,20 @@ export default async (props: AccountOpts) => {
   function handleDriveSyncEvents() {
 
     store.drive.on('collection-update', async (data: any) => {
-      const Email = store.models.Email.collection
-      const Contact = store.models.Contact
-
-      const File = store.models.File.collection
 
       if(data?.collection) {
         if(data.collection === 'Email' && data.value && data.type !== 'del') {
-          await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [data.value])
+          try {
+            const Email = store.models.Email.collection
+            await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [data.value])
+          } catch(err: any) {
+            channel.send({ event: 'debug', data: err.stack })
+          }
         }
 
         if(data.collection === 'Contact' && data.value && data.type !== 'del') {
           try {
+            const Contact = store.models.Contact
             await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
           } catch(err: any) {
             channel.send({ event: 'debug', data: err.stack })
@@ -1120,6 +1131,7 @@ export default async (props: AccountOpts) => {
           
           if (file.path.indexOf('email') > -1) {
             try {
+              const Email = store.models.Email.collection
               const email = await Email.findOne({ path: file.path })
               await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
               
@@ -1127,17 +1139,18 @@ export default async (props: AccountOpts) => {
               await syncFileBatch([{ cid: email.cid, key: email.key, header: email.header, path: filePath }])
             } catch(err: any) {
               // file not found
-              channel.send({ event: 'debug', data: err.stack })
+              channel.send({ event: 'debug', data: { stck: err.stack }})
             }
           }
 
           if (file.path.indexOf('file') > -1) {
             try {
+              const File = store.models.File.collection
               const f = await File.findOne({ hash: file.hash })
               await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
             } catch(err: any) {
               // file not found
-              channel.send({ event: 'debug', data: err.stack })
+              channel.send({ event: 'debug', data: { stack: err.stack } })
             }
           }
 
