@@ -692,7 +692,7 @@ export default async (props: AccountOpts) => {
    *  EXIT
    ************************************************/
   if (event === 'account:exit') {
-    const drive = store.drive
+    const drive = store.getDrive()
     await drive.close()
   }
 
