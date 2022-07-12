@@ -333,7 +333,7 @@ export default async (props: AccountOpts) => {
     const Account = store.sdk.account
 
     try {
-      const { drive_key, peer_pub_key, email } = await Account.getSyncInfo({ code })
+      const { drive_key, peer_pub_key, email } = await Account.getSyncInfo(code)
       channel.send({ event: 'account:getSyncInfo:callback', data: { drive_key, peer_pub_key, email } })
     } catch(err:any) {
       channel.send({
