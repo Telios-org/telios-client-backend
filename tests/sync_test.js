@@ -4,12 +4,11 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { account } = require('@telios/client-sdk/lib/routes')
 
 test('sync account with another device/peer', async t => {
   t.plan(5)
 
-  await cleanup()
+//  await cleanup()
 
   const channel = new Channel(path.join(__dirname, 'Accounts2'))
 
@@ -22,45 +21,56 @@ test('sync account with another device/peer', async t => {
   })
 
   // Start sync with Device A sync data
+  // channel.send({
+  //   event: 'account:sync',
+  //   payload: {
+  //     deviceType: 'MOBILE', // MOBILE | DESKTOP
+  //     driveKey: 'a8d255b7b4e0b61b5ca007201cff31031cbf0fce610c0cb4b8795a3652d0abc4',
+  //     email: 'newtst@dev.telios.io',
+  //     password: 'let me in 123'
+  //   }
+  // })
+
+  // //  Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
+  // channel.on('account:sync:callback', cb => {
+  //   const { error, data } = cb
+    
+  //   if(error) t.fail(error.message)
+
+  //   if(data && data.files && data.files.done) {
+  //     t.ok(1, 'Drive finished syncing all files')
+  //   }
+
+  //   if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
+  //     t.ok(1, 'Drive finished creating new search indexes')
+  //   }
+  // })
+
+  // channel.once('contact:createContacts:callback', cb => {
+  //   const { error, data } = cb
+
+  //   // if(error) t.fail(error.message)
+
+  //   console.log('SUCCESS :: ', data)
+    
+  //   // contact = data[0]
+  //   // t.ok(data.length > 0)
+  // })
+
+
   channel.send({
-    event: 'account:sync',
+    event: 'account:login',
     payload: {
-      deviceType: 'MOBILE', // MOBILE | DESKTOP
-      driveKey: '',
-      email: '',
-      password: ''
+      email: 'newtst@dev.telios.io',
+      password: 'let me in 123'
     }
-  })
-
-  //  Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
-  channel.on('account:sync:callback', cb => {
-    const { error, data } = cb
-    
-    if(error) t.fail(error.message)
-
-    if(data && data.files && data.files.done) {
-      t.ok(1, 'Drive finished syncing all files')
-    }
-
-    if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
-      t.ok(1, 'Drive finished creating new search indexes')
-    }
-  })
-
-  channel.once('contact:createContacts:callback', cb => {
-    const { error, data } = cb
-
-    // if(error) t.fail(error.message)
-
-    console.log('SUCCESS :: ', data)
-    
-    // contact = data[0]
-    // t.ok(data.length > 0)
   })
 
   // Listen for successful login. Once we're here the user can go to the main mailbox view
   channel.on('account:login:callback', cb => {
     const { error, data } = cb
+
+    console.log(error)
 
     // if(error) t.fail(error.stack)
 
@@ -71,25 +81,37 @@ test('sync account with another device/peer', async t => {
       t.ok(data.signingPubKey, 'New device has an account signing public key')
       t.ok(data.signingPrivKey, 'New device has an account private key')
 
-      setTimeout(() => {
-        const payload = {
-          contactList: [{
-            name: "Jake Bridges",
-            givenName: 'Jake',
-            familyName: 'Bridges',
-            nickname: 'jake.bridges',
-            email: 'jake.bridge@gmail.com'
-          }]
-        }
+        //0ad014
+        
+    
+      // setTimeout(() => {
+      //   channel.send({ event: 'account:getSyncInfo', payload:{ code: '0ad014'}})
+      // }, 5000)
       
-        console.log('ADD CONTACT!')
-        channel.send({ event: 'contact:createContacts', payload })
-      }, 10000)
+    
+      // channel.once('account:getSyncInfo:callback', cb => {
+      //   console.log('CALLBACK', cb)
+      // })
+
+      // setTimeout(() => {
+      //   const payload = {
+      //     contactList: [{
+      //       name: "Jeff Bridges",
+      //       givenName: 'Jeff',
+      //       familyName: 'Bridges',
+      //       nickname: 'Jeff.bridges',
+      //       email: 'Jeff.bridge@gmail.com'
+      //     }]
+      //   }
+      
+      //   console.log('ADD CONTACT!')
+      //   channel.send({ event: 'contact:createContacts', payload })
+      // }, 20000)
     }
 
-    t.teardown(() => {
-      channel.kill()
-    })
+    // t.teardown(() => {
+    //   channel.kill()
+    // })
   })
   
 })
