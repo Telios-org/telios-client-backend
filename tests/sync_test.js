@@ -21,30 +21,30 @@ test('sync account with another device/peer', async t => {
   })
 
   // Start sync with Device A sync data
-  // channel.send({
-  //   event: 'account:sync',
-  //   payload: {
-  //     deviceType: 'MOBILE', // MOBILE | DESKTOP
-  //     driveKey: 'a8d255b7b4e0b61b5ca007201cff31031cbf0fce610c0cb4b8795a3652d0abc4',
-  //     email: 'newtst@dev.telios.io',
-  //     password: 'let me in 123'
-  //   }
-  // })
+  channel.send({
+    event: 'account:sync',
+    payload: {
+      deviceType: 'MOBILE', // MOBILE | DESKTOP
+      driveKey: '103ff673e617cdd1b3db5e990079be77f88082387cf748e42c5a5a89786b8f77',
+      email: 'testerman@dev.telios.io',
+      password: 'let me in 123'
+    }
+  })
 
-  // //  Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
-  // channel.on('account:sync:callback', cb => {
-  //   const { error, data } = cb
+  //  Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
+  channel.on('account:sync:callback', cb => {
+    const { error, data } = cb
     
-  //   if(error) t.fail(error.message)
+    if(error) t.fail(error.message)
 
-  //   if(data && data.files && data.files.done) {
-  //     t.ok(1, 'Drive finished syncing all files')
-  //   }
+    if(data && data.files && data.files.done) {
+      t.ok(1, 'Drive finished syncing all files')
+    }
 
-  //   if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
-  //     t.ok(1, 'Drive finished creating new search indexes')
-  //   }
-  // })
+    if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
+      t.ok(1, 'Drive finished creating new search indexes')
+    }
+  })
 
   // channel.once('contact:createContacts:callback', cb => {
   //   const { error, data } = cb
@@ -66,6 +66,13 @@ test('sync account with another device/peer', async t => {
     }
   })
 
+     
+  // channel.send({ event: 'account:getSyncInfo', payload:{ code: '995020'}})
+
+  // channel.once('account:getSyncInfo:callback', cb => {
+  //   console.log('CALLBACK', cb)
+  // })
+
   // Listen for successful login. Once we're here the user can go to the main mailbox view
   channel.on('account:login:callback', cb => {
     const { error, data } = cb
@@ -81,7 +88,13 @@ test('sync account with another device/peer', async t => {
       t.ok(data.signingPubKey, 'New device has an account signing public key')
       t.ok(data.signingPrivKey, 'New device has an account private key')
 
-        //0ad014
+      // setTimeout(() => {
+      //   channel.send({ event: 'account:createSyncCode'})
+
+      //   channel.on('account:createSyncCode:callback', cb => {
+      //     console.log(cb)
+      //   })
+      // }, 5000)
         
     
       // setTimeout(() => {

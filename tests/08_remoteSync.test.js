@@ -5,12 +5,13 @@ const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
 
+const channel1 = new Channel(path.join(__dirname, 'Accounts'))
+const channel2 = new Channel(path.join(__dirname, 'Accounts2'))
+
 test('sync account with another device/peer', async t => {
   t.plan(4)
 
   await cleanup()
-
-  const channel1 = new Channel(path.join(__dirname, 'Accounts'))
 
   // 1. Device A - Login
   channel1.send({
@@ -43,14 +44,11 @@ test('sync account with another device/peer', async t => {
 
     console.log('SYNC CODE', data)
 
-    // 3. Device B - Init
-    const channel2 = new Channel(path.join(__dirname, 'Accounts2'))
-
     channel2.on('debug', data => {
       console.log('DEBUG', data)
     })
 
-    // 4. Device B - Start sync with Device A sync data
+    // 3. Device B - Start sync with Device A sync data
     channel2.send({
       event: 'account:sync',
       payload: {
@@ -61,7 +59,7 @@ test('sync account with another device/peer', async t => {
       }
     })
 
-    // 5. Device B - Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
+    // 4. Device B - Listen for sync events. This will fire every time a new file has synced and when search indexes have been created
     channel2.on('account:sync:callback', cb => {
       const { error, data } = cb
       
@@ -76,7 +74,7 @@ test('sync account with another device/peer', async t => {
       }
     })
 
-    // 6. Device B - Listen for successful login. Once we're here the user can go to the main mailbox view
+    // 5. Device B - Listen for successful login. Once we're here the user can go to the main mailbox view
     channel2.on('account:login:callback', cb => {
       const { error, data } = cb
 
@@ -87,12 +85,66 @@ test('sync account with another device/peer', async t => {
         t.ok(data.signingPubKey, 'New device has an account signing public key')
         t.ok(data.signingPrivKey, 'New device has an account private key')
       }
-
-      t.teardown(() => {
-        channel1.kill()
-        channel2.kill()
-      })
     })
+  })
+})
+
+test('update and sync changes between devices', async t => {
+  t.plan(1)
+
+  channel1.on('account:collection:updated', async cb => {
+    const { error, data } = cb
+
+    if(error) return console.log('Channel2 ERR', error)
+
+    if(data.type === 'del') {
+      console.log(data)
+      try {
+        const contact = await addContact(channel1, {
+          contactList: [{
+            name: "Clovus Darneely",
+            givenName: 'Clovus',
+            familyName: 'Darneely',
+            nickname: 'clovus.darneely',
+            email: 'clovus.darneely@mail.com'
+          }]
+        })
+
+        setTimeout(async () => {
+          try {
+            const c = await getContactById(channel2, contact[0].contactId)
+            t.ok(c._id)
+          } catch(err) {
+            console.log(err)
+          }
+        }, 2000)
+      } catch(err) {
+        console.log('EE', err.stack)
+      }
+    }
+  })
+
+  channel2.once('account:collection:updated', async cb => {
+    const { error, data } = cb
+
+    if(error) return console.log('Channel2 ERR', error)
+
+    //setTimeout(async () => {
+      try {
+        if(data.type !== 'del') {
+          await removeContact(channel2, data.value._id)
+        }
+      } catch(err) {
+        console.log('ERR2', err)
+      }
+    //}, 3000)
+  })
+
+  await addContact(channel1)
+
+  t.teardown(() => {
+    channel1.kill()
+    channel2.kill()
   })
 })
 
@@ -100,4 +152,59 @@ async function cleanup() {
   if (fs.existsSync(path.join(__dirname, '/Accounts2'))) {
     fs.rmSync(path.join(__dirname, 'Accounts2'), { recursive: true })
   }
+}
+
+
+async function addContact(channel, payload) {
+  return new Promise((resolve, reject) => {
+    channel.once('contact:createContacts:callback', cb => {
+      const { error, data } = cb
+
+      if(error) return reject(error)
+
+      resolve(data)
+    })
+
+    if(!payload) {
+      payload = {
+        contactList: [{
+          name: "Clovus Darneely",
+          givenName: 'Clovus',
+          familyName: 'Darneely',
+          nickname: 'clovus.darneely',
+          email: 'clovus.darneely@mail.com'
+        }]
+      }
+    }
+
+    channel.send({ event: 'contact:createContacts', payload })
+  })
+}
+
+async function removeContact(channel, id) {
+  return new Promise((resolve, reject) => {
+    channel.once('contact:removeContact:callback', cb => {
+      const { error, data } = cb
+
+      if(error) return reject(error)
+
+      resolve(true)
+    })
+
+    channel.send({ event: 'contact:removeContact', payload: { id } })
+  })
+}
+
+async function getContactById(channel, id) {
+  return new Promise((resolve, reject) => {
+    channel.once('contact:getContactById:callback', cb => {
+      const { error, data } = cb
+
+      if(error) return reject(error)
+
+      resolve(data)
+    })
+
+    channel.send({ event: 'contact:getContactById', payload: { id } })
+  })
 }

@@ -1093,9 +1093,8 @@ export default async (props: AccountOpts) => {
   }
 
   function handleDriveSyncEvents() {
-
-    store.drive.on('collection-update', async (data: any) => {
-
+    const drive = store.getDrive()
+    drive.on('collection-update', async (data: any) => {
       if(data?.collection) {
         if(data.collection === 'Email' && data.value && data.type !== 'del') {
           try {
