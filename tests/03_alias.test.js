@@ -117,7 +117,7 @@ test('register new alias address', async t => {
 })
 
 test('get alias addresses', async t => {
-  t.plan(2)
+  t.plan(1)
 
   const payload = {
     namespaceKeys: ['alice2022']
@@ -282,7 +282,7 @@ test('remove alias address', async t => {
 
       if(error) t.fail(error.message)
 
-      t.equals(data.length, 1)
+      t.equals(data.length, 0)
     })
   })
 
