@@ -407,7 +407,7 @@ export default async (props: EmailOpts) => {
           await Promise.all(asyncFolders)
 
           items.forEach(item => {
-            if (item && item.bodyAsText) {
+            if (item) {
               const msg = { ...item }
 
               msg.unread = msg.unread ? true : false
