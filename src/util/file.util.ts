@@ -5,6 +5,7 @@ import { UTCtimestamp } from '../util/date.util'
 const MemoryStream = require('memorystream')
 const { v4: uuidv4 } = require('uuid')
 const fetch = require('node-fetch')
+const https = require('https')
 const fs = require('fs')
 const path = require('path')
 
@@ -270,8 +271,14 @@ export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, as
       const stream = fs.createReadStream(path.join(__dirname, '../../tests/data', opts.cid))
       resolve(stream)
     } else {
+
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      })
+
       fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
           method: 'get',
+          agent: httpsAgent,
           headers: {
             'Content-Type': 'application/octet-stream'
           }
