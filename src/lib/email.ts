@@ -454,7 +454,13 @@ export default async (props: EmailOpts) => {
     try {
       const Email = store.models.Email.collection
 
-      let messages: EmailSchema[] = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ folderId: payload.id, unread: payload.unread }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
 
       channel.send({
         event: 'email:getMessagesByFolderId:callback',
@@ -481,10 +487,13 @@ export default async (props: EmailOpts) => {
     try {
       const Email = store.models.Email.collection
 
-      let messages: EmailSchema[] = await Email.find({ aliasId: payload.id, folderId: 5})
-        .sort('date', -1)
-        .skip(payload.offset)
-        .limit(payload.limit)
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5, unread: payload.unread }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5 }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
       
       messages = messages.map((email: any) => {
         if(email.bodyAsHtml) {
