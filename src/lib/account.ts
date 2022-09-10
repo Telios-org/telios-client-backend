@@ -458,7 +458,7 @@ export default async (props: AccountOpts) => {
               channel.send({ event: 'debug', data: { encryptionKey }})
             } catch(err: any) {
               await drive.close()
-              
+
               // Remove account directory
               const acctPath = path.join(userDataPath, `/${payload.email}`)
               fs.rmSync(acctPath, { force: true, recursive: true })
