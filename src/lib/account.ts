@@ -424,6 +424,12 @@ export default async (props: AccountOpts) => {
 
             pump(fileData, ws, async (err: any) => {})
           } catch(err:any) {
+            await drive.close()
+
+            // Remove account directory
+            const acctPath = path.join(userDataPath, `/${payload.email}`)
+            fs.rmSync(acctPath, { force: true, recursive: true })
+
             channel.send({
               event: 'account:sync:callback',
               error: { 
@@ -447,10 +453,16 @@ export default async (props: AccountOpts) => {
             if(err) return channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
             channel.send({ event: 'debug', data: 'PRE DECIPHER VAULT'})
             try {
-              const vault = accountModel.getVault(payload.password, 'vault')
+              const vault = accountModel.getVault(password, 'vault')
               encryptionKey = vault.drive_encryption_key
               channel.send({ event: 'debug', data: { encryptionKey }})
             } catch(err: any) {
+              await drive.close()
+              
+              // Remove account directory
+              const acctPath = path.join(userDataPath, `/${payload.email}`)
+              fs.rmSync(acctPath, { force: true, recursive: true })
+
               channel.send({
                 event: 'account:sync:callback',
                 error: { 
@@ -536,15 +548,6 @@ export default async (props: AccountOpts) => {
                       }
                     } catch(err: any) {
                       ready = false
-                      // channel.send({
-                      //   event: 'account:sync:callback',
-                      //   error: { 
-                      //     name: err.name, 
-                      //     message: err.message, 
-                      //     stack: err.stack 
-                      //   },
-                      //   data: null
-                      // })
                     }
                   }
                 }, 2000)
@@ -553,6 +556,10 @@ export default async (props: AccountOpts) => {
               await _drive.ready()
 
             } catch(err: any) {
+              // Remove account directory
+              const acctPath = path.join(userDataPath, `/${payload.email}`)
+              fs.rmSync(acctPath, { force: true, recursive: true })
+
               channel.send({
                 event: 'account:sync:callback',
                 error: { 

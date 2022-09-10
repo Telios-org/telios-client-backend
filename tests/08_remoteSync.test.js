@@ -129,15 +129,13 @@ test('update and sync changes between devices', async t => {
 
     if(error) return console.log('Channel2 ERR', error)
 
-    //setTimeout(async () => {
-      try {
-        if(data.type !== 'del') {
-          await removeContact(channel2, data.value._id)
-        }
-      } catch(err) {
-        console.log('ERR2', err)
+    try {
+      if(data.type !== 'del') {
+        await removeContact(channel2, data.value._id)
       }
-    //}, 3000)
+    } catch(err) {
+      console.log('ERR2', err)
+    }
   })
 
   await addContact(channel1)

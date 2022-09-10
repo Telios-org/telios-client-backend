@@ -37,7 +37,6 @@ class Channel extends EventEmitter {
   }
 
   kill() {
-    // this.process.kill(0)
     process.kill(this.process.pid)
   }
 }
