@@ -11,27 +11,9 @@ let _account
 
 test('create account', async t => {
   t.plan(3)
-  let connectedCount = 0
   await cleanup()
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
-
-  channel.on('debug', data => {
-    console.log(data)
-  })
-
-  channel.on('drive:network:updated', cb => {
-    const { data } = cb
-    const { network } = data
-
-    connectedCount += 1
-
-    if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
-
-    if (network && network.internet) t.equals(network.internet, true) // Drive is connected to the global internet
-
-    if(connectedCount === 2) channel.send({ event: 'account:logout' })
-  })
 
   channel.send({
     event: 'account:create',
@@ -56,6 +38,8 @@ test('create account', async t => {
 
     t.ok(data.mnemonic)
     t.ok(data.uid)
+
+    channel.send({ event: 'account:logout' })
   })
 
   channel.once('account:logout:callback', () => {
