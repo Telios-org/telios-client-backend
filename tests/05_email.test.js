@@ -19,10 +19,6 @@ test('send email', async t => {
     email: MockEmail({ emailId: null, folderId: 1, aliasId: null, unread: false })
   }
 
-  channel.on('debug', data => {
-    console.log('DEBUG', data);
-  })
-
   channel.send({ event: 'email:sendEmail', payload })
 
   channel.once('email:sendEmail:callback', cb => {
@@ -182,7 +178,7 @@ test('forward email in network', async t => {
 
   channel.once('email:sendEmail:callback', cb => {
     const { error, data, meta } = cb
-    if(error) t.fail(error.message)
+    if(error) t.fail(error.stack)
 
     const attachments = JSON.parse(data.attachments)
 

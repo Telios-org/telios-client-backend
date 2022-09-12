@@ -173,8 +173,15 @@ export default async (props: AliasOpts) => {
   if (event === 'alias:getMailboxAliases') {
     try {
       const Alias = store.models.Alias.collection
+      let aliases
 
-      const aliases = await Alias.find().sort('createdAt', -1)
+      if(payload.namespaceKeys && payload.namespaceKeys.length) {
+        aliases = await Alias.find({ namespaceKey: { $in: [...payload.namespaceKeys] }}).sort('createdAt', -1)
+      } else if(payload.namespaceKeys && payload.namespaceKeys.length === 0) {
+        aliases = await Alias.find({ namespaceKey: { $in: [null] }}).sort('createdAt', -1)
+      } else {
+        aliases = await Alias.find().sort('createdAt', -1)
+      }
 
       const promises = aliases.map( async (a: AliasSchema) => {
         const Email = store.models.Email

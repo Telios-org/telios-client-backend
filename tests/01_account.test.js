@@ -4,37 +4,26 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
+const { account } = require('@telios/client-sdk/lib/routes')
 
 let _channel
 let _account
 
 test('create account', async t => {
-  t.plan(4)
-  let connectedCount = 0
+  t.plan(3)
   await cleanup()
 
   const channel = new Channel(path.join(__dirname, 'Accounts'))
-
-  channel.on('drive:network:updated', cb => {
-    const { data } = cb
-    const { network } = data
-
-    connectedCount += 1
-
-    if (network && network.drive) t.equals(network.drive, true) // Drive is connected to p2p network
-
-    if (network && network.internet) t.equals(network.internet, true) // Drive is connected to the global internet
-
-    if(connectedCount === 2) channel.send({ event: 'account:logout' })
-  })
 
   channel.send({
     event: 'account:create',
     payload: {
       email: 'bob@telios.io',
-      password: 'letmein123',
+      password: 'letmein321',
       vcode: 'testcode123',
-      recoveryEmail: 'bob@mail.com'
+      recoveryEmail: 'bob@mail.com',
+      encryptionKey: 'c3eeb95e5ecb007d74053278574a47b0502c04973b62e60c2e9f4abafeecb8d2', // Only pass these in to initialize with existing key
+      mnemonic: 'forward neck limb trim bottom teach theme miracle warrior beef steel jazz bulb job host silver anxiety ring old always polar option stereo pride' // Only pass these in to initialize with existing mnemonic
     }
   })
 
@@ -45,12 +34,43 @@ test('create account', async t => {
 
     console.log('SUCCESS :: ', data)
 
+    _account = data
+
+    t.ok(data.mnemonic)
     t.ok(data.uid)
+
+    channel.send({ event: 'account:logout' })
   })
 
   channel.once('account:logout:callback', () => {
     channel.send({ event: 'account:exit' }) // for good measure
     t.ok(1, 'Logged out of account.')
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('Reset password with passphrase', async t => {
+  t.plan(1)
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:resetPassword',
+    payload: {
+      passphrase: _account.mnemonic,
+      email: 'bob@telios.io',
+      newPass: 'letmein123',
+    }
+  })
+
+  channel.on('account:resetPassword:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.stack)
+   
+    t.ok(data.reset)
   })
 
   t.teardown(async () => {
@@ -69,6 +89,10 @@ test('account login success', async t => {
       email: 'bob@telios.io',
       password: 'letmein123'
     }
+  })
+
+  _channel.on('debug', data => {
+    console.log('DEBUG', data)
   })
 
   // _channel.on('drive:peer:updated', cb => {
@@ -91,8 +115,6 @@ test('account login success', async t => {
     }
 
     console.log('SUCCESS :: ', data)
-
-    _account = data
 
     t.ok(data.uid)
   })
@@ -124,7 +146,7 @@ test('retrieve account stats', async t => {
 
   _channel.on('account:retrieveStats:callback', cb => {
     const { error, data } = cb
-    
+
     if(error) t.fail(error.message)
 
     console.log('SUCCESS ::', data)
@@ -133,6 +155,60 @@ test('retrieve account stats', async t => {
 
   t.teardown(async () => {
     _channel.kill()
+  })
+})
+
+test('recover account with backup code', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:recover',
+    payload: {
+      email: 'bob@telios.io',
+      recoveryEmail: 'bob@mail.com'
+    }
+  })
+
+  channel.on('account:recover:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    t.ok(true)
+
+    t.teardown(async () => {
+      channel.kill()
+    })
+  })
+})
+
+test('get sync info', async t => {
+  t.plan(2)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:getSyncInfo',
+    payload: {
+      code: 'AbC123'
+    }
+  })
+
+  channel.on('account:getSyncInfo:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    console.log('SUCCESS ::', data)
+
+    t.ok(data.drive_key)
+    t.ok(data.email)
+
+    t.teardown(async () => {
+      channel.kill()
+    })
   })
 })
 

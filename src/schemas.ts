@@ -48,19 +48,32 @@ export declare interface StoreSchema {
   refreshToken(): any
 }
 
+export interface DeviceSchema {
+  keyPair: {
+    publicKey: string,
+    secretKey: string
+  }
+  deviceId?: string
+  deviceType?: string,
+  serverSig?: string
+  driveSyncingPublicKey?: string
+}
+
 export interface AccountSchema {
   _id?: any,
   accountId?: string
   displayName?: string
   avatar?: string
   uid: string
+  driveSyncingPublicKey: string
   driveEncryptionKey: string
   secretBoxPubKey: string
   secretBoxPrivKey: string
-  deviceSigningPubKey: string
-  deviceSigningPrivKey: string
-  serverSig: string
-  deviceId: string
+  signingPubKey?: string
+  signingPrivKey?: string
+  deviceId?: string
+  serverSig?: string
+  deviceInfo? : DeviceSchema
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -146,6 +159,7 @@ export interface FileSchema {
   header?: any
   hash: string
   feed?: string
+  encrypted?: boolean
   discoveryKey?: any
   discovery_key?: any
   // Timestamps

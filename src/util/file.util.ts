@@ -4,27 +4,39 @@ import { UTCtimestamp } from '../util/date.util'
 
 const MemoryStream = require('memorystream')
 const { v4: uuidv4 } = require('uuid')
+const fetch = require('node-fetch')
+const https = require('https')
 const fs = require('fs')
+const path = require('path')
 
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
   return new Promise((resolve, reject) => {
     const readStream = new MemoryStream()
-    readStream.end(JSON.stringify(opts.email))
 
     if(!opts.email.path) {
       opts.email.path = `/email/${uuidv4()}.json`
     }
+
+    readStream.end(JSON.stringify(opts.email))
 
     opts.drive.writeFile(opts.email.path, readStream, { encrypted: true })
       .then(async (file: FileSchema) => {
 
         // SAVE TO IPFS
         if(opts.ipfs) {
-          const _file = await opts.drive.metadb.get(file.hash)
 
-          if(_file && _file.value.path) {
-            const filesDir = opts.drive._filesDir
-            const stream = fs.createReadStream(filesDir + _file.value.path)
+          if(file && file.path) {
+            const filesDir = opts.drive._filesDir;
+
+            let fp
+
+            if(file.encrypted) {
+              fp = file.uuid
+            } else {
+              fp = file.path
+            }
+
+            const stream = fs.createReadStream(path.join(filesDir, fp))
             const { cid } = await saveFileToIPFS(opts.ipfs, stream)
             file.cid = cid
           }
@@ -96,14 +108,19 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
 
             // SAVE TO IPFS
             if(opts.ipfs) {
-              const _file = await opts.drive.metadb.get(file.hash)
+              const filesDir = opts.drive._filesDir;
 
-              if(_file && _file.path) {
-                const filesDir = opts.drive._filesDir
-                const stream = fs.createReadStream(filesDir + _file.value.path)
-                const { cid } = await saveFileToIPFS(opts.ipfs, stream)
-                opts.file.cid = cid
+              let fp
+
+              if(file.encrypted) {
+                fp = file.uuid
+              } else {
+                fp = file.path
               }
+
+              const stream = fs.createReadStream(path.join(filesDir, fp))
+              const { cid } = await saveFileToIPFS(opts.ipfs, stream)
+              file.cid = cid
             }
 
             const doc: FileSchema = await File.insert(opts.file)
@@ -202,25 +219,16 @@ export const saveFileToIPFS = async (ipfs: any, stream: Stream) : Promise<{cid:s
   return new Promise(async (resolve, reject) => {
 
     ipfs.add(stream)
-      .then((file: { uuid: string, key?: string, header?: string, size?: number }) => {
+      .then(async (file: { uuid: string, key?: string, header?: string, size?: number }) => {
         // Check when file upload is done!
-        const statusInterval = setInterval(async () => {
-          const status = await ipfs.status(file.uuid)
-          if(status.error) {
-            clearInterval(statusInterval)
-            return reject(status.error)
-          }
-          if(status.done) {
-            clearInterval(statusInterval)
-
-            if(!status.cid) return reject('IPFS CID not found.')
-
-            return resolve({ cid: status.cid })
-          }
-        }, 500)
-        
+        try {
+          const cid = await checkStatus(ipfs, file.uuid)
+          return resolve({ cid })
+        } catch(err:any) {
+          return reject(err)
+        }
       }).catch((err: any) => {
-        reject(err)
+        return reject(err)
       })
   })
 }
@@ -229,8 +237,76 @@ export const getIPFSUploadStatus = async (ipfs: any, uuid: string) : Promise<{ u
   return await ipfs.status(uuid)
 }
 
-export const readIPFSFile = async (ipfs: any, cid: string, key: string, header: string) : Promise<Stream> => {
-  return await ipfs.get(cid, key, header)
+export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?: string) : Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    ipfs.get(cid, key, header)
+      .then((stream:any) => {
+        let buffArr:Array<Buffer> = []
+
+        stream.on('data', (chunk: Buffer) => {
+          buffArr.push(chunk)
+        })
+
+        stream.on('end', () => {
+          resolve(Buffer.concat(buffArr))
+        })
+
+        stream.on('error', (err:any) => {
+          reject(err)
+        })
+      })
+      .catch((err:any) => {
+        reject(err)
+      })
+  })
+}
+
+export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
+
+  return new Promise((resolve: any, reject: any) => {
+    //@ts-ignore
+    const env = process.env.NODE_ENV;
+    
+    if(env === 'test_sdk') {
+      const stream = fs.createReadStream(path.join(__dirname, '../../tests/data', opts.cid))
+      resolve(stream)
+    } else {
+
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      })
+
+      fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+          method: 'get',
+          agent: httpsAgent,
+          headers: {
+            'Content-Type': 'application/octet-stream'
+          }
+        })
+        .then(async (data: any) => {
+          let buffArr:Array<Buffer> = []
+
+          const stream = data.body
+
+          if(opts.async) return resolve(stream)
+
+          stream.on('data', (chunk: Buffer) => {
+            buffArr.push(chunk)
+          })
+
+          stream.on('end', () => {
+            resolve(Buffer.concat(buffArr))
+          })
+
+          stream.on('error', (err:any) => {
+            reject(err)
+          })
+        })
+        .catch((err: any) => {
+          reject(err)
+        });
+    }
+  })
 }
 
 export const deleteIPFSFile = async (ipfs: any, cid: string) : Promise<Stream> => {
@@ -239,4 +315,26 @@ export const deleteIPFSFile = async (ipfs: any, cid: string) : Promise<Stream> =
 
 export const decodeB64 = (base64: string) => {
   return Buffer.from(base64, 'base64')
+}
+
+async function checkStatus(ipfs: any, fileId: string) : Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const status = await ipfs.status(fileId)
+
+      if(status.error) return reject(status.error)
+
+      if(status.done) {
+        if(!status.cid) return reject('IPFS CID not found.')
+
+        return resolve(status.cid)
+      } else {
+        setTimeout( () => {
+          return checkStatus(ipfs, fileId)
+        }, 1000)
+      }
+    } catch(err:any) {
+      return reject(err)
+    }
+  })
 }

@@ -9,10 +9,12 @@
     "migrations/*"
   ],
   "scripts": {
-    "test": "env-cmd npm run build; env-cmd tape tests/*.test.js | tap-spec",
+    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
     "test-main": "npm run build; tape tests/*.test.js | tap-spec",
+    "sync": "npm run build; tape tests/sync_test.js | tap-spec",
     "prepare": "npm run build",
-    "build": "tsc"
+    "build": "tsc",
+    "preinstall": "npx force-resolutions --force"
   },
   "repository": {
     "type": "git",
@@ -25,8 +27,9 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^6.1.4",
-    "@telios/nebula": "^3.0.1",
+    "@telios/client-sdk": "^6.2.5",
+    "@telios/nebula": "^3.4.10",
+    "@hyperswarm/dht": "5.0.17",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
@@ -41,9 +44,13 @@
     "@types/node": "^17.0.8",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
+    "npm-force-resolutions": "^0.0.10",
     "tap-spec": "^2.2.2",
     "tape": "^5.4.0",
     "tape-promise": "^4.0.0",
     "typescript": "^4.5.4"
+  },
+  "resolutions": {
+    "@hyperswarm/dht": "5.0.17"
   }
 }

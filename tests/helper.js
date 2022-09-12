@@ -27,6 +27,7 @@ class Channel extends EventEmitter {
     })
 
     this.process.stderr.on('error', data => {
+      console.log(data.toString())
       this.emit('error', data.toString())
     })
   }
@@ -36,7 +37,6 @@ class Channel extends EventEmitter {
   }
 
   kill() {
-    // this.process.kill(0)
     process.kill(this.process.pid)
   }
 }

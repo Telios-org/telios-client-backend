@@ -31,6 +31,11 @@ export interface MainOpts {
 export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
+        | 'account:resetPassword'
+        | 'account:recover'
+        | 'account:createSyncCode'
+        | 'account:getSyncInfo'
+        | 'account:sync'
         | 'account:remove'
         | 'account:update'
         | 'account:retrieveStats' 
@@ -40,11 +45,18 @@ export interface AccountMessage {
   payload: {
     accountId: string,
     displayName: string,
+    deviceType: 'DESKTOP' | 'MOBILE'
     avatar: string,
     email: string
     password: string
     recoveryEmail: string
     vcode: string
+    code: string
+    passphrase: string
+    newPass: string,
+    driveKey: string,
+    encryptionKey: string
+    mnemonic: string
   }
 }
 
@@ -179,11 +191,14 @@ export interface MigrateOpts {
 
 export interface setDriveOpts {
   name: string
-  keyPair?: {
-    publicKey: Buffer,
-    secretKey: Buffer
+  blind?: boolean
+  keyPair: {
+    publicKey: string,
+    secretKey: string
   },
-  encryptionKey: string
+  driveKey?: string
+  encryptionKey?: string
+  broadcast?: boolean
   acl?: string[]
 }
 
@@ -205,11 +220,11 @@ export interface ChannelError {
 export interface AuthPayload {
   claims: {
     account_key: string
-    device_signing_key: string
-    device_id: string
+    device_signing_key?: string
+    device_id?: string
   }
-  device_signing_priv_key: string
-  sig: string
+  device_signing_priv_key?: string
+  sig?: string
 }
 
 export interface AccountSecrets {

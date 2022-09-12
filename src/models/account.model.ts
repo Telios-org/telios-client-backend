@@ -3,8 +3,9 @@ const path = require('path')
 const sodium = require('sodium-native')
 const MemStream = require('memorystream')
 const blake = require('blakejs')
+import * as FileUtil from '../util/file.util'
 
-import { AccountSchema, StoreSchema } from '../schemas'
+import { AccountSchema, StoreSchema, DeviceSchema } from '../schemas'
 
 export class AccountModel {
   public collection: any
@@ -42,27 +43,55 @@ export class AccountModel {
     return this.collection.update(doc, props, opts)
   }
 
+  public setDeviceInfo(payload: DeviceSchema, password: string) {
+    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+
+    const cipher = this._encrypt(JSON.stringify(payload), password)
+
+    fs.writeFileSync(filePath, cipher)
+  }
+
+  public getDeviceInfo(password: string): any {
+    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+
+    if (!fs.existsSync(filePath)) return null 
+
+    const cipher = fs.readFileSync(filePath)
+
+    const deciphered = this._decrypt(cipher, password)
+
+    return JSON.parse(deciphered.toString())
+  }
+
   public async setVault(
     password: string,
     type: 'recovery' | 'vault',
     payload: {
       master_pass?: string
       drive_encryption_key?: any
-      keyPair?: any
     },
   ) {
-    const memStream = new MemStream()
+    const ipfsStream = new MemStream()
+
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
-    memStream.end(cipher)
+    ipfsStream.end(cipher)
 
-    return this._drive.writeFile(`/${type}`, memStream, { encrypted: false })
+    const { cid } = await FileUtil.saveFileToIPFS(this._store.sdk.ipfs, ipfsStream)
+
+    await this._drive._localDB.put('vault', { isSet: true })
+
+    const driveStream = new MemStream()
+   
+    driveStream.end(cipher)
+
+    await this._drive.writeFile(`/${type}`, driveStream, { encrypted: false, customData: { cid: cid } })
   }
 
   public getVault(
     password: string,
     type: 'recovery' | 'vault',
-  ): { drive_encryption_key: any; keyPair: any } {
+  ): { drive_encryption_key: any, keyPair: any, master_pass: any } {
     const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
 
     if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }

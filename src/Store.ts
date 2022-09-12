@@ -4,7 +4,7 @@ const Drive = require('@telios/nebula')
 
 import envAPI from './env_api'
 import { setDriveOpts, AuthPayload, AccountSecrets, ModelType, DriveStatuses } from './types'
-import { AccountSchema } from './schemas'
+import { AccountSchema, DeviceSchema } from './schemas'
 import { AccountModel } from './models/account.model'
 import { AliasModel } from './models/alias.model'
 import { AliasNamespaceModel } from './models/aliasNamespace.model'
@@ -55,6 +55,8 @@ export class Store extends EventEmitter{
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
+    this.env = env
+
     
     this.models = {
       // @ts-ignore
@@ -85,13 +87,20 @@ export class Store extends EventEmitter{
     
     this._account = {
       uid: '',
+      driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
       secretBoxPrivKey:  '',
-      deviceSigningPubKey:  '',
-      deviceSigningPrivKey:  '',
-      serverSig:  '',
-      deviceId:  ''
+      signingPubKey:  '',
+      signingPrivKey:  '',
+      deviceInfo: {
+        keyPair: {
+          publicKey: '',
+          secretKey: ''
+        },
+        deviceId: '',
+        serverSig: ''
+      }
     }
 
     this._authPayload = {
@@ -116,20 +125,25 @@ export class Store extends EventEmitter{
   }
 
   public setDrive(props: setDriveOpts) {
-    const { name, keyPair, encryptionKey, acl = [] } = props
+    const { name, driveKey, blind, keyPair, encryptionKey, broadcast = true, acl = [] } = props
     
     this.encryptionKey = encryptionKey
     
-    if(!Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
+    if(encryptionKey && !Buffer.isBuffer(encryptionKey)) this.encryptionKey = Buffer.from(encryptionKey, 'hex')
 
-    this.drive = new Drive(name, null, {
-      keyPair,
+    this.drive = new Drive(name, driveKey, {
+      keyPair: {
+        publicKey: Buffer.from(keyPair?.publicKey, 'hex'),
+        secretKey: Buffer.from(keyPair?.secretKey, 'hex')
+      },
       encryptionKey: this.encryptionKey,
       checkNetworkStatus: true,
+      syncFiles: false,
+      blind: blind ? blind : false,
+      broadcast,
       swarmOpts: {
         server: true,
-        client: true,
-        acl: [] // TODO: Add this back in [this.teliosPubKey, ...acl]
+        client: true
       },
       fullTextSearch: true
     })
@@ -309,11 +323,11 @@ export class Store extends EventEmitter{
   public refreshToken() {
     const payload = {
       account_key: this._account.secretBoxPubKey,
-      device_signing_key: this._account.deviceSigningPubKey,
-      device_id: this._account.deviceId,
-      sig: this._account.serverSig
+      device_signing_key: this._account?.deviceInfo?.keyPair?.publicKey,
+      device_id: this._account?.deviceInfo?.deviceId,
+      sig: this._account?.deviceInfo?.serverSig
     }
 
-    return this.sdk.account.createAuthToken(payload, this._account.deviceSigningPrivKey);
+    return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.keyPair?.secretKey);
   }
 }

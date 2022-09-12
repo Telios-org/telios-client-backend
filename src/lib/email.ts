@@ -130,8 +130,8 @@ export default async (props: EmailOpts) => {
             privateKey: account.secretBoxPrivKey
           },
           signingKeypair: {
-            publicKey: account.deviceSigningPubKey,
-            privateKey: account.deviceSigningPrivKey
+            publicKey: account.deviceInfo?.keyPair?.publicKey,
+            privateKey: account.deviceInfo?.keyPair?.secretKey
           }
         }
       })
@@ -261,8 +261,10 @@ export default async (props: EmailOpts) => {
 
         switch (type) {
           case 'Incoming':
+            const recipients = [...msg.email.to, ...msg.email.cc, ...msg.email.bcc]
+            
             // Assign email into appropriate folder/alias
-            for await (const recipient of msg.email.to) {
+            for await (const recipient of recipients) {
               const localPart = recipient.address.split('@')[0]
 
               try {

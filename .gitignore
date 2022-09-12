@@ -2,5 +2,7 @@ package-lock.json
 node_modules
 /dist
 /tests/Drive/*
-/tests/Accounts/*
+/tests/Accounts/**
+/tests/Accounts2/**
+scratch.js
 .env
