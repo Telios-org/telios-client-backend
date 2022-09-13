@@ -1,4 +1,4 @@
-const fs = require('fs')
+const fs = require('fs');
 const path = require('path')
 import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
@@ -146,7 +146,7 @@ export default async (props: AccountOpts) => {
         // Save account to drive's Account collection
         await accountModel.update(
           { 
-            accountId: account.accountId 
+            accountId: acctDoc.accountId 
           }, 
           { 
             signingPubKey: signingKeypair.publicKey,
