@@ -138,6 +138,24 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
+      if(!account.signingPubKey && !account.signingPrivKey) {
+        let { signingKeypair } = Account.makeKeys()
+
+        await Account.registerSigningKey({ signing_key: signingKeypair.publicKey })
+
+        // Save account to drive's Account collection
+        await accountModel.update(
+          { 
+            accountId: account.accountId 
+          }, 
+          { 
+            signingPubKey: signingKeypair.publicKey,
+            signingPrivKey: signingKeypair.privateKey,
+            updatedAt: UTCtimestamp()
+          }
+        )
+      }
+
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
         master_pass: payload.password,
