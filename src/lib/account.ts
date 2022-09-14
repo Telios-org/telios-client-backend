@@ -446,7 +446,7 @@ export default async (props: AccountOpts) => {
 
             // Remove account directory
             const acctPath = path.join(userDataPath, `/${payload.email}`)
-            fs.rmSync(acctPath, { force: true, recursive: true })
+            rmdir(acctPath)
 
             channel.send({
               event: 'account:sync:callback',
@@ -489,7 +489,7 @@ export default async (props: AccountOpts) => {
 
               // Remove account directory
               const acctPath = path.join(userDataPath, `/${payload.email}`)
-              fs.rmSync(acctPath, { force: true, recursive: true })
+              rmdir(acctPath)
 
               return
             }
@@ -577,7 +577,7 @@ export default async (props: AccountOpts) => {
             } catch(err: any) {
               // Remove account directory
               const acctPath = path.join(userDataPath, `/${payload.email}`)
-              fs.rmSync(acctPath, { force: true, recursive: true })
+              rmdir(acctPath)
 
               channel.send({
                 event: 'account:sync:callback',
@@ -663,7 +663,7 @@ export default async (props: AccountOpts) => {
    ************************************************/
   if (event === 'account:remove') {
     const acctPath = path.join(userDataPath, `/${payload.email}`)
-    fs.rmSync(acctPath, { force: true, recursive: true })
+    rmdir(acctPath)
   }
 
   /*************************************************
@@ -1315,4 +1315,23 @@ async function runMigrate(rootdir:string, drivePath: string, password: any, stor
       }
     }
   }
+}
+
+function rmdir(dir:string) {
+  var list = fs.readdirSync(dir);
+  for(var i = 0; i < list.length; i++) {
+    var filename = path.join(dir, list[i]);
+    var stat = fs.statSync(filename);
+    
+    if(filename == "." || filename == "..") {
+      // pass these files
+    } else if(stat.isDirectory()) {
+      // rmdir recursively
+      rmdir(filename);
+    } else {
+      // rm fiilename
+      fs.unlinkSync(filename);
+    }
+  }
+  fs.rmdirSync(dir);
 }
