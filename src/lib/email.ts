@@ -481,6 +481,69 @@ export default async (props: EmailOpts) => {
   }
 
 
+  /*************************************************
+   *  GET UNREAD EMAILS BY FOLDER ID
+   ************************************************/
+  if (event === 'email:getUnreadMessagesByFolderId') {
+    try {
+      const Email = store.models.Email.collection
+
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ folderId: payload.id, unread: true }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
+
+      channel.send({
+        event: 'email:getUnreadMessagesByFolderId:callback',
+        data: messages
+      })
+    } catch(err: any) {
+      channel.send({
+        event: 'email:getUnreadMessagesByFolderId:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        }
+      })
+    }
+  }
+
+
+  /*************************************************
+   *  GET READ EMAILS BY FOLDER ID
+   ************************************************/
+   if (event === 'email:getReadMessagesByFolderId') {
+    try {
+      const Email = store.models.Email.collection
+
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ folderId: payload.id, unread: false }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ folderId: payload.id }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
+
+      channel.send({
+        event: 'email:getReadMessagesByFolderId:callback',
+        data: messages
+      })
+    } catch(err: any) {
+      channel.send({
+        event: 'email:getReadMessagesByFolderId:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        }
+      })
+    }
+  }
+
 
   /*************************************************
    *  GET MESSAGES BY ALIAS ID
@@ -525,6 +588,94 @@ export default async (props: EmailOpts) => {
     }
   }
 
+
+  /*************************************************
+   *  GET UNREAD MESSAGES BY ALIAS ID
+   ************************************************/
+   if (event === 'email:getUnreadMessagesByAliasId') {
+    try {
+      const Email = store.models.Email.collection
+
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5, unread: true }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5 }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
+      
+      messages = messages.map((email: any) => {
+        if(email.bodyAsHtml) {
+          delete email.bodyAsHtml
+        }
+
+        if(email.bodyAsText) {
+          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        }
+
+        return email
+      })
+
+      channel.send({
+        event: 'email:getUnreadMessagesByAliasId:callback',
+        data: messages
+      })
+    } catch(err: any) {
+      channel.send({
+        event: 'email:getUnreadMessagesByAliasId:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        }
+      })
+    }
+  }
+
+
+
+  /*************************************************
+   *  GET UNREAD MESSAGES BY ALIAS ID
+   ************************************************/
+   if (event === 'email:getReadMessagesByAliasId') {
+    try {
+      const Email = store.models.Email.collection
+
+      let messages: EmailSchema[]
+
+      if(payload.unread) {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5, unread: false }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      } else {
+        messages = await Email.find({ aliasId: payload.id, folderId: 5 }).sort('date', -1).skip(payload.offset).limit(payload.limit)
+      }
+      
+      messages = messages.map((email: any) => {
+        if(email.bodyAsHtml) {
+          delete email.bodyAsHtml
+        }
+
+        if(email.bodyAsText) {
+          email.bodyAsText = email.bodyAsText.split(" ").slice(0, 20).join(" ")
+        }
+
+        return email
+      })
+
+      channel.send({
+        event: 'email:getReadMessagesByAliasId:callback',
+        data: messages
+      })
+    } catch(err: any) {
+      channel.send({
+        event: 'email:getReadMessagesByAliasId:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack
+        }
+      })
+    }
+  }
 
 
   /*************************************************

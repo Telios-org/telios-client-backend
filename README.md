@@ -384,6 +384,24 @@ const payload = {
 }
 ```
 
+#### `channel.send({ event: 'email:getReadMessagesByFolderId', payload })`
+```js
+const payload = {
+  id: 5,
+  offset: 10,
+  limit: 50
+}
+```
+
+#### `channel.send({ event: 'email:getUnreadMessagesByFolderId', payload })`
+```js
+const payload = {
+  id: 5,
+  offset: 10,
+  limit: 50
+}
+```
+
 Note: Omitting the unread property will return all read and unread messages.
 
 #### `channel.send({ event: 'email:getMessagesByAliasId', payload })`
@@ -393,6 +411,24 @@ const payload = {
   offset: 10,
   limit: 50,
   unread: true
+}
+```
+
+#### `channel.send({ event: 'email:getReadMessagesByAliasId', payload })`
+```js
+const payload = {
+  id: 'alice2022#existing' ,
+  offset: 10,
+  limit: 50
+}
+```
+
+#### `channel.send({ event: 'email:getUnreadMessagesByAliasId', payload })`
+```js
+const payload = {
+  id: 'alice2022#existing' ,
+  offset: 10,
+  limit: 50
 }
 ```
 

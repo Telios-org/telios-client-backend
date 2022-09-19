@@ -73,6 +73,10 @@ export interface MailboxMessage {
 export interface EmailMessage {
   event: 'email:getMessagesByFolderId'
         | 'email:getMessagesByAliasId'
+        | 'email:getUnreadMessagesByFolderId'
+        | 'email:getReadMessagesByFolderId'
+        | 'email:getUnreadMessagesByAliasId'
+        | 'email:getReadMessagesByAliasId'
         | 'email:getMessageById'
         | 'email:markAsUnread'
         | 'email:sendEmail'
