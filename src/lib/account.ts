@@ -375,11 +375,18 @@ export default async (props: AccountOpts) => {
     
     const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
     const parentAccountsDir = path.join(userDataPath)
+    
     if (!fs.existsSync(parentAccountsDir)) {
       fs.mkdirSync(parentAccountsDir)
     }
+
     const acctPath = path.join(userDataPath, `/${email}`)
-    store.acctPath = acctPath
+    store.acctPath = acctPath 
+
+    // Remove account directory if it already exists
+    if (fs.existsSync(acctPath)) {
+      rmdir(acctPath)
+    }
 
     fs.mkdirSync(acctPath)
 
@@ -405,7 +412,7 @@ export default async (props: AccountOpts) => {
       await drive.ready()
     } catch(err) {
       //@ts-ignore
-      process.send({ event: 'debug', data: err.stack })
+      await drive.close()
       throw err
     }
 
@@ -417,6 +424,23 @@ export default async (props: AccountOpts) => {
     let hasRecovery = false
 
     const metaFileStream = drive.metadb.createReadStream({ live: true, reverse: true })
+
+    // If the vault or recovery file is missing after 1 min of syncing then kill sync.
+    setTimeout(async () => {
+      if(!hasVault || !hasRecovery) {
+        await drive.close()
+        channel.send({
+          event: 'account:sync:callback',
+          error: { 
+            name: 'Sync Failed', 
+            message: 'Unable to sync recovery file and or vault file within the alotted time.', 
+            stack: null
+          },
+          data: null
+        })
+        return
+      }
+    }, 60000)
 
     // Loop through the file meta to extract the vault file. Once we have the vault file we can use
     // the master password to decipher this file and grab the drive encryption key
@@ -575,6 +599,8 @@ export default async (props: AccountOpts) => {
               await _drive.ready()
 
             } catch(err: any) {
+              await drive.close()
+
               // Remove account directory
               const acctPath = path.join(userDataPath, `/${payload.email}`)
               rmdir(acctPath)
@@ -783,6 +809,7 @@ export default async (props: AccountOpts) => {
         // Join Telios as a peer
         joinPeer(store, store.teliosPubKey, channel)
       } catch(err: any) {
+        if(drive) await drive.close()
         
         if(err?.type !== 'VAULTERROR') {
           return channel.send({
@@ -804,6 +831,8 @@ export default async (props: AccountOpts) => {
           drive = data?.drive
     
         } catch(err:any) {
+          if(drive) await drive.close()
+          
           return channel.send({
             event: 'account:login:callback',
             error: { 
@@ -911,6 +940,8 @@ export default async (props: AccountOpts) => {
       
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
+      if(drive) await drive.close()
+
       channel.send({
         event: 'account:login:callback',
         error: { 
@@ -976,7 +1007,7 @@ export default async (props: AccountOpts) => {
 
       let files = await filesCollection.find()
 
-      let filesToSync = []
+      // let filesToSync = []
 
       // Get all of the file metadata to build a list for fetching the file contents from IFPS and saving to local disk
       if(files.length) {
@@ -999,37 +1030,37 @@ export default async (props: AccountOpts) => {
               try {
                 const email = await Email.findOne({ path: file.path })
                 await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
-                if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
+                // if(email.cid) filesToSync.push({ cid: email.cid, key: email.key, header: email.header, path: filePath })
               } catch(err: any) {
                 // file not found
               }
             }
 
-            if (file.path.indexOf('file') > -1) {
-              try {
-                const f = await File.findOne({ hash: file.hash })
-                if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
-              } catch(err: any) {
-                // file not found
-              }
-            }
+            // if (file.path.indexOf('file') > -1) {
+            //   try {
+            //     const f = await File.findOne({ hash: file.hash })
+            //     if(f.cid) filesToSync.push({ cid: f.cid, key: f.key, header: f.header, path: filePath })
+            //   } catch(err: any) {
+            //     // file not found
+            //   }
+            // }
           }
         }
 
         // Step 6. Start the sync status callbacks
-        channel.send({ 
-          event: 'account:sync:callback', 
-          data: {
-            files: {
-              index: 0, 
-              total: filesToSync.length, 
-              done: filesToSync.length ? false : true 
-            }
-          } 
-        })
+        // channel.send({ 
+        //   event: 'account:sync:callback', 
+        //   data: {
+        //     files: {
+        //       index: 0, 
+        //       total: filesToSync.length, 
+        //       done: filesToSync.length ? false : true 
+        //     }
+        //   } 
+        // })
 
         // Fetch the files from IPFS and save locally
-        await syncFileBatch(filesToSync)
+        // await syncFileBatch(filesToSync)
 
         // Step 7. Rebuild search indexes
         const Contact = store.models.Contact
@@ -1156,25 +1187,22 @@ export default async (props: AccountOpts) => {
               const Email = store.models.Email.collection
               const email = await Email.findOne({ path: file.path })
               await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
-              
-              // Fetch the files from IPFS and save locally
-              await syncFileBatch([{ cid: email.cid, key: email.key, header: email.header, path: filePath }])
             } catch(err: any) {
               // file not found
               channel.send({ event: 'debug', data: { stck: err.stack }})
             }
           }
 
-          if (file.path.indexOf('file') > -1) {
-            try {
-              const File = store.models.File.collection
-              const f = await File.findOne({ hash: file.hash })
-              await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
-            } catch(err: any) {
-              // file not found
-              channel.send({ event: 'debug', data: { stack: err.stack } })
-            }
-          }
+          // if (file.path.indexOf('file') > -1) {
+          //   try {
+          //     const File = store.models.File.collection
+          //     const f = await File.findOne({ hash: file.hash })
+          //     // await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
+          //   } catch(err: any) {
+          //     // file not found
+          //     channel.send({ event: 'debug', data: { stack: err.stack } })
+          //   }
+          // }
 
         }
 

@@ -187,7 +187,7 @@ export const saveFileFromEncryptedStream = async (writeStream: any, opts: { disc
   })
 }
 
-export const readFile = (path: string, opts: { drive: any, type: string, ipfs?: any }):Promise<string> => {
+export const readFile = async (path: string, opts: { drive: any, type: string, ipfs?: any, cid?:string }):Promise<any> => {
   return new Promise((resolve, reject) => {
     let content = ''
     
@@ -209,8 +209,43 @@ export const readFile = (path: string, opts: { drive: any, type: string, ipfs?: 
           reject(err)
         })
       })
-      .catch((err: any) => {
-        reject(err)
+      .catch(async(err: any) => {
+        // reject(err)
+
+        try {
+          // Attempt to pull and store file directly from IPFS
+          const file = await opts.drive._collections.files.findOne({ path: path })
+    
+          const ipfsStream = await getFileByCID({ cid: opts.cid, async: true })
+    
+          const ws = fs.createWriteStream(`${opts.drive._filesDir}/${file.uuid}`)
+    
+          //@ts-ignore
+          ipfsStream.pipe(ws)
+          
+          //@ts-ignore
+          ipfsStream.on('end', async () => {
+            opts.drive.readFile(path).then((stream: any) => {
+              stream.on('data', (chunk: any) => {
+                if (opts.type === 'email') {
+                  content += chunk.toString('utf8')
+                } else {
+                  content += chunk.toString('base64')
+                }
+              })
+      
+              stream.on('end', (data: any) => {
+                resolve(content)
+              })
+      
+              stream.on('error', (err: any) => {
+                reject(err)
+              })
+            })
+          })
+        } catch(err: any) {
+          return err
+        }
       })
   })
 }
@@ -261,7 +296,7 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
   })
 }
 
-export const getFileByCID = async (opts: { cid: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
+export const getFileByCID = async (opts: { cid?: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
 
   return new Promise((resolve: any, reject: any) => {
     //@ts-ignore

@@ -77,7 +77,7 @@ export default async (props: EmailOpts) => {
                   });
               }else if(isOffWorlding){
                   //If we send the message outside the network we need to send the base64 content
-                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment' } ).then((content: string) => {
+                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid } ).then((content: string) => {
                       _attachments.push({
                           ...attachment,
                           content
@@ -674,7 +674,7 @@ export default async (props: EmailOpts) => {
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
-      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email'})
+      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email', cid: eml.cid })
 
       email = JSON.parse(email)
 
