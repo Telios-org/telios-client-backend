@@ -16,6 +16,11 @@ import * as FileUtil from '../util/file.util'
 const BSON = require('bson')
 const { ObjectID } = BSON
 
+let _network = {
+  internet: true,
+  drive: true
+}
+
 export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
@@ -748,6 +753,36 @@ export default async (props: AccountOpts) => {
     await drive.close()
   }
 
+  /*************************************************
+   *  RECONNECT ACCOUNT DRIVE
+   ************************************************/
+   if (event === 'account:drive:reconnect') {
+    try {
+      const drive = store.getDrive()
+      await drive.close()
+      await drive.ready()
+      
+      handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
+
+      // Initialize models
+      await store.initModels()
+
+      joinPeer(store, store.teliosPubKey, channel)
+
+      channel.send({ event: 'account:drive:reconnect:callback', error: null })
+    } catch(err: any) {
+      channel.send({ 
+        event: 'account:drive:reconnect:callback', 
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
+        }, 
+        data: null 
+      })
+    }
+  }
+
   async function login(kp?: { publicKey: string, secretKey: string}) {
     const acctPath = `${userDataPath}/${payload.email}`
 
@@ -1240,7 +1275,10 @@ async function handleDriveMessages(
 function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
   store.joinPeer(peerPubKey)
 
-  store.on('peer-updated', (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
+  store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
+    if(data.status === 'OFFLINE') {
+      await reconnectDrive(channel, store)
+    }
     channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
   })
 }
@@ -1362,4 +1400,29 @@ function rmdir(dir:string) {
     }
   }
   fs.rmdirSync(dir);
+}
+
+async function reconnectDrive(channel: any, store: StoreSchema) {
+  try {
+    const drive = store.getDrive()
+    await drive.close()
+    await drive.ready()
+
+    // Initialize models
+    await store.initModels()
+
+    joinPeer(store, store.teliosPubKey, channel)
+
+    channel.send({ event: 'account:drive:reconnect:callback', error: null })
+  } catch(err: any) {
+    channel.send({ 
+      event: 'account:drive:reconnect:callback', 
+      error: {
+        name: err.name,
+        message: err.message,
+        stacktrace: err.stack,
+      }, 
+      data: null 
+    })
+  }
 }

@@ -275,6 +275,48 @@ test('get account refresh token', async t => {
   })
 })
 
+test('reconnect account drive', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'bob@telios.io',
+      password: 'letmein123'
+    }
+  })
+
+  channel.once('account:login:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) {
+      t.fail(error.message)
+      channel.kill()
+    }
+
+    
+    channel.send({ event: 'account:drive:reconnect' })
+
+    channel.once('account:drive:reconnect:callback', cb => {
+      const { error } = cb
+    
+      if(error) {
+        t.fail(error.message)
+        channel.kill()
+      }
+
+      t.ok(1, 'Account drive successfully reconnected.')
+    })
+    
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
 async function cleanup() {
   if (fs.existsSync(path.join(__dirname, '/Accounts'))) {
     fs.rmSync(path.join(__dirname, 'Accounts'), { recursive: true })

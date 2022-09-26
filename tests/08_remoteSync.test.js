@@ -44,8 +44,12 @@ test('sync account with another device/peer', async t => {
 
     console.log('SYNC CODE', data)
 
+    channel1.on('debug', data => {
+      console.log('DEBUG1', data)
+    })
+
     channel2.on('debug', data => {
-      console.log('DEBUG', data)
+      console.log('DEBUG2', data)
     })
 
     // 3. Device B - Start sync with Device A sync data
@@ -92,6 +96,18 @@ test('sync account with another device/peer', async t => {
 test('update and sync changes between devices', async t => {
   t.plan(1)
 
+  channel1.on('drive:peer:updated', cb => {
+    const { error, data } = cb
+  
+    console.log('CHANNEL 1 PEER STATUS', data.status)
+  })
+
+  channel2.on('drive:peer:updated', cb => {
+    const { error, data } = cb
+  
+    console.log('CHANNEL 2 PEER STATUS', data.status)
+  })
+
   channel1.on('account:collection:updated', async cb => {
     const { error, data } = cb
 
@@ -137,8 +153,10 @@ test('update and sync changes between devices', async t => {
 
     try {
       if(data.type !== 'del') {
+        setTimeout(async () => {
         await removeContact(channel2, data.value._id)
         console.log('CHANNEL2 REMOVED CONTACTD')
+        }, 5000)
       }
     } catch(err) {
       console.log('ERR2', err)

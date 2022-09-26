@@ -41,6 +41,7 @@ export interface AccountMessage {
         | 'account:retrieveStats' 
         | 'account:logout' 
         | 'account:exit'
+        | 'account:drive:reconnect'
         | 'account:refreshToken'
   payload: {
     accountId: string,
