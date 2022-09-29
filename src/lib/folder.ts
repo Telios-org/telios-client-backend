@@ -20,15 +20,14 @@ export default async (props: FolderOpts) => {
 
          // Making sure the folder count is accurate
         const { count } = await Folder.findOne({ folderId: f.folderId })
-        
-        Email.find({unread: true, folderId: f.folderId})
-          .then(emails => {
-            const newCount = emails.length;
 
-            if(count !== newCount){
-              Folder.update({ folderId: f.folderId }, { count: newCount })
-            }
-          })
+        const emails = await Email.find({ unread: true, folderId: f.folderId})
+        
+        const newCount = emails.length;
+
+        if(count !== newCount){
+          await Folder.update({ folderId: f.folderId }, { count: newCount })
+        }
         
         return {
           ...f,
