@@ -31,7 +31,7 @@ export default async (props: FolderOpts) => {
         
         return {
           ...f,
-          count
+          newCount
         }
       })
 
