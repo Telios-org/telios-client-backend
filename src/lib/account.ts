@@ -548,14 +548,13 @@ export default async (props: AccountOpts) => {
                       const accountModel = store.models.Account
 
                       let acct:any[] = []
-
                     
                       acct = await accountModel.find()
 
                       // Wait for when account collection is ready since every peer will have this
                       if(acct.length > 0) {
-                        ready = false
-                        
+                        clearInterval(coreInt)
+
                         // Step 6. Set Device info and login
                         try {
                           const deviceId = uuidv4()
@@ -574,7 +573,6 @@ export default async (props: AccountOpts) => {
                           channel.send({ event: 'debug', data: 'START LOGIN'})
 
                           setTimeout(() => {
-                            clearInterval(coreInt)
                             channel.send({ event: 'debug', data: 'START LOGIN GO'})
                             login(keyPair)
                           }, 1000)
