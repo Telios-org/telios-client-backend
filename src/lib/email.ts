@@ -408,14 +408,14 @@ export default async (props: EmailOpts) => {
 
           await Promise.all(asyncFolders)
 
-          items.forEach(item => {
+          for(const item of items) {
             if (item) {
               const msg = { ...item }
 
               msg.unread = msg.unread ? true : false
               msgArr.push(msg)
             }
-          })
+          }
 
           return channel.send({
             event: 'email:saveMessageToDB:callback',

@@ -1189,7 +1189,9 @@ export default async (props: AccountOpts) => {
         if(data.collection === 'Email' && data.value && data.type !== 'del') {
           try {
             const Email = store.models.Email.collection
-            await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [data.value])
+            if(data.value && data.value.subject) {
+              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [data.value])
+            }
           } catch(err: any) {
             channel.send({ event: 'debug', data: err.stack })
           }
@@ -1198,7 +1200,9 @@ export default async (props: AccountOpts) => {
         if(data.collection === 'Contact' && data.value && data.type !== 'del') {
           try {
             const Contact = store.models.Contact
-            await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
+            if(data.value && data.value.email) {
+              await Contact.collection.ftsIndex(['name', 'email', 'nickname'], [data.value])
+            }
           } catch(err: any) {
             channel.send({ event: 'debug', data: err.stack })
           }
@@ -1219,24 +1223,14 @@ export default async (props: AccountOpts) => {
             try {
               const Email = store.models.Email.collection
               const email = await Email.findOne({ path: file.path })
-              await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+              if(email && email.subject) {
+                await Email.ftsIndex(['subject', 'toJSON', 'fromJSON', 'ccJSON', 'bccJSON', 'bodyAsText', 'attachments'], [email])
+              }
             } catch(err: any) {
               // file not found
               channel.send({ event: 'debug', data: { stck: err.stack }})
             }
           }
-
-          // if (file.path.indexOf('file') > -1) {
-          //   try {
-          //     const File = store.models.File.collection
-          //     const f = await File.findOne({ hash: file.hash })
-          //     // await syncFileBatch([{ cid: f.cid, key: f.key, header: f.header, path: filePath }])
-          //   } catch(err: any) {
-          //     // file not found
-          //     channel.send({ event: 'debug', data: { stack: err.stack } })
-          //   }
-          // }
-
         }
 
         if(data.collection !== 'file') {
