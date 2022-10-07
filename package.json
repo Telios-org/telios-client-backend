@@ -29,7 +29,7 @@
   "dependencies": {
     "@hyperswarm/dht": "5.0.17",
     "@telios/client-sdk": "^6.2.5",
-    "@telios/nebula": "^3.4.11",
+    "@telios/nebula": "^3.4.12",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
