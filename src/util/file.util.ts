@@ -63,14 +63,16 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
     
     if(opts.content) {
       readStream = new MemoryStream()
-      readStream.end(Buffer.from(opts.content, 'base64'))
+      let buff = !Buffer.isBuffer(opts.content) ? Buffer.from(opts.content, 'base64') : opts.content
+      
+      readStream.end(buff)
 
       if(!opts.file.path) {
         opts.file.path = `/file/${filename}`
       }
     }
 
-    if(!opts.file.cid && opts.file.localPath && !opts.drive && opts.file.discoveryKey && opts.file.hash) {
+    if(!opts.content && !opts.file.cid && opts.file.localPath && !opts.drive && opts.file.discoveryKey && opts.file.hash) {
       try {
         readStream = await opts.drive.fetchFileByDriveHash(opts.file.discoveryKey, opts.file.hash, { key: opts.file.key, header: opts.file.header })
       } catch(e) {
@@ -78,7 +80,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
       }
     }
 
-    if(!opts.file.localPath && opts.ipfs && opts.file.cid) {
+    if(!opts.content && !opts.file.localPath && opts.ipfs && opts.file.cid) {
       try {
         readStream = await opts.ipfs.get(opts.file.cid, opts.file.key, opts.file.header)
       } catch(e) {
@@ -121,9 +123,10 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
               const stream = fs.createReadStream(path.join(filesDir, fp))
               const { cid } = await saveFileToIPFS(opts.ipfs, stream)
               file.cid = cid
+              if(opts.file.filename) file.filename = opts.file.filename
             }
 
-            const doc: FileSchema = await File.insert(opts.file)
+            const doc: FileSchema = await File.insert(file)
             resolve(doc)
             
           } catch(err: any) {
