@@ -251,8 +251,6 @@ export class Store extends EventEmitter{
     const token = this.refreshToken()
     const domain = this.domain.api.replace('https://', 'wss://')
 
-    //@ts-ignore
-    process.send({ event: 'INIT SOCKET IO', data: { token, domain } })
     const socket = io(domain, {
       path: '/socket.io/',
       reconnectionDelayMax: 10000,
@@ -261,16 +259,15 @@ export class Store extends EventEmitter{
       }
     });
 
-    socket.on('connect', (data: any) => {
-      channel.send({ event: 'Connected to server'})
+    socket.on('connect', () => {
+      channel.send({ event: 'Websocket connection established...'})
     })
 
-    socket.on('disconnect', (data: any) => {
-      channel.send({ event: 'Disconnected from server'})
+    socket.on('disconnect', () => {
+      channel.send({ event: 'Websocket disconnected from server...'})
     })
 
     socket.on('email', (data: any) => {
-      channel.send({ event: 'New Email received', data})
       channel.send({
         event: 'account:newMessage',
         data: { meta: data.meta, account, async: true },
