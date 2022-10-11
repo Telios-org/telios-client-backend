@@ -12,6 +12,7 @@ import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
 const pump = require('pump')
 import * as FileUtil from '../util/file.util'
+import { Store } from '../Store';
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -174,7 +175,9 @@ export default async (props: AccountOpts) => {
       store.setDriveStatus('ONLINE')
 
       // Join Telios as a peer
-      joinPeer(store, store.teliosPubKey, channel)
+      // joinPeer(store, store.teliosPubKey, channel)
+
+      store.initSocketIO()
 
       channel.send({
         event: 'account:create:callback',
@@ -765,7 +768,8 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      joinPeer(store, store.teliosPubKey, channel)
+      //joinPeer(store, store.teliosPubKey, channel)
+      store.initSocketIO()
 
       channel.send({ event: 'account:drive:reconnect:callback', error: null })
     } catch(err: any) {
@@ -840,7 +844,9 @@ export default async (props: AccountOpts) => {
         store.setAccountSecrets({ email: payload.email, password: payload.password })
 
         // Join Telios as a peer
-        joinPeer(store, store.teliosPubKey, channel)
+        //joinPeer(store, store.teliosPubKey, channel)
+
+        store.initSocketIO()
       } catch(err: any) {
         if(drive) await drive.close()
         
@@ -1264,16 +1270,16 @@ async function handleDriveMessages(
   })
 }
 
-function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
-  store.joinPeer(peerPubKey)
+// function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
+//   store.joinPeer(peerPubKey)
 
-  store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
-    if(data.status === 'OFFLINE') {
-      await reconnectDrive(channel, store)
-    }
-    channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
-  })
-}
+//   store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
+//     if(data.status === 'OFFLINE') {
+//       await reconnectDrive(channel, store)
+//     }
+//     channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
+//   })
+// }
 
 function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on('network-updated', (network: { internet: boolean; drive: boolean }) => {
@@ -1403,7 +1409,8 @@ async function reconnectDrive(channel: any, store: StoreSchema) {
     // Initialize models
     await store.initModels()
 
-    joinPeer(store, store.teliosPubKey, channel)
+    //joinPeer(store, store.teliosPubKey, channel)
+    store.initSocketIO()
 
     channel.send({ event: 'account:drive:reconnect:callback', error: null })
   } catch(err: any) {

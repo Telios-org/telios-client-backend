@@ -42,7 +42,8 @@ export declare interface StoreSchema {
       privateKey: string
   }): void
   getKeypairs(): any
-  joinPeer(peerPubKey: string): any
+  initSocketIO(): void
+  // joinPeer(peerPubKey: string): any
   getPeers(): Record<string, any>
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
