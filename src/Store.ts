@@ -1,6 +1,7 @@
 const EventEmitter = require('events')
 const ClientSDK = require('@telios/client-sdk')
 const Drive = require('@telios/nebula')
+const io = require('socket.io-client')
 
 import envAPI from './env_api'
 import { setDriveOpts, AuthPayload, AccountSecrets, ModelType, DriveStatuses } from './types'
@@ -246,61 +247,32 @@ export class Store extends EventEmitter{
     return keyPairs;
   }
 
-  public joinPeer(peerKey: string) {
-    if(!this._swarm) {
-      this._swarm = this.drive._swarm.server
+  public initSocketIO(account:AccountSchema, channel:any) {
+    const token = this.refreshToken()
+    const domain = this.domain.api.replace('https://', 'wss://')
 
-      this._swarm.on('connection', (socket:any, info:any) => {
-        const peerKey = socket.remotePublicKey.toString('hex')
-        let conn = this._connections.get(peerKey)
-        
-        if(!conn) {
-          // Send current drive status to peer every 5 seconds
-          socket.statusInterval = setInterval(() => {
-            const _conn = this._connections.get(peerKey)
+    const socket = io(domain, {
+      path: '/socket.io/',
+      reconnectionDelayMax: 10000,
+      auth: {
+        token
+      }
+    });
 
-            if(!_conn) {
-              return clearInterval(socket.statusInterval)
-            }
+    socket.on('connect', () => {
+      channel.send({ event: 'Websocket connection established...'})
+    })
 
-            conn.write(JSON.stringify({ status: this.getDriveStatus() }))
-          }, 5000)
+    socket.on('disconnect', () => {
+      channel.send({ event: 'Websocket disconnected from server...'})
+    })
 
-          this._connections.set(peerKey, socket)
-          conn = socket
-        }
-
-        conn.on('data', (data: any) => {
-          try {
-            const msg = JSON.parse(data.toString())
-            const peer = this._peers.get(peerKey)
-            if(!peer || msg.status === 'OFFLINE' && peer.status !== msg.status) {
-              this.emit('peer-updated', { peerKey, status: msg.status, server: true })
-              this._peers.set(peerKey, { status: msg.status, server: true })
-            }
-    
-          } catch(err) {
-            // Could not parse JSON
-          }
-        })
-    
-        conn.on('error', async (err: any) => {
-          clearInterval(socket.statusInterval)
-          this.emit('peer-updated', { peerKey, status: 'OFFLINE', server: true })
-          this.drive._swarm.server.leavePeer(Buffer.from(peerKey, 'hex'))
-          this._peers.delete(peerKey)
-          this._connections.delete(peerKey)
-
-          if(peerKey === this.teliosPubKey) {
-            // Attempt to reconnect to server
-            await this.drive._swarm.server.flush();
-            this.joinPeer(peerKey)
-          }
-        })
+    socket.on('email', (data: any) => {
+      channel.send({
+        event: 'account:newMessage',
+        data: { meta: data.meta, account, async: true },
       })
-    }
-   
-    this._swarm.joinPeer(Buffer.from(peerKey, 'hex'))
+    })
   }
 
   public getPeers(): Record<string, any> {

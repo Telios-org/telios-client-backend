@@ -12,6 +12,7 @@ import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
 const pump = require('pump')
 import * as FileUtil from '../util/file.util'
+import { Store } from '../Store';
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -115,7 +116,7 @@ export default async (props: AccountOpts) => {
       })
 
       // Save and encrypt device info. Needed for bootstrapping drive.
-      accountModel.setDeviceInfo({
+      const deviceInfo = {
         keyPair: {
           publicKey: signingKeypair.publicKey,
           secretKey: signingKeypair.privateKey
@@ -123,11 +124,13 @@ export default async (props: AccountOpts) => {
         deviceId: account.device_id,
         deviceType: payload.deviceType || 'DESKTOP',
         serverSig: serverSig
-      }, payload.password)
+      }
 
-      handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
+      accountModel.setDeviceInfo(deviceInfo, payload.password)
 
-      await store.setAccount(acctDoc)
+      //handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
+
+      await store.setAccount({...acctDoc, deviceInfo })
 
       store.setAccountSecrets({ email: payload.email, password: payload.password })
 
@@ -173,8 +176,7 @@ export default async (props: AccountOpts) => {
 
       store.setDriveStatus('ONLINE')
 
-      // Join Telios as a peer
-      joinPeer(store, store.teliosPubKey, channel)
+      store.initSocketIO(store.getAccount(), channel)
 
       channel.send({
         event: 'account:create:callback',
@@ -251,7 +253,7 @@ export default async (props: AccountOpts) => {
       // Get account
       const fullAcct = await accountModel.findOne()
 
-      handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
+      // handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
       await store.setAccount(fullAcct)
 
@@ -765,7 +767,8 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      joinPeer(store, store.teliosPubKey, channel)
+      //joinPeer(store, store.teliosPubKey, channel)
+      //store.initSocketIO()
 
       channel.send({ event: 'account:drive:reconnect:callback', error: null })
     } catch(err: any) {
@@ -840,7 +843,7 @@ export default async (props: AccountOpts) => {
         store.setAccountSecrets({ email: payload.email, password: payload.password })
 
         // Join Telios as a peer
-        joinPeer(store, store.teliosPubKey, channel)
+        //joinPeer(store, store.teliosPubKey, channel)
       } catch(err: any) {
         if(drive) await drive.close()
         
@@ -924,7 +927,7 @@ export default async (props: AccountOpts) => {
         }
       }
 
-      handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
+      // handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
 
       store.setAccount({...account, deviceInfo })
 
@@ -970,6 +973,8 @@ export default async (props: AccountOpts) => {
       await migrateVaultToIPFS()
 
       handleDriveSyncEvents() // Listen for and sync updates from remote peers/devices
+
+      store.initSocketIO(store.getAccount(), channel)
       
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
@@ -1241,39 +1246,39 @@ export default async (props: AccountOpts) => {
   }
 }
 
-async function handleDriveMessages(
-  drive: any,
-  account: any,
-  channel: any,
-  store: StoreSchema,
-) {
-  drive.on('message', (peerKey: string, data: any) => {
-    try {
-      const msg = JSON.parse(data.toString())
+// async function handleDriveMessages(
+//   drive: any,
+//   account: any,
+//   channel: any,
+//   store: StoreSchema,
+// ) {
+//   drive.on('message', (peerKey: string, data: any) => {
+//     try {
+//       const msg = JSON.parse(data.toString())
       
-      // Service is telling client it has a new email to sync
-      if (msg.type === 'newMail') {
-        channel.send({
-          event: 'account:newMessage',
-          data: { meta: msg.meta, account, async: true },
-        })
-      }
-    } catch(err) {
-      // Could not parse message as JSON
-    }
-  })
-}
+//       // Service is telling client it has a new email to sync
+//       if (msg.type === 'newMail') {
+//         channel.send({
+//           event: 'account:newMessage',
+//           data: { meta: msg.meta, account, async: true },
+//         })
+//       }
+//     } catch(err) {
+//       // Could not parse message as JSON
+//     }
+//   })
+// }
 
-function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
-  store.joinPeer(peerPubKey)
+// function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
+//   store.joinPeer(peerPubKey)
 
-  store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
-    if(data.status === 'OFFLINE') {
-      await reconnectDrive(channel, store)
-    }
-    channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
-  })
-}
+//   store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
+//     if(data.status === 'OFFLINE') {
+//       await reconnectDrive(channel, store)
+//     }
+//     channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
+//   })
+// }
 
 function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on('network-updated', (network: { internet: boolean; drive: boolean }) => {
@@ -1403,7 +1408,8 @@ async function reconnectDrive(channel: any, store: StoreSchema) {
     // Initialize models
     await store.initModels()
 
-    joinPeer(store, store.teliosPubKey, channel)
+    //joinPeer(store, store.teliosPubKey, channel)
+    store.initSocketIO(store.getAccount(), channel)
 
     channel.send({ event: 'account:drive:reconnect:callback', error: null })
   } catch(err: any) {
