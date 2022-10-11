@@ -273,7 +273,7 @@ export class Store extends EventEmitter{
       channel.send({ event: 'New Email received', data})
       channel.send({
         event: 'account:newMessage',
-        data: { meta: data, account, async: true },
+        data: { meta: data.meta, account, async: true },
       })
     })
   }
