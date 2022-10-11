@@ -116,7 +116,7 @@ export default async (props: AccountOpts) => {
       })
 
       // Save and encrypt device info. Needed for bootstrapping drive.
-      accountModel.setDeviceInfo({
+      const deviceInfo = {
         keyPair: {
           publicKey: signingKeypair.publicKey,
           secretKey: signingKeypair.privateKey
@@ -124,11 +124,13 @@ export default async (props: AccountOpts) => {
         deviceId: account.device_id,
         deviceType: payload.deviceType || 'DESKTOP',
         serverSig: serverSig
-      }, payload.password)
+      }
+
+      accountModel.setDeviceInfo(deviceInfo, payload.password)
 
       handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
-      await store.setAccount(acctDoc)
+      await store.setAccount({...acctDoc, deviceInfo })
 
       store.setAccountSecrets({ email: payload.email, password: payload.password })
 
@@ -769,7 +771,7 @@ export default async (props: AccountOpts) => {
       await store.initModels()
 
       //joinPeer(store, store.teliosPubKey, channel)
-      store.initSocketIO()
+      //store.initSocketIO()
 
       channel.send({ event: 'account:drive:reconnect:callback', error: null })
     } catch(err: any) {
@@ -845,8 +847,6 @@ export default async (props: AccountOpts) => {
 
         // Join Telios as a peer
         //joinPeer(store, store.teliosPubKey, channel)
-
-        store.initSocketIO()
       } catch(err: any) {
         if(drive) await drive.close()
         
@@ -976,6 +976,8 @@ export default async (props: AccountOpts) => {
       await migrateVaultToIPFS()
 
       handleDriveSyncEvents() // Listen for and sync updates from remote peers/devices
+
+      store.initSocketIO()
       
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {

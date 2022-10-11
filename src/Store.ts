@@ -250,6 +250,7 @@ export class Store extends EventEmitter{
   public initSocketIO() {
     const token = this.refreshToken()
     const domain = this.domain.api.replace('https://', 'wss://')
+
     //@ts-ignore
     process.send({ event: 'INIT SOCKET IO', data: { token, domain } })
     const socket = io(domain, {
