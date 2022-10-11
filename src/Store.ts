@@ -247,7 +247,7 @@ export class Store extends EventEmitter{
     return keyPairs;
   }
 
-  public initSocketIO() {
+  public initSocketIO(account:AccountSchema, channel:any) {
     const token = this.refreshToken()
     const domain = this.domain.api.replace('https://', 'wss://')
 
@@ -262,77 +262,21 @@ export class Store extends EventEmitter{
     });
 
     socket.on('connect', (data: any) => {
-      //@ts-ignore
-      process.send({ event: 'Connected to server'})
+      channel.send({ event: 'Connected to server'})
     })
 
     socket.on('disconnect', (data: any) => {
-      //@ts-ignore
-      process.send({ event: 'Disconnected from server'})
+      channel.send({ event: 'Disconnected from server'})
     })
 
     socket.on('email', (data: any) => {
-      //@ts-ignore
-      process.send({ event: 'New Email received', data})
+      channel.send({ event: 'New Email received', data})
+      channel.send({
+        event: 'account:newMessage',
+        data: { meta: data, account, async: true },
+      })
     })
   }
-
-  // public joinPeer(peerKey: string) {
-  //   if(!this._swarm) {
-  //     this._swarm = this.drive._swarm.server
-
-  //     this._swarm.on('connection', (socket:any, info:any) => {
-  //       const peerKey = socket.remotePublicKey.toString('hex')
-  //       let conn = this._connections.get(peerKey)
-        
-  //       if(!conn) {
-  //         // Send current drive status to peer every 5 seconds
-  //         socket.statusInterval = setInterval(() => {
-  //           const _conn = this._connections.get(peerKey)
-
-  //           if(!_conn) {
-  //             return clearInterval(socket.statusInterval)
-  //           }
-
-  //           conn.write(JSON.stringify({ status: this.getDriveStatus() }))
-  //         }, 5000)
-
-  //         this._connections.set(peerKey, socket)
-  //         conn = socket
-  //       }
-
-  //       conn.on('data', (data: any) => {
-  //         try {
-  //           const msg = JSON.parse(data.toString())
-  //           const peer = this._peers.get(peerKey)
-  //           if(!peer || msg.status === 'OFFLINE' && peer.status !== msg.status) {
-  //             this.emit('peer-updated', { peerKey, status: msg.status, server: true })
-  //             this._peers.set(peerKey, { status: msg.status, server: true })
-  //           }
-    
-  //         } catch(err) {
-  //           // Could not parse JSON
-  //         }
-  //       })
-    
-  //       conn.on('error', async (err: any) => {
-  //         clearInterval(socket.statusInterval)
-  //         this.emit('peer-updated', { peerKey, status: 'OFFLINE', server: true })
-  //         this.drive._swarm.server.leavePeer(Buffer.from(peerKey, 'hex'))
-  //         this._peers.delete(peerKey)
-  //         this._connections.delete(peerKey)
-
-  //         if(peerKey === this.teliosPubKey) {
-  //           // Attempt to reconnect to server
-  //           await this.drive._swarm.server.flush();
-  //           this.joinPeer(peerKey)
-  //         }
-  //       })
-  //     })
-  //   }
-   
-  //   this._swarm.joinPeer(Buffer.from(peerKey, 'hex'))
-  // }
 
   public getPeers(): Record<string, any> {
     return this._peers

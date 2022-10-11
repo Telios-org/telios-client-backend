@@ -42,7 +42,7 @@ export declare interface StoreSchema {
       privateKey: string
   }): void
   getKeypairs(): any
-  initSocketIO(): void
+  initSocketIO(account: AccountSchema, channel:any): void
   // joinPeer(peerPubKey: string): any
   getPeers(): Record<string, any>
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
