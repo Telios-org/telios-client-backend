@@ -234,7 +234,8 @@ export default async (props: EmailOpts) => {
                 discoveryKey: file.discoveryKey || drive.discoveryKey,
                 hash: file.hash,
                 header: file.header,
-                key: file.key
+                key: file.key,
+                path: file.path
               }
             })
 
@@ -687,7 +688,7 @@ export default async (props: EmailOpts) => {
       }
 
       if(typeof eml.bccJSON === 'string'){
-        email.bcc = JSON.parse(eml.bccJSON)//bcc gets stripped unpon send so we need to restore from collection
+        email.bcc = JSON.parse(eml.bccJSON) //bcc gets stripped unpon send so we need to restore from collection
       }
        
       for(let i = 0; i < email.attachments.length; i += 1) {
@@ -698,20 +699,18 @@ export default async (props: EmailOpts) => {
           _file.header = attachment.header
           _file.key = attachment.key
         }
-    }
-      
-      email.unread = eml.unread
-      email.cid = eml.cid
-      email.key = eml.key
-      email.header = eml.header
-      email.folderId = eml.folderId
+      }
 
-      if (email.unread) {
-        await Email.update({ emailId: email.emailId }, { unread: false })
+      eml.bodyAsHtml = email.bodyAsHtml
+      eml.bodyAsText = email.bodyAsText
+      eml.attachments = email.attachments
+
+      if (eml.unread) {
+        await Email.update({ emailId: eml.emailId }, { unread: false })
         email.unread = false
       }
 
-      channel.send({ event: 'email:getMessageById:callback', data: { id: email.emailId, ...email } })
+      channel.send({ event: 'email:getMessageById:callback', data: { id: eml.emailId, ...eml } })
     } catch(err: any) {
       channel.send({
         event: 'email:getMessageById:callback',
