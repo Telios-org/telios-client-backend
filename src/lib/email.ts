@@ -106,7 +106,7 @@ export default async (props: EmailOpts) => {
 
       // Remove BCC list from email that wil be retrieved
       const bcc = email.bcc
-      delete email.bcc
+      email.bcc = []
 
       const file = await FileUtil.saveEmailToDrive({ email, drive, ipfs })
 
