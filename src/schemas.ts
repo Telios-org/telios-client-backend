@@ -91,7 +91,7 @@ export interface MailboxSchema {
 }
 
 export interface EmailSchema {
-  emailId: string
+  emailId?: string
   folderId: number
   mailboxId: number
   aliasId?: string | null

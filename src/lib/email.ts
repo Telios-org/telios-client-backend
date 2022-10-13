@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid')
+const blake = require('blakejs');
 const fs = require('fs')
 const path = require('path')
 
@@ -43,7 +44,7 @@ export default async (props: EmailOpts) => {
       let attachments: Attachment[] = email?.attachments
       let totalAttachmentSize = 0
 
-      //Is the email going somewhere off network?
+      // Is the email going somewhere off network?
       const recipients = [...email.to, ...email.cc, ...email.bcc];
       const isOffWorlding = recipients.some((r) => !r.account_key)
 
@@ -137,10 +138,11 @@ export default async (props: EmailOpts) => {
       })
 
       // 3. Save email in DB
-      let _email = {
+      let _email: EmailSchema = {
         ...meta,
         aliasId: null,
-        emailId: uuidv4(),
+        unread: false,
+        mailboxId: 1, // TODO: Remove hardcoded mailboxId
         folderId: 3, // Sent folder
         subject: email.subject ? email.subject : '(no subject)',
         fromJSON: JSON.stringify(email.from),
@@ -154,6 +156,9 @@ export default async (props: EmailOpts) => {
         createdAt: email.createdAt || UTCtimestamp(),
         updatedAt: email.updatedAt || UTCtimestamp()
       }
+
+      // Create emailId with the hashed json of the email
+      _email.emailId = blake.blake2bHex(JSON.stringify(_email))
 
       const doc = await Email.insert(_email)
 
@@ -190,22 +195,22 @@ export default async (props: EmailOpts) => {
       const newAliases: AliasSchema[] = []
 
       for await (const msg of messages) {
+        const emailHash = blake.blake2bHex(JSON.stringify(msg))
+
+        if(await emailExists(emailHash)) continue
+
         const attachments: Attachment[] = []
         let folderId
         let aliasId = null
 
-        if (!msg.email) {
-          msg.email = msg
-        }
-
-        if (!msg._id) {
-          msg._id = uuidv4()
-        }
+        if (!msg.email) msg.email = msg
 
         if (type === 'Sent' && msg.email.emailId) {
           msg.email.emailId = null;
           // This should already be enforced at the composer level.
         }
+
+        if (!msg._id) msg._id = emailHash
 
         if (
           msg.email &&
@@ -343,11 +348,11 @@ export default async (props: EmailOpts) => {
         }
 
         let msgObj: EmailSchema = {
-          emailId: msg.email.emailId || msg._id,
+          emailId: emailHash,
           unread: folderId === 3 || folderId === 2 ? false : true,
           folderId,
           aliasId,
-          mailboxId: 1,
+          mailboxId: 1, // TODO: Remove hardcoded mailboxId
           fromJSON: JSON.stringify(msg.email.from),
           toJSON: JSON.stringify(msg.email.to),
           subject: msg.email.subject ? msg.email.subject : '(no subject)',
@@ -950,76 +955,14 @@ export default async (props: EmailOpts) => {
     }
   }
 
-
-  /*************************************************
-   *  DEPRECATED - SAVE SENT EMAIL TO DATABASE
-   ************************************************/
-  // if (event === 'email:saveSentMessageToDB') {
-  //   try {
-  //     const emailModel = new EmailModel(store)
-  //     const Email = await emailModel.ready()
-
-  //     const drive = store.getDrive()
-
-  //     const { messages } = payload
-  //     const msg = messages[0]
-
-  //     let email = {
-  //       ...msg,
-  //       emailId: uuidv4(),
-  //       path: `/email/${uuidv4()}.json`,
-  //       folderId: 3,
-  //       subject: msg.subject ? msg.subject : '(no subject)',
-  //       fromJSON: JSON.stringify(msg.from),
-  //       toJSON: JSON.stringify(msg.to),
-  //       ccJSON: JSON.stringify(msg.cc),
-  //       bccJSON: JSON.stringify(msg.bcc)
-  //     }
-
-  //     if (email.attachments && email.attachments.length) {
-  //       email.attachments = email.attachments.map((file: Attachment) => {
-  //         const fileId = file.fileId || uuidv4()
-  //         return {
-  //           id: fileId,
-  //           emailId: email.id,
-  //           filename: file.name || file.filename,
-  //           contentType: file.contentType || file.mimetype,
-  //           size: file.size,
-  //           discoveryKey: file.discoveryKey,
-  //           hash: file.hash,
-  //           header: file.header,
-  //           key: file.key,
-  //           path: file.path
-  //         }
-  //       })
-  //     } else {
-  //       email.attachments = []
-  //     }
-
-  //     email.attachments = JSON.stringify(email.attachments)
-
-  //     const file : FileSchema = await FileUtil.saveEmailToDrive({ email, drive })
-
-  //     const _f = await FileUtil.readFile(email.path, { drive, type: 'email' })
-
-  //     email = {
-  //       ...email,
-  //       encKey: file.key,
-  //       encHeader: file.header
-  //     }
-
-  //     Email.insert(email)
-
-  //     channel.send({ event: 'email:saveSentMessageToDB:callback', data: email })
-  //   } catch(err: any) {
-  //     channel.send({
-  //       event: 'email:saveSentMessageToDB:callback',
-  //       error: {
-  //         name: e.name,
-  //         message: e.message,
-  //         stacktrace: e.stack
-  //       }
-  //     })
-  //   }
-  // }
+  async function emailExists(emailId: string) {
+    const Email = store.models.Email
+    try {
+      const email: EmailSchema = await Email.findOne({ emailId })
+      if(email) return true
+      return false
+    } catch(err) {
+      return false
+    }
+  }
 }
