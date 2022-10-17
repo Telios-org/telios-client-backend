@@ -271,7 +271,7 @@ export default async (props: EmailOpts) => {
             
             // Assign email into appropriate folder/alias
             for await (const recipient of recipients) {
-              const localPart = recipient.address.split('@')[0]
+              let localPart = recipient.address.split('@')[0]
 
               try {
                 const alias: AliasSchema = await Alias.findOne({ name: localPart })
@@ -286,14 +286,27 @@ export default async (props: EmailOpts) => {
               }
 
               // Recipient is an alias. Check if we need to create a new on-the-fly alias
-              if (recipient.address.indexOf('#') > -1) {
+              let delim = null
+              
+              // Supporting the three different alias delimiters
+              if(recipient.address.indexOf('#') > -1) delim = '#'
+              if(recipient.address.indexOf('-') > -1) delim = '-'
+              if(recipient.address.indexOf('+') > -1) delim = '+'
+
+              if (delim) {
                 folderId = 0
                 isAlias = true
                 
-                const recipAliasName = localPart.split('#')[0]
-                const recipAliasAddress = localPart.split('#')[1]
+                const recipAliasName = localPart.split(delim)[0]
+                const recipAliasAddress = localPart.split(delim)[1]
 
-                const aliasNamespace: AliasNamespaceSchema = await AliasNamespace.findOne({ name: recipAliasName })
+                let aliasNamespace
+
+                try {
+                  aliasNamespace = await AliasNamespace.findOne({ name: recipAliasName })
+                } catch(err:any) {
+
+                }
 
                 // Alias is not part of this account so send this email to the main inbox
                 if (!aliasNamespace) {
@@ -302,8 +315,11 @@ export default async (props: EmailOpts) => {
                 }
 
                 const aliasAddrs: AliasSchema[] = await Alias.find()
-
+                
                 // Check if incoming message alias already exists
+
+                if(localPart.indexOf('#') === -1) localPart = localPart.replace(delim, '#')
+
                 const aliasIndex = aliasAddrs.findIndex(
                   (item: AliasSchema) => item.aliasId === localPart
                 )
