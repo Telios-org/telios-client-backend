@@ -418,10 +418,12 @@ export default async (props: EmailOpts) => {
                       resolve(eml)
                     })
                     .catch((err: any) => {
+                      err.requestId = msg.email.requestId
                       reject(err)
                     })
                 })
                 .catch((err: any) => {
+                  err.requestId = msg.email.requestId
                   reject(err)
                 })
             })
@@ -456,6 +458,7 @@ export default async (props: EmailOpts) => {
           channel.send({
             event: 'email:saveMessageToDB:callback',
             error: {
+              requestId: e.requestId,
               name: e.name,
               message: e.message,
               stacktrace: e.stack
@@ -467,6 +470,7 @@ export default async (props: EmailOpts) => {
       channel.send({
         event: 'email:saveMessageToDB:callback',
         error: {
+          requestId: err.requestId,
           name: err.name,
           message: err.message,
           stacktrace: err.stack
