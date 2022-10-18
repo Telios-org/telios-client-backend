@@ -410,6 +410,11 @@ export default async (props: EmailOpts) => {
 
                   Email.insert(_email)
                     .then((eml: EmailSchema) => {
+                      // For mapping mobile channel events
+                      if(msg.email.requestId) {
+                        eml.requestId = msg.email.requestId
+                      }
+              
                       resolve(eml)
                     })
                     .catch((err: any) => {

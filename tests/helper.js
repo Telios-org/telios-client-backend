@@ -65,7 +65,7 @@ module.exports.OpenChannel = () => {
   })
 }
 
-module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread, attachments }) => {
+module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread, attachments, requestId }) => {
   const uuid = uuidv4()
 
   let _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io', account_key:'fd6ee19c98c8d7fc1ff51b1c85c5d42947614e61cfc726633476bc8b61f3fb6a' } ]
@@ -107,6 +107,7 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
   }
   
   return {
+    requestId,
     emailId,
     folderId,
     aliasId,
