@@ -7,6 +7,7 @@ import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
+import { DomainModel } from './models/domain.model'
 
 import { StoreSchema } from './schemas'
 
@@ -20,6 +21,7 @@ export interface ModelType {
   Folder: FolderModel
   Mailbox: MailboxModel
   Migrate: MigrateModel
+  Domain: DomainModel
 }
 
 export interface MainOpts {
@@ -134,7 +136,21 @@ export interface MigrateMessage {
 }
 
 export interface FileMessage {
-  event: 'file:saveFile' | 'alias:getFile'
+  event: 'file:saveFile'
+  payload: any
+}
+
+export interface DomainMessage {
+  event: 'domain:register'
+        | 'domain:delete'
+        | 'domain:getDomainByName'
+        | 'domain:getDomains'
+        | 'domain:isAvailable' 
+        | 'domain:verifyOwnership' 
+        | 'domain:verifyDNS'
+        | 'domain:registerMailbox'
+        | 'domain:updateMailbox'
+        | 'domain:deleteMailbox'
   payload: any
 }
 
@@ -191,6 +207,13 @@ export interface MigrateOpts {
   channel: any
   userDataPath: string,
   msg: MigrateMessage,
+  store: StoreSchema
+}
+
+export interface DomainOpts {
+  channel: any
+  userDataPath: string,
+  msg: DomainMessage,
   store: StoreSchema
 }
 

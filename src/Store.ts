@@ -15,6 +15,7 @@ import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
+import { DomainModel } from './models/domain.model'
 
 export class Store extends EventEmitter{
   public sdk
@@ -48,7 +49,8 @@ export class Store extends EventEmitter{
       account: this._teliosSDK.Account,
       mailbox: this._teliosSDK.Mailbox,
       ipfs: this._teliosSDK.IPFS,
-      crypto: this._teliosSDK.Crypto
+      crypto: this._teliosSDK.Crypto,
+      domain: this._teliosSDK.Domain
     }
 
     this.domain = {
@@ -77,7 +79,9 @@ export class Store extends EventEmitter{
       // @ts-ignore
       Mailbox: new MailboxModel(this),
       // @ts-ignore
-      Migrate: new MigrateModel(this)
+      Migrate: new MigrateModel(this),
+      // @ts-ignore
+      Domain: new DomainModel(this)
     }
 
     this.drive = null

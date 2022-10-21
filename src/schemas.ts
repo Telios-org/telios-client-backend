@@ -14,6 +14,7 @@ export declare interface StoreSchema {
     mailbox: any
     ipfs: any
     crypto: any
+    domain: any
   }
   drive: any
   encryptionKey: any
@@ -209,4 +210,12 @@ export interface ContactSchema {
 export interface MigrateSchema {
   _id: any
   name: string
+}
+
+export interface DomainSchema {
+  _id?: any
+  name: string
+  dkim?: string
+  verified?: boolean
+  active?: boolean
 }
