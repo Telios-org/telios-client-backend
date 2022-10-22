@@ -163,3 +163,12 @@ test('delete custom domain', async t => {
     channel.kill()
   })
 })
+
+// test('register domain mailbox', async t => {
+// })
+
+// test('update domain mailbox', async t => {
+// })
+
+// test('delete domain mailbox', async t => {
+// })

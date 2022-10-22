@@ -56,9 +56,11 @@ export default async (props: DomainOpts) => {
   /***************************************
    *  DELETE CUSTOM DOMAIN
    **************************************/
-   if (event === 'domain:delete') {
+  if (event === 'domain:delete') {
     try {
+      const domainModel = store.models.Domain
       const res = await Domain.delete(payload.domain)
+      await domainModel.remove({ name: payload.domain })
       channel.send({ event: 'domain:delete:callback', data: res })
     } catch(err: any) {
       channel.send({
@@ -75,7 +77,7 @@ export default async (props: DomainOpts) => {
   /***************************************
    *  GET DOMAIN BY NAME
    **************************************/
-   if (event === 'domain:getDomainByName') {
+  if (event === 'domain:getDomainByName') {
     try {
       const domainModel = store.models.Domain
       const domain = await domainModel.findOne({ name: payload.name })
@@ -95,7 +97,7 @@ export default async (props: DomainOpts) => {
   /***************************************
    *  GET ALL DOMAINS
    **************************************/
-   if (event === 'domain:getDomains') {
+  if (event === 'domain:getDomains') {
     try {
       const domainModel = store.models.Domain
       const domains = await domainModel.find()
@@ -115,7 +117,7 @@ export default async (props: DomainOpts) => {
   /***************************************
    *  VERIFY DOMAIN OWNERSHIP
    **************************************/
-   if (event === 'domain:verifyOwnership') {
+  if (event === 'domain:verifyOwnership') {
     try {
       const domainModel = store.models.Domain
       const res = await Domain.verifyOwnership(payload.domain)
@@ -141,7 +143,7 @@ export default async (props: DomainOpts) => {
   /***************************************
    *  VERIFY DOMAIN DNS SETTINGS
    **************************************/
-   if (event === 'domain:verifyDNS') {
+  if (event === 'domain:verifyDNS') {
     const domainModel = store.models.Domain
 
     try {
@@ -188,5 +190,23 @@ export default async (props: DomainOpts) => {
         }
       })
     }
+  }
+
+  /***************************************
+   *  REGISTER NEW DOMAIN MAILBOX
+   **************************************/
+  if (event === 'domain:registerMailbox') {
+  }
+
+    /***************************************
+   *  UPDATE DOMAIN MAILBOX
+   **************************************/
+  if (event === 'domain:updateMailbox') {
+  }
+
+  /***************************************
+   *  DELETE DOMAIN MAILBOX
+   **************************************/
+  if (event === 'domain:deleteMailbox') {
   }
 }
