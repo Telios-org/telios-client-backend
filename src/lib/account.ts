@@ -467,7 +467,7 @@ export default async (props: AccountOpts) => {
           hasRecovery = true
           
           try {
-            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid, async: true })
+            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid, IPFSGateway: store.IPFSGateway, async: true })
             
             const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
 
@@ -494,7 +494,8 @@ export default async (props: AccountOpts) => {
         
         if(file?.custom_data?.cid && !hasVault && file?.path?.indexOf('vault') > -1) {
           hasVault = true
-          const stream = await FileUtil.getFileByCID({ cid: file.custom_data.cid, async: true })
+
+          const stream = await FileUtil.getFileByCID({ cid: file.custom_data.cid, IPFSGateway: store.IPFSGateway, async: true })
           const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
 
           pump(stream, ws, async (err: any) => {

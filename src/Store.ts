@@ -37,7 +37,7 @@ export class Store extends EventEmitter{
   private _peers: Record<string, any>
   private _driveStatus: DriveStatuses = 'OFFLINE'
 
-  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string) {
+  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
     super()
     
     this._teliosSDK = new ClientSDK({ 
@@ -55,6 +55,8 @@ export class Store extends EventEmitter{
       api: apiURL || envAPI.prod,
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
+
+    this.IPFSGateway = IPFSGateway || 'https://ipfs.filebase.io/ipfs'
 
     this.env = env
 
@@ -123,6 +125,14 @@ export class Store extends EventEmitter{
     this._connections = new Map()
     this._peers = new Map()
     this._swarm = null
+  }
+
+  public setIPFSGateway(gatewayURL: string) {
+    this.IPFSGateway = gatewayURL
+  }
+
+  public getIPFSGateway() : string {
+    return this.IPFSGateway
   }
 
   public setDrive(props: setDriveOpts) {

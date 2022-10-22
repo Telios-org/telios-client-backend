@@ -190,7 +190,7 @@ export const saveFileFromEncryptedStream = async (writeStream: any, opts: { disc
   })
 }
 
-export const readFile = async (path: string, opts: { drive: any, type: string, ipfs?: any, cid?:string }):Promise<any> => {
+export const readFile = async (path: string, opts: { drive: any, type: string, ipfs?: any, cid?:string, IPFSGateway: string }):Promise<any> => {
   return new Promise((resolve, reject) => {
     let content = ''
     
@@ -219,7 +219,7 @@ export const readFile = async (path: string, opts: { drive: any, type: string, i
           // Attempt to pull and store file directly from IPFS
           const file = await opts.drive._collections.files.findOne({ path: path })
     
-          const ipfsStream = await getFileByCID({ cid: opts.cid, async: true })
+          const ipfsStream = await getFileByCID({ cid: opts.cid, IPFSGateway: opts.IPFSGateway, async: true })
     
           const ws = fs.createWriteStream(`${opts.drive._filesDir}/${file.uuid}`)
     
@@ -299,8 +299,11 @@ export const readIPFSFile = async (ipfs: any, cid: string, key?: string, header?
   })
 }
 
-export const getFileByCID = async (opts: { cid?: string, ipfsGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
-
+export const getFileByCID = async (opts: { cid?: string, IPFSGateway?: string, async?: Boolean }) : Promise<Stream | Buffer> => {
+  let IPFSGateway = 'https://ipfs.filebase.io/ipfs'
+  
+  if(opts.IPFSGateway) IPFSGateway = opts.IPFSGateway
+  
   return new Promise((resolve: any, reject: any) => {
     //@ts-ignore
     const env = process.env.NODE_ENV;
@@ -314,7 +317,7 @@ export const getFileByCID = async (opts: { cid?: string, ipfsGateway?: string, a
         rejectUnauthorized: false
       })
 
-      fetch(`https://ipfs.filebase.io/ipfs/${opts.cid}`, { 
+      fetch(`${IPFSGateway}/${opts.cid}`, { 
           method: 'get',
           agent: httpsAgent,
           headers: {

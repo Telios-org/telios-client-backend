@@ -78,7 +78,7 @@ export default async (props: EmailOpts) => {
                   });
               }else if(isOffWorlding){
                   //If we send the message outside the network we need to send the base64 content
-                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid } ).then((content: string) => {
+                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid, IPFSGateway: store.IPFSGateway } ).then((content: string) => {
                       _attachments.push({
                           ...attachment,
                           content
@@ -181,7 +181,7 @@ export default async (props: EmailOpts) => {
    ************************************************/
   if (event === 'email:saveMessageToDB') {
     const { messages, type, requestId } = payload
-    
+
     try {
       const drive = store.getDrive()
       
@@ -699,7 +699,7 @@ export default async (props: EmailOpts) => {
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
-      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email', cid: eml.cid })
+      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email', cid: eml.cid, IPFSGateway: store.IPFSGateway })
 
       email = JSON.parse(email)
 

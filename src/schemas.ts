@@ -17,6 +17,7 @@ export declare interface StoreSchema {
   }
   drive: any
   encryptionKey: any
+  IPFSGateway: string
   teliosPubKey: string
   acctPath: string
   domain: {
@@ -26,6 +27,8 @@ export declare interface StoreSchema {
   models: ModelType
   on: <K extends "peer-updated">(event: K, listener: IEmissions[K]) => this
   emit: <K extends "peer-updated">(event: K, ...args: Parameters<IEmissions[K]>) => boolean
+  setIPFSGateway(gatewayURL: string): void
+  getIPFSGateway(): string
   setDrive(props: setDriveOpts): any
   getDrive(): any
   setDriveStatus(string: DriveStatuses): any
