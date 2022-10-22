@@ -180,6 +180,8 @@ export default async (props: EmailOpts) => {
    *  SAVE INCOMING EMAIL TO DATABASE
    ************************************************/
   if (event === 'email:saveMessageToDB') {
+    const { messages, type, requestId } = payload
+    
     try {
       const drive = store.getDrive()
       
@@ -187,8 +189,6 @@ export default async (props: EmailOpts) => {
       const AliasNamespace = store.models.AliasNamespace
       const Alias = store.models.Alias
       const File = store.models.File
-
-      const { messages, type, newMessage } = payload
 
       const asyncMsgs: Promise<any>[] = []
       const asyncFolders: FolderSchema[] = []
@@ -410,20 +410,13 @@ export default async (props: EmailOpts) => {
 
                   Email.insert(_email)
                     .then((eml: EmailSchema) => {
-                      // For mapping mobile channel events
-                      if(msg.email.requestId) {
-                        eml.requestId = msg.email.requestId
-                      }
-              
                       resolve(eml)
                     })
                     .catch((err: any) => {
-                      err.requestId = msg.email.requestId
                       reject(err)
                     })
                 })
                 .catch((err: any) => {
-                  err.requestId = msg.email.requestId
                   reject(err)
                 })
             })
@@ -450,7 +443,8 @@ export default async (props: EmailOpts) => {
             event: 'email:saveMessageToDB:callback',
             data: {
               msgArr,
-              newAliases
+              newAliases,
+              requestId
             }
           })
         })
@@ -458,7 +452,7 @@ export default async (props: EmailOpts) => {
           channel.send({
             event: 'email:saveMessageToDB:callback',
             error: {
-              requestId: e.requestId,
+              requestId,
               name: e.name,
               message: e.message,
               stacktrace: e.stack
@@ -470,7 +464,7 @@ export default async (props: EmailOpts) => {
       channel.send({
         event: 'email:saveMessageToDB:callback',
         error: {
-          requestId: err.requestId,
+          requestId,
           name: err.name,
           message: err.message,
           stacktrace: err.stack

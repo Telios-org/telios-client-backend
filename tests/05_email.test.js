@@ -36,12 +36,13 @@ test('send email', async t => {
 test('save incoming email to database', async t => {
   t.plan(3)
 
-  const requestId = 'drzD321dfCxz12';
-  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false, requestId })
+  const requestId = 'ceb69aa8-1a54-41df-837c-279b9e4e0aac';
+  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
   const payload = {
     type: 'Incoming',
     messages: [mockEmail],
+    requestId
   }
 
   channel.send({ event: 'email:saveMessageToDB', payload })
@@ -54,7 +55,7 @@ test('save incoming email to database', async t => {
     console.log('SUCCESS :: ', data)
     
     t.equals(data.msgArr.length, 1)
-    t.equals(data.msgArr[0].requestId, requestId)
+    t.equals(data.requestId, requestId)
 
     for(const email of data.msgArr) {
       t.ok(email.cid)
