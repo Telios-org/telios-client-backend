@@ -1,6 +1,6 @@
 import { DomainOpts } from '../types'
 import { DomainSchema } from '../schemas'
-
+import { UTCtimestamp } from '../util/date.util'
 
 export default async (props: DomainOpts) => {
   const { channel, msg, store } = props 
@@ -37,7 +37,9 @@ export default async (props: DomainOpts) => {
       const res = await Domain.register(payload.domain)
 
       const domain: DomainSchema = await domainModel.insert({ 
-        name: payload.domain
+        name: payload.domain,
+        createdAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp()
       })
       
       channel.send({ event: 'domain:register:callback', data: res })
@@ -124,7 +126,13 @@ export default async (props: DomainOpts) => {
 
       // If verified, then update domain record
       if(res.verified) {
-        await domainModel.update({ name: payload.domain }, { verified: true })
+        await domainModel.update({ 
+          name: payload.domain 
+        }, 
+        { 
+          verified: true,
+          updatedAt: UTCtimestamp() 
+        })
       }
 
       channel.send({ event: 'domain:verifyOwnership:callback', data: res })
@@ -176,7 +184,14 @@ export default async (props: DomainOpts) => {
       }
 
       if(MXVerified && SPFVerified && DKIMVerified && DMARCVerified) {
-        await domainModel.update({ name: payload.domain }, { active: true, dkim: dkim.value })
+        await domainModel.update({ 
+          name: payload.domain 
+        }, 
+        { 
+          active: true, 
+          dkim: dkim.value, 
+          updatedAt: UTCtimestamp() 
+        })
       }
 
       channel.send({ event: 'domain:verifyDNS:callback', data: records })

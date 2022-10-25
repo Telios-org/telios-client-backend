@@ -218,4 +218,6 @@ export interface DomainSchema {
   dkim?: string
   verified?: boolean
   active?: boolean
+  createdAt?: string
+  updatedAt?: string
 }
