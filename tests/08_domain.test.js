@@ -28,7 +28,7 @@ test('check if custom domain name is available', async t => {
 })
 
 test('register new custom domain', async t => {
-  t.plan(2)
+  t.plan(4)
 
   channel.send({
     event: 'domain:register',
@@ -43,7 +43,9 @@ test('register new custom domain', async t => {
     if(error) t.fail(error.message)
 
     t.equals(data.domain, 'telios.app');
-    t.ok(data.verification);
+    t.ok(data.verification.name);
+    t.ok(data.verification.type);
+    t.ok(data.verification.value);
   })
 })
 

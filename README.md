@@ -530,6 +530,104 @@ const payload = {
 }
 ```
 
+## Custom Domains API
+#### `channel.send({ event: 'domain:isAvailable', payload })`
+
+Checks if a domain has already been registered.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:register', payload })`
+
+Register a new custom domain. This only initially adds the custom domain record in the database, but does not create the domain on the mailserver. The domain won't get created on the mailserver until it has been verified.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+Example response:
+```js
+// Use verification to send DNS instructions for creating verifcation TXT record
+{
+  domain: "telios.app",
+  verification: {
+    name: "@",
+    type: "TXT",
+    value: "telios-verification=d48808347d7d8a0b91f2e3af9d77ce33"
+  }
+}
+```
+
+#### `channel.send({ event: 'domain:verifyOwnership', payload })`
+Verify that the user owns the domain they're trying to register. Once verified, the domain is created on the mailserver. Mail will not start routing through this domain until all checks are passed on the `verifyDNS` step.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:verifyDNS', payload })`
+Returns additional DNS records that need to be set and their verification status. Once all records have been verified, the domain is set to `active` and mail will start being delivered.
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+Example response:
+```js
+[
+  {
+    "type": "MX",
+    "name": "telios.app",
+    "value": "mailer.telios.app",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "telios.app",
+    "value": "v=spf1 include:mailer.telios.app ~all",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "dkim._domainkey.telios.app",
+    "value": "",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "_dmarc.telios.app",
+    "value": "v=DMARC1;p=quarantine",
+    "verified": true
+  }
+]
+
+```
+
+#### `channel.send({ event: 'domain:getDomainByName', payload })`
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:getDomains' })`
+
+#### `channel.send({ event: 'domain:delete' })`
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
 ## Messages Handler API
 #### `channel.send({ event: 'messageHandler:initMessageListener' })`
 #### `channel.send({ event: 'messageHandler:newMessageBatch', payload })`

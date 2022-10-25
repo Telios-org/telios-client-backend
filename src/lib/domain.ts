@@ -147,7 +147,7 @@ export default async (props: DomainOpts) => {
     const domainModel = store.models.Domain
 
     try {
-      const { records } = await Domain.verifyDNS(payload.domain)
+      const records = await Domain.verifyDNS(payload.domain)
       let MXVerified = false
       let SPFVerified = false
       let DKIMVerified = false
