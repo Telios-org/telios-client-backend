@@ -731,7 +731,7 @@ export default async (props: EmailOpts) => {
 
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
-        email.unread = false
+        eml.unread = false
       }
 
       channel.send({ event: 'email:getMessageById:callback', data: { id: eml.emailId, ...eml } })
