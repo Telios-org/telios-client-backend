@@ -34,7 +34,7 @@ export default async (props: DomainOpts) => {
     try {
       const domainModel = store.models.Domain
       
-      const res = await Domain.register(payload.domain)
+      const res = await Domain.register(payload)
 
       const domain: DomainSchema = await domainModel.insert({ 
         name: payload.domain,
