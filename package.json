@@ -28,7 +28,7 @@
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
     "@hyperswarm/dht": "5.0.17",
-    "@telios/client-sdk": "^6.3.6",
+    "@telios/client-sdk": "^6.3.7",
     "@telios/nebula": "^3.4.13",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
     "blakejs": "^1.2.1",

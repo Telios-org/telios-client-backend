@@ -38,6 +38,8 @@ export default async (props: DomainOpts) => {
 
       const domain: DomainSchema = await domainModel.insert({ 
         name: payload.domain,
+        verified: false,
+        active: false,
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
       })
@@ -61,7 +63,7 @@ export default async (props: DomainOpts) => {
   if (event === 'domain:delete') {
     try {
       const domainModel = store.models.Domain
-      const res = await Domain.delete(payload.domain)
+      const res = await Domain.delete(payload)
       await domainModel.remove({ name: payload.domain })
       channel.send({ event: 'domain:delete:callback', data: res })
     } catch(err: any) {
