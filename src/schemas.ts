@@ -215,9 +215,40 @@ export interface MigrateSchema {
 export interface DomainSchema {
   _id?: any
   name: string
-  dkim?: string
   verified?: boolean
   active?: boolean
+  dns: {
+    vcode?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    mx?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    dkim?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    spf?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    dmarc?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+  }
   createdAt?: string
   updatedAt?: string
 }

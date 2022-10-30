@@ -42,10 +42,10 @@ test('register new custom domain', async t => {
 
     if(error) t.fail(error.message)
 
-    t.equals(data.domain, 'telios.app');
-    t.ok(data.verification.name);
-    t.ok(data.verification.type);
-    t.ok(data.verification.value);
+    t.equals(data.name, 'telios.app');
+    t.ok(data.dns.vcode.name)
+    t.ok(data.dns.vcode.type)
+    t.ok(data.dns.vcode.value)
   })
 })
 
@@ -106,7 +106,7 @@ test('verify domain DNS settings are properly set', async t => {
 })
 
 test('get domain by name', async t => {
-  t.plan(4)
+  t.plan(8)
 
   channel.send({
     event: 'domain:getDomainByName',
@@ -125,7 +125,11 @@ test('get domain by name', async t => {
     t.equals(data.name, 'telios.app')
     t.equals(data.verified, true)
     t.equals(data.active, true)
-    t.equals(data.dkim, '')
+    t.ok(data.dns.vcode)
+    t.ok(data.dns.mx)
+    t.ok(data.dns.spf)
+    t.ok(data.dns.dkim)
+    t.ok(data.dns.dmarc)
   })
 })
 

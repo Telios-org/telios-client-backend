@@ -36,15 +36,25 @@ export default async (props: DomainOpts) => {
       
       const res = await Domain.register(payload)
 
-      const domain: DomainSchema = await domainModel.insert({ 
+      const doc = { 
         name: payload.domain,
         verified: false,
         active: false,
+        dns: {
+          vcode: {
+            type: res.verification.type,
+            name: res.verification.name,
+            value: res.verification.value,
+            verified: false
+          }
+        },
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
-      })
+      }
+
+      const domain: DomainSchema = await domainModel.insert(doc)
       
-      channel.send({ event: 'domain:register:callback', data: res })
+      channel.send({ event: 'domain:register:callback', data: domain })
     } catch(err: any) {
       channel.send({
         event: 'domain:register:callback',
@@ -157,41 +167,45 @@ export default async (props: DomainOpts) => {
     const domainModel = store.models.Domain
 
     try {
+      const domain: DomainSchema = await domainModel.findOne({ name: payload.domain }) 
       const records = await Domain.verifyDNS(payload.domain)
-      let MXVerified = false
-      let SPFVerified = false
-      let DKIMVerified = false
-      let DMARCVerified = false
-      let dkim = {
-        value: ""
-      }
+      
+      let mx
+      let spf
+      let dkim
+      let dmarc
 
       for(const record of records) {
         if(record.type === 'MX' && record.verified) {
-          MXVerified = true
+          mx = record
         }
   
         if(record.type === 'TXT' && record.value.indexOf('spf') > -1 && record.verified) {
-          SPFVerified = true
+          spf = record
         }
   
         if(record.type === 'TXT' && record.name.indexOf('dkim') > -1 && record.verified) {
-          DKIMVerified = true
-          dkim.value = record.value
+          dkim = record
         }
   
         if(record.type === 'TXT' && record.name.indexOf('_dmarc') > -1 && record.verified) {
-          DMARCVerified = true
+          dmarc = record
         }
       }
 
-      if(MXVerified && SPFVerified && DKIMVerified && DMARCVerified) {
+      if(!domain.active) {
         await domainModel.update({ 
           name: payload.domain 
         }, 
         { 
-          active: true, 
-          dkim: dkim.value, 
+          dns: {
+            vcode: domain.dns.vcode,
+            mx,
+            spf,
+            dkim,
+            dmarc
+          },
+          active: mx.verified && spf.verified && dkim.verified && dmarc.verified,
           updatedAt: UTCtimestamp() 
         })
       }
