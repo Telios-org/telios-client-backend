@@ -215,7 +215,6 @@ export interface MigrateSchema {
 export interface DomainSchema {
   _id?: any
   name: string
-  verified?: boolean
   active?: boolean
   dns: {
     vcode?: {

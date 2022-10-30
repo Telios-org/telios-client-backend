@@ -38,7 +38,6 @@ export default async (props: DomainOpts) => {
 
       const doc = { 
         name: payload.domain,
-        verified: false,
         active: false,
         dns: {
           vcode: {
@@ -135,14 +134,19 @@ export default async (props: DomainOpts) => {
     try {
       const domainModel = store.models.Domain
       const res = await Domain.verifyOwnership(payload.domain)
+      const domain: DomainSchema = await domainModel.findOne({ name: payload.domain})
 
       // If verified, then update domain record
       if(res.verified) {
+
+        if(domain.dns.vcode)
+          domain.dns.vcode.verified = true
+
         await domainModel.update({ 
           name: payload.domain 
         }, 
         { 
-          verified: true,
+          dns: domain.dns,
           updatedAt: UTCtimestamp() 
         })
       }
@@ -168,30 +172,7 @@ export default async (props: DomainOpts) => {
 
     try {
       const domain: DomainSchema = await domainModel.findOne({ name: payload.domain }) 
-      const records = await Domain.verifyDNS(payload.domain)
-      
-      let mx
-      let spf
-      let dkim
-      let dmarc
-
-      for(const record of records) {
-        if(record.type === 'MX' && record.verified) {
-          mx = record
-        }
-  
-        if(record.type === 'TXT' && record.value.indexOf('spf') > -1 && record.verified) {
-          spf = record
-        }
-  
-        if(record.type === 'TXT' && record.name.indexOf('dkim') > -1 && record.verified) {
-          dkim = record
-        }
-  
-        if(record.type === 'TXT' && record.name.indexOf('_dmarc') > -1 && record.verified) {
-          dmarc = record
-        }
-      }
+      const dns = await Domain.verifyDNS(payload.domain)
 
       if(!domain.active) {
         await domainModel.update({ 
@@ -200,17 +181,17 @@ export default async (props: DomainOpts) => {
         { 
           dns: {
             vcode: domain.dns.vcode,
-            mx,
-            spf,
-            dkim,
-            dmarc
+            mx: dns.mx,
+            spf: dns.spf,
+            dkim: dns.dkim,
+            dmarc: dns.dmarc
           },
-          active: mx.verified && spf.verified && dkim.verified && dmarc.verified,
+          active: dns.mx.verified && dns.spf.verified && dns.dkim.verified && dns.dmarc.verified,
           updatedAt: UTCtimestamp() 
         })
       }
 
-      channel.send({ event: 'domain:verifyDNS:callback', data: records })
+      channel.send({ event: 'domain:verifyDNS:callback', data: dns })
     } catch(err: any) {
       channel.send({
         event: 'domain:verifyDNS:callback',

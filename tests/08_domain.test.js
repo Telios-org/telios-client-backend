@@ -85,28 +85,28 @@ test('verify domain DNS settings are properly set', async t => {
 
     console.log('SUCCESS :: ', data)
 
-    for(const record of data) {
-      if(record.type === 'MX' && record.verified) {
-        t.ok(record.value, 'MX Record verified');
+    for(const key in data) {
+      if(data[key].type === 'MX' && data[key].verified) {
+        t.ok(data[key].value, 'MX Record verified');
       }
 
-      if(record.type === 'TXT' && record.value.indexOf('spf') > -1 && record.verified) {
-        t.ok(record.value, 'SPF Record verified');
+      if(data[key].type === 'TXT' && data[key].value.indexOf('spf') > -1 && data[key].verified) {
+        t.ok(data[key].value, 'SPF Record verified');
       }
 
-      if(record.type === 'TXT' && record.name.indexOf('dkim') > -1 && record.verified) {
-        t.ok(record.name, 'DKIM Record verified');
+      if(data[key].type === 'TXT' && data[key].name.indexOf('dkim') > -1 && data[key].verified) {
+        t.ok(data[key].name, 'DKIM Record verified');
       }
 
-      if(record.type === 'TXT' && record.name.indexOf('_dmarc') > -1 && record.verified) {
-        t.ok(record.name, 'DMARC Record verified');
+      if(data[key].type === 'TXT' && data[key].name.indexOf('_dmarc') > -1 && data[key].verified) {
+        t.ok(data[key].name, 'DMARC Record verified');
       }
     }
   })
 })
 
 test('get domain by name', async t => {
-  t.plan(8)
+  t.plan(7)
 
   channel.send({
     event: 'domain:getDomainByName',
@@ -123,7 +123,6 @@ test('get domain by name', async t => {
     console.log('SUCCESS :: ', data)
 
     t.equals(data.name, 'telios.app')
-    t.equals(data.verified, true)
     t.equals(data.active, true)
     t.ok(data.dns.vcode)
     t.ok(data.dns.mx)
