@@ -175,6 +175,9 @@ export default async (props: DomainOpts) => {
       const dns = await Domain.verifyDNS(payload.domain)
 
       if(!domain.active) {
+        if(domain.dns.vcode)
+          domain.dns.vcode.verified = true
+        
         await domainModel.update({ 
           name: payload.domain 
         }, 
