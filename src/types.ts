@@ -151,7 +151,13 @@ export interface DomainMessage {
         | 'domain:registerMailbox'
         | 'domain:updateMailbox'
         | 'domain:deleteMailbox'
-  payload: any
+  payload: {
+    name: string
+    email: string
+    domain: string
+    deviceType: 'DESKTOP' | 'MOBILE'
+    recoveryEmail: string
+  }
 }
 
 export interface AccountOpts {

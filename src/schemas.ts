@@ -16,6 +16,7 @@ export declare interface StoreSchema {
     crypto: any
     domain: any
   }
+  env: 'development' | 'production' | 'test'
   drive: any
   encryptionKey: any
   teliosPubKey: string
@@ -83,9 +84,15 @@ export interface AccountSchema {
 
 export interface MailboxSchema {
   _id?: any,
-  mailboxId: string
+  mailboxId: number
   address: string
   name?: string
+  password?: string
+  mnemonic?: string
+  domainKey?: string
+  driveEncryptionKey?: string
+  drivePubKey?: string
+  syncCode?: string
   // Timestamps
   createdAt?: string
   updatedAt?: string

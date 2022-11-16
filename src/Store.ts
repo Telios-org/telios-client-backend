@@ -19,6 +19,7 @@ import { DomainModel } from './models/domain.model'
 
 export class Store extends EventEmitter{
   public sdk
+  public env: string
   public drive: any
   public encryptionKey: any
   public teliosPubKey: string

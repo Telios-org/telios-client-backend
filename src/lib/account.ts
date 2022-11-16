@@ -94,8 +94,7 @@ export default async (props: AccountOpts) => {
 
       const registerPayload = {
         account,
-        sig: accountSig,
-        vcode: payload.vcode,
+        sig: accountSig
       }
 
       const { _sig: serverSig } = await Account.register(registerPayload) // Register account with API server
