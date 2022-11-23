@@ -5,7 +5,7 @@ const path = require('path')
 const Channel = require('./helper')
 
 test('migrate old account', async t => {
-  t.plan(2)
+  t.plan(1)
   
   const channel = new Channel(path.join(__dirname, 'Migrate'))
 
@@ -16,8 +16,8 @@ test('migrate old account', async t => {
   channel.send({
     event: 'account:login',
     payload: {
-      email: 'betatest1@dev.telios.io',
-      password: 'let me in 1234'
+      email: '',
+      password: ''
     }
   })
 
