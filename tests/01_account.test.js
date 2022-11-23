@@ -4,7 +4,6 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { account } = require('@telios/client-sdk/lib/routes')
 
 let _channel
 let _account

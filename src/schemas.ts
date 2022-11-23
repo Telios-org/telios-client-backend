@@ -61,6 +61,7 @@ export interface DeviceSchema {
   deviceType?: string,
   serverSig?: string
   driveSyncingPublicKey?: string
+  driveVersion: string
 }
 
 export interface AccountSchema {
@@ -78,6 +79,7 @@ export interface AccountSchema {
   deviceId?: string
   serverSig?: string
   deviceInfo? : DeviceSchema
+  mnemonic: string
   // Timestamps
   createdAt?: string
   updatedAt?: string

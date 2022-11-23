@@ -59,7 +59,6 @@ export class Store extends EventEmitter{
     this.IPFSGateway = IPFSGateway || 'https://ipfs.filebase.io/ipfs'
 
     this.env = env
-
     
     this.models = {
       // @ts-ignore
@@ -102,8 +101,10 @@ export class Store extends EventEmitter{
           secretKey: ''
         },
         deviceId: '',
-        serverSig: ''
-      }
+        serverSig: '',
+        driveVersion: ''
+      },
+      mnemonic: ''
     }
 
     this._authPayload = {
@@ -151,7 +152,7 @@ export class Store extends EventEmitter{
       checkNetworkStatus: true,
       syncFiles: false,
       blind: blind ? blind : false,
-      broadcast,
+      broadcast: true,
       swarmOpts: {
         server: true,
         client: true

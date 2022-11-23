@@ -8,6 +8,7 @@ const fetch = require('node-fetch')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
+const pump = require('pump')
 
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
   return new Promise((resolve, reject) => {
@@ -139,6 +140,24 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
     } else {
       reject(`Unable to establish a readable stream for file ${opts.file.filename}`)
     }
+  })
+}
+
+export const syncRecoveryFiles = async (opts: { fileName: string, dest: string, store: any, drive: any }): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const fileSyncInt = setInterval(async () => {
+      try {
+        const fileData = await opts.drive.metadb.findOne({ path: `/${opts.fileName}` })
+        clearInterval(fileSyncInt)
+        const stream = await getFileByCID({ cid: fileData.custom_data.cid, IPFSGateway: opts.store.IPFSGateway, async: true })
+        const ws = fs.createWriteStream(opts.dest)
+        pump(stream, ws, async (err: any) => {
+          if(err) return reject(err)
+          const file = fs.readFileSync(opts.dest)
+          return resolve(file)
+        })
+      } catch(e) {}
+    }, 1000)
   })
 }
 

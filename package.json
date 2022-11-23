@@ -5,16 +5,14 @@
   "main": "index.js",
   "files": [
     "index.js",
-    "dist/*",
-    "migrations/*"
+    "dist/*"
   ],
   "scripts": {
     "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
-    "test-main": "npm run build; tape tests/*.test.js | tap-spec",
-    "sync": "npm run build; tape tests/sync_test.js | tap-spec",
+    "test-main": "npm run build; tape tests/00_migrate.test.js | tap-spec",
+    "sync": "npm run build; tape tests/07_remoteSync.test.js | tap-spec",
     "prepare": "npm run build",
-    "build": "tsc",
-    "preinstall": "npx force-resolutions --force"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -29,8 +27,8 @@
   "dependencies": {
     "@hyperswarm/dht": "5.0.17",
     "@telios/client-sdk": "^6.2.5",
-    "@telios/nebula": "^3.4.13",
-    "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
+    "@telios/nebula": "^4.0.0",
+    "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
@@ -42,17 +40,12 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@journeyapps/sqlcipher": "^5.3.1",
     "@types/node": "^17.0.8",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
-    "npm-force-resolutions": "^0.0.10",
     "tap-spec": "^2.2.2",
     "tape": "^5.4.0",
     "tape-promise": "^4.0.0",
     "typescript": "^4.5.4"
-  },
-  "resolutions": {
-    "@hyperswarm/dht": "5.0.17"
   }
 }
