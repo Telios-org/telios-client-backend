@@ -502,44 +502,61 @@ export default async (props: AccountOpts) => {
         keyPair
       })
 
-      _drive.on('remote-cores-downloaded', async () => {
-        channel.send({ event: 'debug', data: 'REMOTE CORES DOWNLOADED'})
-        try {
-          // Step 5. Set Device info and login
-          const deviceId = uuidv4()
-
-          accountModel.setDeviceInfo({
-            keyPair,
-            deviceId: deviceId,
-            deviceType: payload.deviceType,
-            driveSyncingPublicKey: driveKey,
-            driveVersion: "2.0"
-          }, payload.password)
-
-          await _drive._localDB.put('vault', { isSet: true })
-
-          await _drive.close()
-
-          driveSynced = true
-          
-          setTimeout(() => {
-            channel.send({ event: 'debug', data: 'START LOGIN'})
-            login(keyPair)
-          }, 2000)
-        } catch(err:any) {
-          channel.send({
-            event: 'account:sync:callback',
-            error: { 
-              name: err.name, 
-              message: err.message, 
-              stack: err.stack 
-            },
-            data: null
-          })
-        }
-      })
-
       await _drive.ready()
+
+      const checkDataInt = setInterval(async () => {
+        let acctDocs
+        let mboxDocs
+        let folderDocs
+
+        const acctCol = await _drive.database.collection('Account')
+        const mboxCol = await _drive.database.collection('Mailbox')
+        const folderCol = await _drive.database.collection('Folder')
+
+        acctDocs = await acctCol.find()
+        mboxDocs = await mboxCol.find()
+        folderDocs = await folderCol.find()
+
+        channel.send({ event: 'debug', data: { acctDocs, mboxDocs, folderDocs }})
+
+        if(acctDocs.length && mboxDocs.length && folderDocs.length) {
+          clearInterval(checkDataInt)
+          channel.send({ event: 'debug', data: 'REMOTE CORES DOWNLOADED'})
+          try {
+            // Step 5. Set Device info and login
+            const deviceId = uuidv4()
+
+            accountModel.setDeviceInfo({
+              keyPair,
+              deviceId: deviceId,
+              deviceType: payload.deviceType,
+              driveSyncingPublicKey: driveKey,
+              driveVersion: "2.0"
+            }, payload.password)
+
+            await _drive._localDB.put('vault', { isSet: true })
+
+            await _drive.close()
+
+            driveSynced = true
+            
+            setTimeout(() => {
+              channel.send({ event: 'debug', data: 'START LOGIN'})
+              login(keyPair)
+            }, 2000)
+          } catch(err:any) {
+            channel.send({
+              event: 'account:sync:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              },
+              data: null
+            })
+          }
+        }
+      }, 5000)
 
       fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/recovery'), recoveryFile)
       fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/vault'), vaultFile)
