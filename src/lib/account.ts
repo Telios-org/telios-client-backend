@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
 const pump = require('pump')
 const Drive = require('@telios/nebula')
-const Migrate = require('@telios/nebula-migrate')
+// const Migrate = require('@telios/nebula-migrate')
 
 import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
@@ -776,33 +776,33 @@ export default async (props: AccountOpts) => {
           channel.send({ event: 'account:login:status', data: 'Account authorized' })
         }
 
-        if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
-          try {
-            channel.send({ event: 'account:login:status', data: 'Migrating account data' })
-            await Migrate({ 
-              rootdir: acctPath, 
-              drivePath: '/Drive', 
-              encryptionKey: Buffer.from(encryptionKey, 'hex'), 
-              keyPair: {
-                publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-                secretKey: Buffer.from(keyPair.secretKey, 'hex')
-              }
-            })
-            channel.send({ event: 'account:login:status', data: 'Account data migrated' })
+        // if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
+        //   try {
+        //     channel.send({ event: 'account:login:status', data: 'Migrating account data' })
+        //     await Migrate({ 
+        //       rootdir: acctPath, 
+        //       drivePath: '/Drive', 
+        //       encryptionKey: Buffer.from(encryptionKey, 'hex'), 
+        //       keyPair: {
+        //         publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+        //         secretKey: Buffer.from(keyPair.secretKey, 'hex')
+        //       }
+        //     })
+        //     channel.send({ event: 'account:login:status', data: 'Account data migrated' })
 
-            deviceInfo = { ...deviceInfo, driveVersion: "2.0" }
-            accountModel.setDeviceInfo(deviceInfo, payload.password)
-          } catch(err:any) {
-            return channel.send({
-              event: 'account:login:callback',
-              error: { 
-                name: err.name, 
-                message: err.message, 
-                stack: err.stack 
-              }
-            })
-          }
-        }
+        //     deviceInfo = { ...deviceInfo, driveVersion: "2.0" }
+        //     accountModel.setDeviceInfo(deviceInfo, payload.password)
+        //   } catch(err:any) {
+        //     return channel.send({
+        //       event: 'account:login:callback',
+        //       error: { 
+        //         name: err.name, 
+        //         message: err.message, 
+        //         stack: err.stack 
+        //       }
+        //     })
+        //   }
+        // }
 
         // Initialize drive
         drive = store.setDrive({
