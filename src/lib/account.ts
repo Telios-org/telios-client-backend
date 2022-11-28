@@ -401,6 +401,8 @@ export default async (props: AccountOpts) => {
       secretKey: signingKeypair.privateKey
     }
 
+    channel.send({ event: 'account:sync:callback', data: { status: 'Initializing new account' }})
+
     let drive = new Drive(`${acctPath}/Drive2`, driveKey, {
       broadcast: false,
       blind: true,
@@ -415,6 +417,7 @@ export default async (props: AccountOpts) => {
     // Step 4. Begin replication
     try {
       await drive.ready()
+      channel.send({ event: 'account:sync:callback', data: { status: 'Starting data migration' }})
     } catch(err:any) {
       //@ts-ignore
       await drive.close()
@@ -446,9 +449,6 @@ export default async (props: AccountOpts) => {
     //   }
     // }, 60000)
 
-
-    channel.send({ event: 'debug', data: 'PRE RECOVERY FILES'})
-
     try {
       // Sync Recovery file
       const recoveryFile = await FileUtil.syncRecoveryFiles({ 
@@ -458,6 +458,7 @@ export default async (props: AccountOpts) => {
         store 
       })
 
+      channel.send({ event: 'account:sync:callback', data: { status: 'Synced recovery file' }})
       hasRecovery = true
 
       // Sync Vault file
@@ -468,32 +469,21 @@ export default async (props: AccountOpts) => {
         store 
       })
 
+      channel.send({ event: 'account:sync:callback', data: { status: 'Synced vault file' }})
       hasVault = true
-      
-      channel.send({ event: 'debug', data: 'PRE DECIPHER VAULT'})
 
       const vault = accountModel.getVault(password, 'vault', path.join(`${acctPath}/Drive2/Files/`, '/vault'))
       encryptionKey = vault.drive_encryption_key
 
+      channel.send({ event: 'account:sync:callback', data: { status: 'Vault file deciphered' }})
+
       // // Close the drive so we can restart it with the encryption key
-      channel.send({ event: 'debug', data: 'pre drive close'})
       await drive.close()
       rmdir(`${acctPath}/Drive2`)
-      channel.send({ event: 'debug', data: 'drive closed'})
       drive = null
       
-      // channel.send({ event: 'debug', data: 'Drive Closed'})
-      channel.send({ event: 'debug', data: 'starting new drive'})
-      // let _drive = new Drive(`${acctPath}/Drive`, driveKey, {
-      //   encryptionKey: Buffer.from(encryptionKey),
-      //   broadcast: true,
-      //   syncFiles: false,
-      //   swarmOpts: {
-      //     server: true,
-      //     client: true
-      //   },
-      //   fullTextSearch: true
-      // })
+
+      channel.send({ event: 'account:sync:callback', data: { status: 'Starting new account drive' }})
 
       const _drive = store.setDrive({
         name: `${acctPath}/Drive`,
@@ -517,11 +507,11 @@ export default async (props: AccountOpts) => {
         mboxDocs = await mboxCol.find()
         folderDocs = await folderCol.find()
 
-        channel.send({ event: 'debug', data: { acctDocs, mboxDocs, folderDocs }})
+        channel.send({ event: 'account:sync:callback', data: { status: 'Syncing data from peer device' }})
 
         if(acctDocs.length && mboxDocs.length && folderDocs.length) {
           clearInterval(checkDataInt)
-          channel.send({ event: 'debug', data: 'REMOTE CORES DOWNLOADED'})
+          channel.send({ event: 'account:sync:callback', data: { status: 'Data sync complete' }})
           try {
             // Step 5. Set Device info and login
             const deviceId = uuidv4()
@@ -538,10 +528,12 @@ export default async (props: AccountOpts) => {
 
             await _drive.close()
 
+            channel.send({ event: 'account:sync:callback', data: { status: 'New account drive closed' }})
+
             driveSynced = true
             
             setTimeout(() => {
-              channel.send({ event: 'debug', data: 'START LOGIN'})
+              channel.send({ event: 'account:sync:callback', data: { status: 'Logging in to synced account' }})
               login(keyPair)
             }, 2000)
           } catch(err:any) {
@@ -561,7 +553,7 @@ export default async (props: AccountOpts) => {
       fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/recovery'), recoveryFile)
       fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/vault'), vaultFile)
 
-      channel.send({ event: 'debug', data: 'Drive Ready'})
+      channel.send({ event: 'account:sync:callback', data: { status: 'New drive ready' }})
     } catch(err:any) {
       channel.send({ event: 'debug', data: { message: err.message, stack: err.stack } })
       await drive.close()
@@ -759,9 +751,11 @@ export default async (props: AccountOpts) => {
     } catch(err:any) {
       // file does not exist
     }
-
+    
     try {
       try {
+        channel.send({ event: 'account:login:status', data: 'Decrypting account data' })
+        
         // Retrieve drive encryption key from vault using master password
         let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
 
@@ -779,12 +773,12 @@ export default async (props: AccountOpts) => {
 
         if(encryptionKey && keyPair) {
           // Notify the receiver the master password has been authenticated
-          channel.send({ event: 'account:authorized' })
+          channel.send({ event: 'account:login:status', data: 'Account authorized' })
         }
 
         if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
           try {
-            channel.send({ event: 'debug', data: 'START MIGRATION...'})
+            channel.send({ event: 'account:login:status', data: 'Migrating account data' })
             await Migrate({ 
               rootdir: acctPath, 
               drivePath: '/Drive', 
@@ -794,7 +788,7 @@ export default async (props: AccountOpts) => {
                 secretKey: Buffer.from(keyPair.secretKey, 'hex')
               }
             })
-            channel.send({ event: 'debug', data: 'MIGRATION DONE...'})
+            channel.send({ event: 'account:login:status', data: 'Account data migrated' })
 
             deviceInfo = { ...deviceInfo, driveVersion: "2.0" }
             accountModel.setDeviceInfo(deviceInfo, payload.password)
@@ -820,7 +814,9 @@ export default async (props: AccountOpts) => {
 
         handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
 
+        channel.send({ event: 'account:login:status', data: 'Starting account drive' })
         await drive.ready()
+        channel.send({ event: 'account:login:status', data: 'Account drive ready' })
 
         store.setDriveStatus('ONLINE')
 
@@ -845,6 +841,8 @@ export default async (props: AccountOpts) => {
       await store.initModels()
 
       let account = await accountModel.findOne()
+
+      channel.send({ event: 'account:login:status', data: 'Account initalized' })
       
       // Monkey patch: Support older accounts when this info was stored in the account collection
       if(!deviceInfo && account.deviceId && account.serverSig) {
@@ -868,6 +866,8 @@ export default async (props: AccountOpts) => {
             device_id: deviceInfo.deviceId,
             device_signing_key: keyPair.publicKey.toString('hex')
           }, account.signingPrivKey)
+
+          channel.send({ event: 'account:login:status', data: 'Registered new device' })
 
           deviceInfo = { serverSig: sig, ...deviceInfo }
           accountModel.setDeviceInfo(deviceInfo, payload.password)
@@ -912,13 +912,17 @@ export default async (props: AccountOpts) => {
       // Fully sync account when registering a new device.
       // This method will fetch and sync all files from IPFS
       if(kp) {
+        channel.send({ event: 'account:login:status', data: 'Syncing data from peer devices' })
         await syncNewDevice(drive)
+        channel.send({ event: 'account:login:status', data: 'Data sync finished' })
       }
 
       // Check if Drive's Vault and Recovery files needs to be pushed out to IPFS
       // TODO: Deprecate this in the future. New accounts won't need to do this
       if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
+        channel.send({ event: 'account:login:status', data: 'Migrating vault file to IPFS' })
         await migrateVaultToIPFS()
+        channel.send({ event: 'account:login:status', data: 'Vault migrated to IPFS' })
       }
 
       handleDriveSyncEvents() // Listen for and sync updates from remote peers/devices
@@ -1200,64 +1204,6 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
       channel.send({ event: 'drive:network:updated', data: { network } })
     }
   )
-}
-
-async function runMigrate(rootdir:string, drivePath: string, password: any, store: StoreSchema) {
-  
-    // // Migrate from old Hypercore v10 to newer version of v10
-    // const driveFiles = fs.readdirSync(rootdir)
-    // if(driveFiles.indexOf('app.db') > -1) {
-    //   const filePath = `${path.join(__dirname, '../../', 'migrations')}/00_initial.js`
-    //   const Script = require(filePath)
-
-    //   const { account, mnemonic, encryptionKey, keyPair } = await Script.up({ rootdir, drivePath, password })
-
-    //   const drive = store.setDrive({
-    //     name: `${rootdir}/${drivePath}`,
-    //     encryptionKey,
-    //     keyPair
-    //   })
-
-    //   await drive.ready()
-
-    //   store.setDriveStatus('ONLINE')
-
-    //   // Initialize models
-    //   await store.initModels()
-
-    //   const accountModel = store.models.Account
-
-    //   const _id = new ObjectID()
-
-    //   // Save account to drive's Account collection
-    //   const acctDoc = await accountModel.insert({
-    //     _id,
-    //     accountId: _id.toString('hex'),
-    //     uid: account.uid,
-    //     secretBoxPubKey: account.secretBoxPubKey,
-    //     secretBoxPrivKey: account.secretBoxPrivKey,
-    //     driveSyncingPublicKey: drive.publicKey,
-    //     driveEncryptionKey: encryptionKey,
-    //     createdAt: UTCtimestamp(),
-    //     updatedAt: UTCtimestamp(),
-    //   })
-
-    //   // Create recovery file with master pass
-    //   await accountModel.setVault(mnemonic, 'recovery', {
-    //     master_pass: password,
-    //   })
-
-    //   // Create vault file with drive enryption key
-    //   await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
-
-    //   return { 
-    //     mnemonic,
-    //     encryptionKey,
-    //     keyPair,
-    //     account: acctDoc,
-    //     drive
-    //   }
-    // }
 }
 
 function rmdir(dir:string) {

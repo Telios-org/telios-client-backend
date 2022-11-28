@@ -45,12 +45,6 @@ test('sync account with another device/peer', async t => {
 
     console.log('SYNC CODE', data)
 
-
-
-    channel2.on('debug', data => {
-      console.log('DEBUG2', data)
-    })
-
     // 3. Device B - Start sync with Device A sync data
     channel2.send({
       event: 'account:sync',
@@ -68,13 +62,18 @@ test('sync account with another device/peer', async t => {
       
       if(error) t.fail(error.message)
 
-      // if(data && data.files && data.files.done) {
-      //   t.ok(1, 'Drive finished syncing all files')
-      // }
+      if(data.status) {
+        console.log(`SYNC STATUS: ${data.status}...`)
+      }
 
       if(data && data.searchIndex && data.searchIndex.emails && data.searchIndex.contacts) {
         t.ok(1, 'Drive finished creating new search indexes')
       }
+    })
+
+    channel2.on('account:login:status', cb => {
+      const { data } = cb
+      console.log(`LOGIN STATUS: ${data}...`)
     })
 
     // 5. Device B - Listen for successful login. Once we're here the user can go to the main mailbox view
