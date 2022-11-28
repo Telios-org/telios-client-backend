@@ -873,7 +873,7 @@ export default async (props: EmailOpts) => {
     try {
       const drive = store.getDrive()
 
-      const { filepath, attachments } = payload
+      const { filepath, attachments, recursive = true } = payload
 
       const File = store.models.File
 
@@ -891,7 +891,7 @@ export default async (props: EmailOpts) => {
 
           _filepath = _filepath.join('/')
 
-          fs.mkdirSync(_filepath, { recursive: true })
+          fs.mkdirSync(_filepath, { recursive: recursive })
 
           if(attachments.length === 1) {
             _filepath = path.join(_filepath, filename)
