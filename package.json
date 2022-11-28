@@ -13,8 +13,7 @@
     "test-main": "npm run build; tape tests/*.test.js | tap-spec",
     "sync": "npm run build; tape tests/sync_test.js | tap-spec",
     "prepare": "npm run build",
-    "build": "tsc",
-    "preinstall": "npx force-resolutions --force"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -29,24 +28,28 @@
   "dependencies": {
     "@hyperswarm/dht": "5.0.17",
     "@telios/client-sdk": "^6.2.5",
-    "@telios/nebula": "^3.4.13",
-    "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate.git",
+    "@telios/nebula": "^4.0.0",
+    "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
+    "autobase": "https://github.com/hypercore-protocol/autobase",
     "blakejs": "^1.2.1",
+    "corestore": "^6.2.0",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
+    "hyperbee": "^2.2.0",
+    "hypercore": "^10.5.0",
+    "hyperswarm": "^4.3.5",
     "luxon": "^2.3.1",
     "memorystream": "^0.3.1",
     "node-fetch": "^2.6.7",
+    "random-access-file": "^4.0.0",
     "remove-markdown": "^0.3.0",
     "socket.io-client": "^4.5.2",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@journeyapps/sqlcipher": "^5.3.1",
     "@types/node": "^17.0.8",
     "cross-env": "^7.0.3",
     "del": "^6.0.0",
-    "npm-force-resolutions": "^0.0.10",
     "tap-spec": "^2.2.2",
     "tape": "^5.4.0",
     "tape-promise": "^4.0.0",
