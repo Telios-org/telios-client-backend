@@ -858,27 +858,6 @@ export default async (props: AccountOpts) => {
             }
           })
         }
-
-        try {
-          const data = await runMigrate(acctPath, '/Drive', payload.password, store)
-    
-          mnemonic = data?.mnemonic
-          encryptionKey = data?.encryptionKey
-          keyPair = data?.keyPair
-          drive = data?.drive
-    
-        } catch(err:any) {
-          if(drive) await drive.close()
-          
-          return channel.send({
-            event: 'account:login:callback',
-            error: { 
-              name: err.name, 
-              message: err.message, 
-              stack: err.stack 
-            }
-          })
-        }
       }
 
       // Initialize models
@@ -1286,99 +1265,6 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
       channel.send({ event: 'drive:network:updated', data: { network } })
     }
   )
-}
-
-async function runMigrate(rootdir:string, drivePath: string, password: any, store: StoreSchema) {
-  try {
-    const migrateModel = store.models.Migrate
-    const Migrate = await migrateModel.ready()
-
-    let migrations: any[] = await Migrate.find()
-
-    // Get previously ran migrations from DB
-    migrations = migrations.map((item: any) => {
-      return item.name
-    })
-
-    // Check migrations directory for migration files
-    const files = fs.readdirSync(path.join(__dirname, '..', 'migrations'))
-
-    // If no migrations have run add all migrations to migrate collection. 
-    // This case should run when creating a fresh new account.
-    if(migrations.length === 0) {
-      for(const file of files) {
-        await Migrate.insert({ name: file })  
-      }
-    } else {
-      // Get an array of files that have not been ran
-      const difference = files.filter((item:any) => migrations.includes(item))
-
-      // Run migrations
-      for(const file of difference) {
-        const filePath = `${path.join(__dirname, '../../', 'migrations')}/${file}`
-        const Script = require(filePath)
-        await Script.up({ rootdir, drivePath, password })
-        await Migrate.insert({ name: file }) // Save migrated file to DB
-      }
-    }
-  } catch(err:any) {
-    // Migrate from old Hypercore v10 to newer version of v10
-    if(err.message.indexOf('Cannot read property') > -1) {
-      const driveFiles = fs.readdirSync(rootdir)
-      if(driveFiles.indexOf('app.db') > -1) {
-        const filePath = `${path.join(__dirname, '../../', 'migrations')}/00_initial.js`
-        const Script = require(filePath)
-
-        const { account, mnemonic, encryptionKey, keyPair } = await Script.up({ rootdir, drivePath, password })
-
-        const drive = store.setDrive({
-          name: `${rootdir}/${drivePath}`,
-          encryptionKey,
-          keyPair
-        })
-
-        await drive.ready()
-
-        store.setDriveStatus('ONLINE')
-
-        // Initialize models
-        await store.initModels()
-
-        const accountModel = store.models.Account
-
-        const _id = new ObjectID()
-
-        // Save account to drive's Account collection
-        const acctDoc = await accountModel.insert({
-          _id,
-          accountId: _id.toString('hex'),
-          uid: account.uid,
-          secretBoxPubKey: account.secretBoxPubKey,
-          secretBoxPrivKey: account.secretBoxPrivKey,
-          driveSyncingPublicKey: drive.publicKey,
-          driveEncryptionKey: encryptionKey,
-          createdAt: UTCtimestamp(),
-          updatedAt: UTCtimestamp(),
-        })
-
-        // Create recovery file with master pass
-        await accountModel.setVault(mnemonic, 'recovery', {
-          master_pass: password,
-        })
-
-        // Create vault file with drive enryption key
-        await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
-
-        return { 
-          mnemonic,
-          encryptionKey,
-          keyPair,
-          account: acctDoc,
-          drive
-        }
-      }
-    }
-  }
 }
 
 function rmdir(dir:string) {
