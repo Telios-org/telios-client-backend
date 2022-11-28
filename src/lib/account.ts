@@ -12,7 +12,6 @@ import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
 import * as FileUtil from '../util/file.util'
-import { devNull } from 'os';
 
 const BSON = require('bson')
 const { ObjectID } = BSON
