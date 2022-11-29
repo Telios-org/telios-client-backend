@@ -7,6 +7,7 @@ const RequestChunker = require('@telios/nebula/util/requestChunker')
 const pump = require('pump')
 const Drive = require('@telios/nebula')
 const Migrate = require('@telios/nebula-migrate')
+const Crypto = require('@telios/nebula/lib/crypto')
 
 import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
@@ -20,7 +21,6 @@ export default async (props: AccountOpts) => {
   const { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
   const Account = store.sdk.account
-  const Crypto = store.sdk.crypto
   
   /*************************************************
    *  CREATE ACCOUNT

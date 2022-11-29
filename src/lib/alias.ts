@@ -1,3 +1,5 @@
+const Crypto = require('@telios/nebula/lib/crypto')
+
 import { AliasOpts } from '../types'
 import {
   AccountSchema, 
@@ -17,8 +19,6 @@ export default async (props: AliasOpts) => {
   if (event === 'alias:registerAliasNamespace') {
     try {
       const { mailboxId, namespace } = payload
-
-      const Crypto = store.sdk.crypto
 
       const AliasNamespace = store.models.AliasNamespace
 
@@ -110,7 +110,6 @@ export default async (props: AliasOpts) => {
       let keypair
 
       const Alias = store.models.Alias
-      const Crypto = store.sdk.crypto
       const account: AccountSchema = store.getAccount()
 
       if(namespaceName) {
