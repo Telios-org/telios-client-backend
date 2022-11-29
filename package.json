@@ -27,6 +27,7 @@
   "dependencies": {
     "@telios/client-sdk": "^7.0.3",
     "@telios/nebula": "^4.0.4",
+    "autobase": "git+https://github.com/hypercore-protocol/autobase.git",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
