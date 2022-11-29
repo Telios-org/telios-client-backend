@@ -147,7 +147,12 @@ const payload = {
 
 #### `channel.send({ event: 'account:retrieveStats' })`
 
-#### `channel.send({ event: 'account:logout' })`
+#### `channel.send({ event: 'account:logout', [payload] })`
+
+
+```js
+const payload = { kill: false } // optionally log out of an account without killing the main node thread
+```
 
 #### `channel.send({ event: 'account:refreshToken' })`
 

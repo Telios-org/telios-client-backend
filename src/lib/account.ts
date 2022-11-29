@@ -652,13 +652,24 @@ export default async (props: AccountOpts) => {
    *  LOGOUT
    ************************************************/
   if (event === 'account:logout') {
+    let kill = true
+    
+    if(payload) {
+      kill = payload.kill
+    }
+
     try {
+      if(!kill) {
+        const drive = store.getDrive()
+        await drive.close()
+      }
+
       store.setAccountSecrets({ email: undefined, password: undefined })
       await store.setAccount(null, false)
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 
-      if (channel.pid) {
+      if (channel.pid && kill) {
         channel.kill(channel.pid)
       }
 

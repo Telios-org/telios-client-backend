@@ -58,7 +58,8 @@ export interface AccountMessage {
     newPass: string,
     driveKey: string,
     encryptionKey: string
-    mnemonic: string
+    mnemonic: string,
+    kill: boolean
   }
 }
 
