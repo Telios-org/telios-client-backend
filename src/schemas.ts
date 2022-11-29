@@ -34,7 +34,7 @@ export declare interface StoreSchema {
   setDriveStatus(string: DriveStatuses): any
   getDriveStatus(): DriveStatuses
   initModels(): Promise<void>
-  setAccount(account: AccountSchema | null): void
+  setAccount(account: AccountSchema | null, isNew: boolean): void
   getAccount(): AccountSchema
   setAccountSecrets(secrets: AccountSecrets): void
   getAccountSecrets(): AccountSecrets
@@ -50,6 +50,7 @@ export declare interface StoreSchema {
   getPeers(): Record<string, any>
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
+  killMatomo(): void
 }
 
 export interface DeviceSchema {

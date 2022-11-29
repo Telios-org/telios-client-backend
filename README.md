@@ -27,7 +27,7 @@ if (!fs.existsSync(path.join(cwd, 'app.asar'))) {
   cwd = null;
 }
 
-const child = fork(filePath, [userDataPath, 'development'], {
+const child = fork(filePath, [userDataPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
   stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
   cwd
 })
@@ -68,7 +68,7 @@ const userDataPath = bridge.app.datadir()
 const env = 'development'
 
 // Instantiate backend
-ClientBackend(channel, userDataPath, env)
+ClientBackend(channel, userDataPath, env, userAgent)
 
 channel.send({ 
   event: 'account:create', 

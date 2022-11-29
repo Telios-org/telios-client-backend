@@ -55,6 +55,10 @@ test('Reset password with passphrase', async t => {
   t.plan(1)
   const channel = new Channel(path.join(__dirname, 'Accounts'))
 
+  // channel.on('debug', data => {
+  //   console.log('DEBUG', data)
+  // })
+
   channel.send({
     event: 'account:resetPassword',
     payload: {

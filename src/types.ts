@@ -25,6 +25,7 @@ export interface ModelType {
 export interface MainOpts {
   channel: any
   userDataPath: string
+  userAgent: string
   env: 'development' | 'production' | 'test'
 }
 

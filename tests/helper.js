@@ -14,7 +14,7 @@ class Channel extends EventEmitter {
     if(!fs.existsSync(path.join(__dirname, 'Accounts')))
       fs.mkdirSync(path.join(__dirname, 'Accounts'), { recursive: true })
 
-    this.process = fork('./index', [dirPath, 'development'], {
+    this.process = fork('./index', [dirPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     })
 

@@ -43,7 +43,7 @@ export default async (props: AccountOpts) => {
       if(payload.mnemonic) {
         mnemonic = payload.mnemonic
       }
-      
+
       let encryptionKey = Crypto.generateAEDKey()
 
       if(!payload.encryptionKey) {
@@ -126,7 +126,7 @@ export default async (props: AccountOpts) => {
 
       //handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
-      await store.setAccount({...acctDoc, deviceInfo })
+      await store.setAccount({...acctDoc, deviceInfo}, true)
 
       store.setAccountSecrets({ email: payload.email, password: payload.password })
 
@@ -188,6 +188,7 @@ export default async (props: AccountOpts) => {
         }
       })
     } catch (err: any) {
+      store.killMatomo()
       channel.send({
         event: 'account:create:callback',
         error: {
@@ -251,7 +252,7 @@ export default async (props: AccountOpts) => {
 
       // handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
-      await store.setAccount(fullAcct)
+      await store.setAccount(fullAcct, false)
 
       let auth = {
         claims: {
@@ -277,7 +278,9 @@ export default async (props: AccountOpts) => {
       await drive.close()
 
       store.setAccountSecrets({ email: undefined, password: undefined })
-      store.setAccount(null)
+      store.setAccount(null, false)
+      
+      store.killMatomo()
 
       channel.send({
         event: 'account:resetPassword:callback',
@@ -286,6 +289,7 @@ export default async (props: AccountOpts) => {
         },
       })
     } catch(err: any) {
+      store.killMatomo()
       channel.send({
         event: 'account:resetPassword:callback',
         error: { 
@@ -650,13 +654,15 @@ export default async (props: AccountOpts) => {
   if (event === 'account:logout') {
     try {
       store.setAccountSecrets({ email: undefined, password: undefined })
-      await store.setAccount(null)
+      await store.setAccount(null, false)
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 
       if (channel.pid) {
         channel.kill(channel.pid)
       }
+
+      store.killMatomo()
     } catch (err: any) {
       channel.send({ 
         event: 'account:logout:callback', 
@@ -875,7 +881,7 @@ export default async (props: AccountOpts) => {
         }
       }
 
-      store.setAccount({...account, deviceInfo })
+      store.setAccount({...account, deviceInfo }, false)
 
       let auth = {
         claims: {
@@ -931,7 +937,7 @@ export default async (props: AccountOpts) => {
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
       if(drive) await drive.close()
-
+      store.killMatomo()
       channel.send({
         event: 'account:login:callback',
         error: { 

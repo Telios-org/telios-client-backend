@@ -15,6 +15,7 @@ import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
+import { Matomo } from './Matomo'
 
 export class Store extends EventEmitter{
   public sdk
@@ -36,8 +37,10 @@ export class Store extends EventEmitter{
   private _connections: Record<string, any>
   private _peers: Record<string, any>
   private _driveStatus: DriveStatuses = 'OFFLINE'
+  private _userAgent: string
+  private _matomo: any
 
-  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
+  constructor(env: 'development' | 'production' | 'test', userAgent: string, signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
     super()
     
     this._teliosSDK = new ClientSDK({ 
@@ -57,6 +60,8 @@ export class Store extends EventEmitter{
     }
 
     this.IPFSGateway = IPFSGateway || 'https://ipfs.filebase.io/ipfs'
+
+    this._userAgent = userAgent
 
     this.env = env
     
@@ -198,7 +203,7 @@ export class Store extends EventEmitter{
     }
   }
 
-  public async setAccount(account: AccountSchema) {
+  public async setAccount(account: AccountSchema, isNew: boolean) {
     this._account = account
 
     if(account) {
@@ -220,6 +225,10 @@ export class Store extends EventEmitter{
 
           this.setKeypair(keypair)
         }
+      }
+
+      if(!this._matomo) {
+        this._initMatomo(isNew)
       }
     }
   }
@@ -312,5 +321,25 @@ export class Store extends EventEmitter{
     }
 
     return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.keyPair?.secretKey);
+  }
+
+  public killMatomo() {
+    if(this._matomo) {
+      this._matomo.kill()
+      this._matomo = null
+    }
+  }
+
+  private _initMatomo(isNew: boolean) {
+    this._matomo = new Matomo(this._account, this._userAgent, this.env, envAPI)
+
+    let params = {
+      e_c: 'Account',
+      e_a: isNew ? 'Registered' : 'Signin',
+      new_visit: 1
+    }
+
+    this._matomo.event(params, () => { return this.refreshToken() })
+    this._matomo.heartBeat(30000, () => { return this.refreshToken() })
   }
 }

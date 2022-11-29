@@ -14,10 +14,10 @@ import { MainOpts } from './types'
 import { StoreSchema } from './schemas'
 
 export = (props: MainOpts) => {
-  const { channel, userDataPath, env } = props
+  const { channel, userDataPath, env, userAgent } = props
   let resource: any
   // @ts-ignore
-  let store: StoreSchema = new Store(env, null, null)
+  let store: StoreSchema = new Store(env, userAgent, null, null)
   let messageHandler = new MessageHandler(channel, store)
   
   channel.on('message', async (msg: any) => {
@@ -30,7 +30,7 @@ export = (props: MainOpts) => {
         const apiURL = env === 'production' ? resource.API_SERVER : resource.API_SERVER_TEST 
         const IPFSGateway = env === 'production' ? resource.IPFS_GATEWAY : resource.IPFS_GATEWAY_DEV
         // @ts-ignore`
-        store = new Store(env, signingPubKey, apiURL, IPFSGateway)
+        store = new Store(env, userAgent, signingPubKey, apiURL, IPFSGateway)
         messageHandler = new MessageHandler(channel, store)
       } catch(err:any) {
         // No internet connection
