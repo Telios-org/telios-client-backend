@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
 const pump = require('pump')
 const Drive = require('@telios/nebula')
-// const Migrate = require('@telios/nebula-migrate')
+const Migrate = require('@telios/nebula-migrate')
 const Crypto = require('@telios/nebula/lib/crypto')
 
 import { AccountOpts } from '../types'
@@ -795,15 +795,15 @@ export default async (props: AccountOpts) => {
         if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
           try {
             channel.send({ event: 'account:login:status', data: 'Migrating account data' })
-            // await Migrate({ 
-            //   rootdir: acctPath, 
-            //   drivePath: '/Drive', 
-            //   encryptionKey: Buffer.from(encryptionKey, 'hex'), 
-            //   keyPair: {
-            //     publicKey: Buffer.from(keyPair.publicKey, 'hex'),
-            //     secretKey: Buffer.from(keyPair.secretKey, 'hex')
-            //   }
-            // })
+            await Migrate({ 
+              rootdir: acctPath, 
+              drivePath: '/Drive', 
+              encryptionKey: Buffer.from(encryptionKey, 'hex'), 
+              keyPair: {
+                publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+                secretKey: Buffer.from(keyPair.secretKey, 'hex')
+              }
+            })
             channel.send({ event: 'account:login:status', data: 'Account data migrated' })
 
             deviceInfo = { ...deviceInfo, driveVersion: "2.0" }

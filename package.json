@@ -9,8 +9,8 @@
   ],
   "scripts": {
     "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
-    "test-main": "npm run build; tape tests/000_foo.test.js | tap-spec",
-    "sync": "npm run build; tape tests/07_remoteSync.test.js | tap-spec",
+    "test-main": "cross-env NODE_ENV=test_sdk npm run build; tape tests/000_debug.test.js | tap-spec",
+    "sync": "cross-env NODE_ENV=test_sdk npm run build; tape tests/07_remoteSync.test.js | tap-spec",
     "prepare": "npm run build",
     "build": "tsc"
   },
@@ -27,7 +27,7 @@
   "dependencies": {
     "@telios/client-sdk": "^7.0.3",
     "@telios/nebula": "^4.0.4",
-    
+    "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
