@@ -274,12 +274,13 @@ export default async (props: EmailOpts) => {
               let localPart = recipient.address.split('@')[0]
 
               try {
-                const alias: AliasSchema = await Alias.findOne({ name: localPart })
-
-                // Recipient is an alias.
-                if(alias) {
-                  isAlias = true
+                const aliases: AliasSchema[] = await Alias.find()
+                
+                for(const alias of aliases) {
+                  if(alias.name === localPart) {
+                    isAlias = true
                   aliasId = localPart
+                  }
                 }
               } catch(err: any) {
                 // not found
@@ -303,7 +304,13 @@ export default async (props: EmailOpts) => {
                 let aliasNamespace
 
                 try {
-                  aliasNamespace = await AliasNamespace.findOne({ name: recipAliasName })
+                  const aliasNamespaces = await AliasNamespace.find()
+
+                  for(const ns of aliasNamespaces) {
+                    if(ns.name === recipAliasName) {
+                      aliasNamespace = ns
+                    }
+                  }
                 } catch(err:any) {
 
                 }

@@ -5,6 +5,7 @@ const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
 const Drive = require('@telios/nebula')
+const { MockEmail } = require('./helper')
 
 
 test('account login success', async t => {
@@ -41,10 +42,6 @@ test('account login success', async t => {
       _channel.kill()
     }
 
-    await createBlindPeer('91cc1132b2cc523bc9691167d2920324f236e2542c820bedb77c0f56a0e58247')
-
-    // console.log('SUCCESS :: ', data)
-
     // const payload = {
     //   contactList: [{
     //     name: "Cee ROD",
@@ -56,13 +53,37 @@ test('account login success', async t => {
     // }
     // const contacts = await addContact(_channel, payload)
 
+    // for(let i=0; i < 15; i++) {
+    //   const payload = {
+    //     contactList: [{
+    //       name: `MY MAN~!!! ${i}${i}${i}${i}`,
+    //       givenName: 'Charles',
+    //       familyName: 'Rodriguez',
+    //       nickname: 'ccrr',
+    //       email: 'cc.rr@mail.com'
+    //     }]
+    //   }
+    //   addContact(_channel, payload)
+    // }
+
     // const contact = await getContactById(_channel, contacts[0]._id)
     // console.log(contact)
 
-    const contacts = await getAllContacts(_channel)
-    console.log(contacts)
+    // const contacts = await getAllContacts(_channel)
+    // console.log(contacts)
 
-    
+    console.log('PRE SAVE EMAIL TO DB')
+
+    // for(let i=0; i < 5; i++) {
+    //   saveEmailToDB(_channel, `TEST ${i}${i}${i}${i}`)
+    // }
+
+    const emails = await getEmailsByFolder(_channel)
+    console.log(emails)
+
+    // console.log('GET EMAIL BY _id')
+    // const email = await getEmailById(_channel, 'd89637860b13bb7079deba1c88a0971dd9453e19421bb427cf4b0ec928359c8904f0640d550002c4e7649bf9f94b2deeb2200f6c6f326bfa28867182f009cdf4')
+    // console.log(email)
   })
 } catch(err) {
   console.log(err)
@@ -185,28 +206,59 @@ async function cleanup() {
   }
 }
 
-async function createBlindPeer(driveKey) {
+async function saveEmailToDB(channel, subject) {
+  return new Promise((resolve, reject) => {
+    const mockEmail = MockEmail({ subject: subject || 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
-  const keyPair = {
-    publicKey: Buffer.from('39c2a523da4f4e507263863dd6944be7038b6bf8799d0c64dfc0b2828a1e5030', 'hex'),
-    secretKey: Buffer.from('839b8c41ec97e01e568dada12da760171752edf95e74530e0851f13e40a23c1a39c2a523da4f4e507263863dd6944be7038b6bf8799d0c64dfc0b2828a1e5030', 'hex')
-  }
-
-  const drive = new Drive( './BlindPeer', driveKey, {
-    keyPair,
-    syncFiles: false,
-    blind: true,
-    broadcast: true,
-    swarmOpts: {
-      server: true,
-      client: true
+    const payload = {
+      type: 'Incoming',
+      messages: [mockEmail]
     }
+
+    channel.send({ event: 'email:saveMessageToDB', payload })
+
+    channel.once('email:saveMessageToDB:callback', cb => {
+      const { error, data } = cb
+
+      if(error) return reject(error)
+
+      return resolve(data)
+    })
   })
+}
 
-  await drive.ready()
+async function getEmailsByFolder(channel) {
+  return new Promise((resolve, reject) => {
+    const payload = {
+      id: 1
+    }
 
-  console.log({ keyPair: {
-    publicKey: drive.keyPair.publicKey.toString('hex'),
-    secretKey: drive.keyPair.secretKey.toString('hex')
-  }})
+    channel.send({ event: 'email:getMessagesByFolderId', payload })
+
+    channel.once('email:getMessagesByFolderId:callback', cb => {
+      const { error, data } = cb
+
+      if(error) return reject(error)
+
+      return resolve(data)
+    })
+  })
+}
+
+async function getEmailById(channel, id) {
+  return new Promise((resolve, reject) => {
+    const payload = {
+      id
+    }
+  
+    channel.send({ event: 'email:getMessageById', payload })
+  
+    channel.once('email:getMessageById:callback', cb => {
+      const { error, data } = cb
+  
+      if(error) return reject(error)
+
+      return resolve(data)
+    })
+  })
 }
