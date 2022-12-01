@@ -890,12 +890,12 @@ export default async (props: EmailOpts) => {
         )
       }
 
-      if(messages[0].fromId === 5 && store.getFolderCount(messages[0].fromId) > 0) {
+      if(messages[0].folder.fromId === 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
         const email = await Email.findOne({ emailId: messages[0].emailId })
         await Alias.update({ aliasId: email.aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
       }
-      if(messages[0].fromId !== 5 && store.getFolderCount(messages[0].fromId) > 0) {
-        await Folder.update({ folderId: messages[0].fromId }, { $inc: { count: -Math.abs(messages.length) }})
+      if(messages[0].folder.fromId !== 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
+        await Folder.update({ folderId: messages[0].folder.fromId }, { $inc: { count: -Math.abs(messages.length) }})
       }
 
       if(toFolder !== 2 && toFolder !== 3 && toFolder !== 4) {
