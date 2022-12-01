@@ -52,6 +52,9 @@ export declare interface StoreSchema {
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
   killMatomo(): void
+  getFolderCount(folderId: any): any
+  setFolderCount(folderId: any, count: number): any
+  killMatomo(): void
 }
 
 export interface DeviceSchema {

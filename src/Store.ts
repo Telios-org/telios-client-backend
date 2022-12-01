@@ -206,6 +206,14 @@ export class Store extends EventEmitter{
     }
   }
 
+  public getFolderCount(folderId: any) {
+    return this.folderCounts[folderId]
+  }
+
+  public setFolderCount(folderId: any, count: number) {
+    this.folderCounts[folderId] = count
+  }
+
   public async setAccount(account: AccountSchema, isNew: boolean) {
     this._account = account
 

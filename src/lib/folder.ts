@@ -36,7 +36,8 @@ export default async (props: FolderOpts) => {
       // })
 
       for(const folder of folders) {
-        store.folderCounts[folder.folderId] = folder.count
+        if(!folder.count) folder.count = 0
+        store.setFolderCount(folder.folderId, folder.count)
       }
 
       channel.send({
@@ -132,7 +133,6 @@ export default async (props: FolderOpts) => {
 
     try {
       const Folder = store.models.Folder
-      const currCount = store.folderCounts[id]
 
       // await Folder.update({ folderId: id }, { count: currCount + amount } )
 

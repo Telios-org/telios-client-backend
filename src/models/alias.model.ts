@@ -36,7 +36,8 @@ export class AliasModel {
  
   public async update(doc:any, props: any, opts?:any) {
     if(props['$inc']) {
-      this._store.folderCounts[doc.aliasId] += props['$inc'].count
+      const currentCount = this._store.getFolderCount(doc.aliasId)
+      this._store.setFolderCount(doc.aliasId, currentCount + props['$inc'].count)
     }
     return this.collection.update(doc, props, opts)
   }

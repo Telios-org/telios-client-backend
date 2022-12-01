@@ -748,10 +748,10 @@ export default async (props: EmailOpts) => {
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
 
-        if(eml.folderId === 5 && eml.aliasId && store.folderCounts[eml.aliasId] > 0) {
+        if(eml.folderId === 5 && eml.aliasId && store.getFolderCount(eml.aliasId) > 0) {
           await Alias.update({ aliasId: eml.aliasId }, { $inc:{ count: -1 } })
         }
-        if(eml.folderId !== 5 && store.folderCounts[eml.folderId] > 0) {
+        if(eml.folderId !== 5 && store.getFolderCount(eml.folderId) > 0) {
           await Folder.update({ folderId: eml.folderId }, { $inc: { count: -1 }})
         }
         
@@ -825,10 +825,10 @@ export default async (props: EmailOpts) => {
 
         await Email.remove({ emailId: msg.emailId })
 
-        if(msg.folderId === 5 && msg.aliasId && store.folderCounts[msg.aliasId] > 0) {
+        if(msg.folderId === 5 && msg.aliasId && store.getFolderCount(msg.aliasId) > 0) {
           await Alias.update({ aliasId: msg.aliasId }, { $inc:{ count: -1 } })
         }
-        if(msg.folderId !== 5 && store.folderCounts[msg.folderId] > 0) {
+        if(msg.folderId !== 5 && store.getFolderCount(msg.folderId) > 0) {
           await Folder.update({ folderId: msg.folderId }, { $inc: { count: -1 }})
         }
         
@@ -890,11 +890,11 @@ export default async (props: EmailOpts) => {
         )
       }
 
-      if(messages[0].fromId === 5 && store.folderCounts[messages[0].fromId] > 0) {
+      if(messages[0].fromId === 5 && store.getFolderCount(messages[0].fromId) > 0) {
         const email = await Email.findOne({ emailId: messages[0].emailId })
         await Alias.update({ aliasId: email.aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
       }
-      if(messages[0].fromId !== 5 && store.folderCounts[messages[0].fromId] > 0) {
+      if(messages[0].fromId !== 5 && store.getFolderCount(messages[0].fromId) > 0) {
         await Folder.update({ folderId: messages[0].fromId }, { $inc: { count: -Math.abs(messages.length) }})
       }
 

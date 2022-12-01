@@ -183,7 +183,7 @@ export default async (props: AliasOpts) => {
       }
 
       const outputAliases = aliases.map((a: AliasSchema) => {
-        store.folderCounts[a.aliasId] = a.count
+        store.setFolderCount(a.aliasId, a.count)
         return {
           ...a,
           fwdAddresses:
@@ -300,7 +300,6 @@ export default async (props: AliasOpts) => {
   
       try {
         const Alias = store.models.Alias
-        const currCount = store.folderCounts[id]
 
         // await Alias.update({ aliasId: id }, { count: currCount + amount })
   

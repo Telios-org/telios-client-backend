@@ -1,5 +1,6 @@
 import { channel } from 'diagnostics_channel'
 import { FolderSchema, StoreSchema } from '../schemas'
+import { Store } from '../Store'
 import { UTCtimestamp } from '../util/date.util'
 
 export class FolderModel {
@@ -15,8 +16,6 @@ export class FolderModel {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Folder')
 
-    // await this.collection.createIndex(['createdAt', 'folderId', 'mailboxId'])
-    // await this.collection.createIndex(['updatedAt'])
     await this.collection.createIndex(['seq', 'folderId', 'mailboxId'])
     
     return this.collection
@@ -40,7 +39,8 @@ export class FolderModel {
  
   public async update(doc:any, props: any, opts?:any) {
     if(props['$inc']) {
-      this._store.folderCounts[doc.folderId] += props['$inc'].count
+      const currentCount = this._store.getFolderCount(doc.folderId)
+      this._store.setFolderCount(doc.folderId, currentCount + props['$inc'].count)
     }
     return this.collection.update(doc, props, opts)
   }
