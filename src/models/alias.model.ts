@@ -13,7 +13,7 @@ export class AliasModel {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Alias')
 
-    await this.collection.createIndex(['createdAt', 'name'])
+    await this.collection.createIndex(['createdAt', 'name', 'aliasId'])
     
     return this.collection
   }
@@ -35,6 +35,9 @@ export class AliasModel {
   }
  
   public async update(doc:any, props: any, opts?:any) {
+    if(props['$inc']) {
+      this._store.folderCounts[doc.aliasId] += props['$inc'].count
+    }
     return this.collection.update(doc, props, opts)
   }
 

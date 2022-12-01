@@ -14,7 +14,6 @@ export class FileModel {
     this.collection = await this._drive.db.collection('Files')
 
     await this.collection.createIndex(['createdAt', 'filename'])
-    await this.collection.createIndex(['updatedAt'])
 
     return this.collection
   }

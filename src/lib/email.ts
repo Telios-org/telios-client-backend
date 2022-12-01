@@ -748,9 +748,10 @@ export default async (props: EmailOpts) => {
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
 
-        if(eml.folderId === 5) {
+        if(eml.folderId === 5 && eml.aliasId && store.folderCounts[eml.aliasId] > 0) {
           await Alias.update({ aliasId: eml.aliasId }, { $inc:{ count: -1 } })
-        } else {
+        }
+        if(eml.folderId !== 5 && store.folderCounts[eml.folderId] > 0) {
           await Folder.update({ folderId: eml.folderId }, { $inc: { count: -1 }})
         }
         
@@ -824,12 +825,12 @@ export default async (props: EmailOpts) => {
 
         await Email.remove({ emailId: msg.emailId })
 
-        if(msg.folderId === 5) {
+        if(msg.folderId === 5 && msg.aliasId && store.folderCounts[msg.aliasId] > 0) {
           await Alias.update({ aliasId: msg.aliasId }, { $inc:{ count: -1 } })
-        } else {
-          await Folder.update({ folderId: msg.folderId }, { $inc:{ count: -1 } })
         }
-        
+        if(msg.folderId !== 5 && store.folderCounts[msg.folderId] > 0) {
+          await Folder.update({ folderId: msg.folderId }, { $inc: { count: -1 }})
+        }
         
         drive.unlink(msg.path)
 

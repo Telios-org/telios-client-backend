@@ -277,10 +277,6 @@ test('get messages by alias ID', async t => {
     id: 'alice2022#existing'
   }
 
-  channel.on('debug', data => {
-    console.log('DEBUG', data)
-  })
-
   channel.send({ event: 'email:getMessagesByAliasId', payload })
 
   channel.once('email:getMessagesByAliasId:callback', cb => {
