@@ -27,6 +27,7 @@ export class Store extends EventEmitter{
     api: string
     mail: string
   }
+  public folderCounts: any
   public models: ModelType
 
   private _teliosSDK: any
@@ -85,6 +86,8 @@ export class Store extends EventEmitter{
       // @ts-ignore
       Migrate: new MigrateModel(this)
     }
+
+    this.folderCounts = {}
 
     this.drive = null
     this.encryptionKey = ''

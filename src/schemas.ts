@@ -24,6 +24,7 @@ export declare interface StoreSchema {
     api: string
     mail: string
   }
+  folderCounts: any
   models: ModelType
   on: <K extends "peer-updated">(event: K, listener: IEmissions[K]) => this
   emit: <K extends "peer-updated">(event: K, ...args: Parameters<IEmissions[K]>) => boolean
