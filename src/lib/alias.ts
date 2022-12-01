@@ -322,7 +322,7 @@ export default async (props: AliasOpts) => {
         const Alias = store.models.Alias
         const currCount = store.folderCounts[id]
 
-        await Alias.update({ aliasId: id }, { count: currCount + amount })
+        // await Alias.update({ aliasId: id }, { count: currCount + amount })
   
         channel.send({ event: 'alias:updateAliasCount:callback', updated: true })
       } catch(err:any) {

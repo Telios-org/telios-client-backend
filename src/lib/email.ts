@@ -189,6 +189,7 @@ export default async (props: EmailOpts) => {
       const AliasNamespace = store.models.AliasNamespace
       const Alias = store.models.Alias
       const File = store.models.File
+      const Folder = store.models.Folder
 
       const asyncMsgs: Promise<any>[] = []
       const asyncFolders: FolderSchema[] = []
@@ -337,14 +338,14 @@ export default async (props: EmailOpts) => {
                     aliasId: localPart,
                     name: recipAliasAddress,
                     namespaceKey: aliasNamespace.name,
-                    count: 0,
+                    count: 1,
                     disabled: false,
                     fwdAddresses: null,
                     whitelisted: true,
                     createdAt: UTCtimestamp(),
                     updatedAt: UTCtimestamp()
                   })
-
+                  
                   aliasId = alias.aliasId
                   newAliases.push({ ...alias, fwdAddresses: [] })
                 } else {
@@ -416,7 +417,13 @@ export default async (props: EmailOpts) => {
                   }
 
                   Email.insert(_email)
-                    .then((eml: EmailSchema) => {
+                    .then(async (eml: EmailSchema) => {
+                      if(eml.aliasId) {
+                        await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                      } else {
+                        await Folder.update({ id: _email.folderId }, { $inc: { count: 1 } })
+                      }
+                      
                       resolve(eml)
                     })
                     .catch((err: any) => {
@@ -702,7 +709,9 @@ export default async (props: EmailOpts) => {
       const drive = store.getDrive()
 
       const Email = store.models.Email
-      const File = store.models.File;
+      const File = store.models.File
+      const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
@@ -738,6 +747,13 @@ export default async (props: EmailOpts) => {
 
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
+
+        if(eml.folderId === 5) {
+          await Alias.update({ aliasId: eml.aliasId }, { $inc:{ count: -1 } })
+        } else {
+          await Folder.update({ folderId: eml.folderId }, { $inc: { count: -1 }})
+        }
+        
         eml.unread = false
       }
 
@@ -764,8 +780,11 @@ export default async (props: EmailOpts) => {
       const { id } = payload
 
       const Email = store.models.Email
-
+      const Folder = store.models.Folder
+      
+      const email = await Email.findOne({ emailId: id })
       await Email.update({ emailId: id }, { unread: true })
+      await Folder.update({ folderId: email.folderId }, { $inc: { count: 1 }})
 
       channel.send({ event: 'email:markAsUnread:callback', data: null })
     } catch(err: any) {
@@ -791,6 +810,8 @@ export default async (props: EmailOpts) => {
       
       const Email = store.models.Email
       const File = store.models.File
+      const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
@@ -802,6 +823,13 @@ export default async (props: EmailOpts) => {
         }
 
         await Email.remove({ emailId: msg.emailId })
+
+        if(msg.folderId === 5) {
+          await Alias.update({ aliasId: msg.aliasId }, { $inc:{ count: -1 } })
+        } else {
+          await Folder.update({ folderId: msg.folderId }, { $inc:{ count: -1 } })
+        }
+        
         
         drive.unlink(msg.path)
 
@@ -841,6 +869,7 @@ export default async (props: EmailOpts) => {
 
     try {
       const Email = store.models.Email
+      const Folder = store.models.Folder
 
       const toFolder = messages[0].folder.toId
 
@@ -858,6 +887,10 @@ export default async (props: EmailOpts) => {
           }
         )
       }
+
+      await Folder.update({ folderId: messages[0].folderId }, { $inc: { count: -Math.abs(messages.length) }})
+      await Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
+
       channel.send({ event: 'email:moveMessages:callback', data: null })
     } catch(err: any) {
       channel.send({

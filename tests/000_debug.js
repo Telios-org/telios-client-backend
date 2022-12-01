@@ -72,14 +72,17 @@ test('account login success', async t => {
     // const contacts = await getAllContacts(_channel)
     // console.log(contacts)
 
-    console.log('PRE SAVE EMAIL TO DB')
+    
 
-    // for(let i=0; i < 5; i++) {
-    //   saveEmailToDB(_channel, `TEST ${i}${i}${i}${i}`)
-    // }
+    for(let i=0; i < 5; i++) {
+      await saveEmailToDB(_channel, `LETS hi ${i}${i}${i}${i}`)
+      console.log('email saved')
+    }
+
+    // await updateFolderCount(_channel)
 
     const emails = await getEmailsByFolder(_channel)
-    console.log(emails)
+    console.log(emails.length)
 
     // console.log('GET EMAIL BY _id')
     // const email = await getEmailById(_channel, 'd89637860b13bb7079deba1c88a0971dd9453e19421bb427cf4b0ec928359c8904f0640d550002c4e7649bf9f94b2deeb2200f6c6f326bfa28867182f009cdf4')
@@ -259,6 +262,25 @@ async function getEmailById(channel, id) {
       if(error) return reject(error)
 
       return resolve(data)
+    })
+  })
+}
+
+async function updateFolderCount(channel) {
+  return new Promise((resolve, reject) => {
+    const payload = {
+      id: 1,
+      amount: 1
+    }
+  
+    channel.send({ event: 'folder:updateFolderCount', payload })
+  
+    channel.once('folder:updateFolderCount:callback', cb => {
+      const { error, data } = cb
+  
+      if(error) return reject(error)
+
+      return resolve()
     })
   })
 }
