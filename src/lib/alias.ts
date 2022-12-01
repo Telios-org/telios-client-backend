@@ -182,40 +182,20 @@ export default async (props: AliasOpts) => {
         aliases = await Alias.find().sort('createdAt', -1)
       }
 
-      // const promises = aliases.map( async (a: AliasSchema) => {
-      //   const Email = store.models.Email
-
-      //   // Making sure the folder count is accurate
-      //   const { count } = await Alias.findOne({ aliasId: a.aliasId })
-      //   const emails = await Email.find({unread: true, aliasId: a.aliasId})
-      //   const newCount = await emails.length;
-
-      //   let updated = false
-      //   if(count !== newCount){
-      //     const { nModified } = await Alias.update({ aliasId: a.aliasId }, { count: newCount })
-      //     updated = nModified;
-      //   }
-
-      //   return {
-      //     ...a,
-      //     count: newCount,
-      //     fwdAddresses:
-      //       (a.fwdAddresses && a.fwdAddresses.length) > 0
-      //         ? a.fwdAddresses.split(',')
-      //         : [],
-      //     createdAt: a.createdAt
-      //   }
-      // })
-
-      // const outputAliases = await Promise.all(promises)
-
-      for(const alias of aliases) {
-        store.folderCounts[alias.aliasId] = alias.count
-      }
+      const outputAliases = aliases.map((a: AliasSchema) => {
+        store.folderCounts[a.aliasId] = a.count
+        return {
+          ...a,
+          fwdAddresses:
+            (a.fwdAddresses && a.fwdAddresses.length) > 0
+              ? a.fwdAddresses.split(',')
+              : []
+        }
+      })
 
       channel.send({
         event: 'alias:getMailboxAliases:callback',
-        data: aliases
+        data: outputAliases
       })
     } catch(err:any) {
       channel.send({
