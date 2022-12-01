@@ -871,6 +871,7 @@ export default async (props: EmailOpts) => {
     try {
       const Email = store.models.Email
       const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
       const toFolder = messages[0].folder.toId
 
@@ -889,8 +890,16 @@ export default async (props: EmailOpts) => {
         )
       }
 
-      await Folder.update({ folderId: messages[0].folderId }, { $inc: { count: -Math.abs(messages.length) }})
-      await Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
+      if(messages[0].folderId === 5 && messages[0].aliasId && store.folderCounts[messages[0].aliasId] > 0) {
+        await Alias.update({ aliasId: messages[0].aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
+      }
+      if(messages[0].folderId !== 5 && store.folderCounts[messages[0].folderId] > 0) {
+        await Folder.update({ folderId: messages[0].folderId }, { $inc: { count: -Math.abs(messages.length) }})
+      }
+
+      if(toFolder !== 2 && toFolder !== 3 && toFolder !== 4) {
+        await Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
+      }
 
       channel.send({ event: 'email:moveMessages:callback', data: null })
     } catch(err: any) {

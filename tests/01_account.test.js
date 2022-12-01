@@ -90,10 +90,6 @@ test('account login success', async t => {
     }
   })
 
-  _channel.on('debug', data => {
-    console.log('DEBUG', data)
-  })
-
   // _channel.on('drive:peer:updated', cb => {
   //   const { error, data } = cb
   
