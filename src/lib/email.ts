@@ -345,6 +345,8 @@ export default async (props: EmailOpts) => {
                     createdAt: UTCtimestamp(),
                     updatedAt: UTCtimestamp()
                   })
+
+                  store.setFolderCount(localPart, 1)
                   
                   aliasId = alias.aliasId
                   newAliases.push({ ...alias, fwdAddresses: [] })
@@ -421,7 +423,7 @@ export default async (props: EmailOpts) => {
                       if(eml.aliasId) {
                         await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
                       } else {
-                        await Folder.update({ id: _email.folderId }, { $inc: { count: 1 } })
+                        await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
                       }
                       
                       resolve(eml)
