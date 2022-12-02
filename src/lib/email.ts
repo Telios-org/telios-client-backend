@@ -280,7 +280,7 @@ export default async (props: EmailOpts) => {
                 for(const alias of aliases) {
                   if(alias.name === localPart) {
                     isAlias = true
-                  aliasId = localPart
+                    aliasId = localPart
                   }
                 }
               } catch(err: any) {
@@ -345,8 +345,6 @@ export default async (props: EmailOpts) => {
                     createdAt: UTCtimestamp(),
                     updatedAt: UTCtimestamp()
                   })
-
-                  store.setFolderCount(localPart, 1)
                   
                   aliasId = alias.aliasId
                   newAliases.push({ ...alias, fwdAddresses: [] })
