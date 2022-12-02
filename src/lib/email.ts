@@ -338,7 +338,7 @@ export default async (props: EmailOpts) => {
                     aliasId: localPart,
                     name: recipAliasAddress,
                     namespaceKey: aliasNamespace.name,
-                    count: 1,
+                    count: 0,
                     disabled: false,
                     fwdAddresses: null,
                     whitelisted: true,
@@ -420,8 +420,10 @@ export default async (props: EmailOpts) => {
                     .then(async (eml: EmailSchema) => {
                       if(eml.aliasId) {
                         await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                        store.setFolderCount(_email.aliasId, 1)
                       } else {
                         await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
+                        store.setFolderCount(_email.folderId, 1)
                       }
                       
                       resolve(eml)
