@@ -784,10 +784,20 @@ export default async (props: EmailOpts) => {
 
       const Email = store.models.Email
       const Folder = store.models.Folder
-      
+      const Alias = store.models.Alias
+
       const email = await Email.findOne({ emailId: id })
       await Email.update({ emailId: id }, { unread: true })
-      await Folder.update({ folderId: email.folderId }, { $inc: { count: 1 }})
+
+      setTimeout(() => {
+        if (email.folderId === 5 && email.aliasId) {
+          Alias.update({ aliasId: email.aliasId }, { $inc: { count: 1 } });
+        }
+
+        if (email.folderId !== 5) {
+          Folder.update({ folderId: email.folderId }, { $inc: { count: 1 } });
+        }
+      })
 
       channel.send({ event: 'email:markAsUnread:callback', data: null })
     } catch(err: any) {
@@ -813,8 +823,6 @@ export default async (props: EmailOpts) => {
       
       const Email = store.models.Email
       const File = store.models.File
-      const Folder = store.models.Folder
-      const Alias = store.models.Alias
 
       const msgArr: EmailSchema[] = await Email.find({ emailId: { $in: payload.messageIds }})
 
@@ -826,13 +834,6 @@ export default async (props: EmailOpts) => {
         }
 
         await Email.remove({ emailId: msg.emailId })
-
-        if(msg.folderId === 5 && msg.aliasId && store.getFolderCount(msg.aliasId) > 0) {
-          await Alias.update({ aliasId: msg.aliasId }, { $inc:{ count: -1 } })
-        }
-        if(msg.folderId !== 5 && store.getFolderCount(msg.folderId) > 0) {
-          await Folder.update({ folderId: msg.folderId }, { $inc: { count: -1 }})
-        }
         
         drive.unlink(msg.path)
 
@@ -892,17 +893,19 @@ export default async (props: EmailOpts) => {
         )
       }
 
-      if(messages[0].folder.fromId === 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
-        const email = await Email.findOne({ emailId: messages[0].emailId })
-        await Alias.update({ aliasId: email.aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
-      }
-      if(messages[0].folder.fromId !== 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
-        await Folder.update({ folderId: messages[0].folder.fromId }, { $inc: { count: -Math.abs(messages.length) }})
-      }
+      setTimeout(async () => {
+        if(messages[0].folder.fromId === 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
+          const email = await Email.findOne({ emailId: messages[0].emailId })
+          Alias.update({ aliasId: email.aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
+        }
+        if(messages[0].folder.fromId !== 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
+          Folder.update({ folderId: messages[0].folder.fromId }, { $inc: { count: -Math.abs(messages.length) }})
+        }
 
-      if(toFolder !== 2 && toFolder !== 3 && toFolder !== 4) {
-        await Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
-      }
+        if(toFolder !== 2 && toFolder !== 3 && toFolder !== 4) {
+          Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
+        }
+      })
 
       channel.send({ event: 'email:moveMessages:callback', data: null })
     } catch(err: any) {

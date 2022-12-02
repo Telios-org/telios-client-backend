@@ -74,19 +74,26 @@ test('account login success', async t => {
 
     
 
-    for(let i=0; i < 5; i++) {
-      await saveEmailToDB(_channel, `LETS hi ${i}${i}${i}${i}`)
-      console.log('email saved')
-    }
+    // for(let i=0; i < 5; i++) {
+    //   await saveEmailToDB(_channel, `LETS hi ${i}${i}${i}${i}`)
+    //   console.log('email saved')
+    // }
 
     // await updateFolderCount(_channel)
 
-    const emails = await getEmailsByFolder(_channel)
-    console.log(emails.length)
+    // const emails = await getEmailsByFolder(_channel)
+    // console.log(emails.length)
 
     // console.log('GET EMAIL BY _id')
     // const email = await getEmailById(_channel, 'd89637860b13bb7079deba1c88a0971dd9453e19421bb427cf4b0ec928359c8904f0640d550002c4e7649bf9f94b2deeb2200f6c6f326bfa28867182f009cdf4')
     // console.log(email)
+
+
+
+    // const alias = await createAlias(_channel)
+    // console.log(alias)
+    const aliasUpdated = await updateAlias(_channel)
+    console.log(aliasUpdated)
   })
 } catch(err) {
   console.log(err)
@@ -281,6 +288,77 @@ async function updateFolderCount(channel) {
       if(error) return reject(error)
 
       return resolve()
+    })
+  })
+}
+
+async function createAlias(channel) {
+  return new Promise((resolve, reject) => {
+    channel.send({
+      event: 'alias:registerAliasNamespace',
+      payload: {
+        mailboxId: 'test12312312',
+        namespace: 'alice2022'
+      }
+    })
+  
+    channel.on('alias:registerAliasNamespace:callback', cb => {
+      const { error, data } = cb
+  
+      if(error) return reject(error)
+
+      const payload = {
+        namespaceName: 'alice2022',
+        domain: 'dev.telios.io',
+        address: 'netflix',
+        description: '',
+        fwdAddresses: '',
+        disabled: false,
+        count: 0,
+        createdAt: new Date().toUTCString(),
+        updatedAt: new Date().toUTCString()
+      }
+    
+      channel.send({ event: 'alias:registerAliasAddress', payload })
+    
+      channel.once('alias:registerAliasAddress:callback', cb => {
+        const { error, data } = cb
+    
+        if(error) return reject(error)
+    
+        return resolve(data)
+      })
+    })
+  })
+}
+
+async function updateAlias(channel) {
+  return new Promise((resolve, reject) => {
+    const payload = {
+      address: 'netflix'
+    }
+
+    channel.send({ event: 'alias:updateAliasAddress', payload })
+
+    channel.once('alias:updateAliasAddress:callback', cb => {
+      const { error, data } = cb
+    
+      if(error) return reject(error)
+
+      const payload = {
+        namespaceKeys: ['alice2022']
+      }
+    
+      channel.send({ event: 'alias:getMailboxAliases', payload })
+    
+    
+      channel.once('alias:getMailboxAliases:callback', cb => {
+        const { error, data } = cb
+    
+        if(error) return reject(error)
+    
+        return resolve(data)
+      })
     })
   })
 }
