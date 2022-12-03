@@ -408,7 +408,7 @@ export default async (props: EmailOpts) => {
 
               FileUtil
                 .saveEmailToDrive({ email: msgObj, drive, ipfs })
-                .then((file: FileSchema) => {
+                .then(async (file: FileSchema) => {
                   delete msgObj.bodyAsHtml
 
                   const _email = {
@@ -421,18 +421,16 @@ export default async (props: EmailOpts) => {
                     header: file.header
                   }
 
+                  if(_email.aliasId) {
+                    await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                    store.setFolderCount(_email.aliasId, 1)
+                  } else {
+                    await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
+                    store.setFolderCount(_email.folderId, 1)
+                  }
+
                   Email.insert(_email)
-                    .then(async (eml: EmailSchema) => {
-                      setTimeout(() => {
-                        if(eml.aliasId) {
-                          Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
-                          store.setFolderCount(_email.aliasId, 1)
-                        } else {
-                          Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
-                          store.setFolderCount(_email.folderId, 1)
-                        }
-                      })
-                      
+                    .then(async (eml: EmailSchema) => {                      
                       resolve(eml)
                     })
                     .catch((err: any) => {
