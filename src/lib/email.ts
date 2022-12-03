@@ -219,35 +219,35 @@ export default async (props: EmailOpts) => {
           msg.email.attachments.length > 0
         ) {
           for(let file of msg.email.attachments) {
-            const fileId = file.fileId || uuidv4()
             let filename = file.filename || file.name || 'unnamed'
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
 
-            file = await FileUtil.saveFileToDrive(File, {
-              drive,
-              ipfs,
-              content: file.content,
-              file: {
-                _id: new ObjectID(),
-                id: fileId,
-                cid: file.cid,
-                emailId: msg.email.emailId || msg._id,
-                filename,
-                contentType: file.contentType,
-                size: file.size,
-                discoveryKey: file.discoveryKey || drive.discoveryKey,
-                hash: file.hash,
-                header: file.header,
-                key: file.key,
-                path: file.path
-              }
+            // file = await FileUtil.saveFileToDrive(File, {
+            //   drive,
+            //   ipfs,
+            //   content: file.content,
+            //   file: {
+            //     _id: new ObjectID(),
+            //     id: fileId,
+            //     cid: file.cid,
+            //     emailId: msg.email.emailId || msg._id,
+            //     filename,
+            //     contentType: file.contentType,
+            //     size: file.size,
+            //     discoveryKey: file.discoveryKey || drive.discoveryKey,
+            //     hash: file.hash,
+            //     header: file.header,
+            //     key: file.key,
+            //     path: file.path
+            //   }
+            // })
+
+            attachments.push({
+              filename,
+              size: file.size
             })
-
-            if(file.discovery_key) delete file.discovery_key
-
-            attachments.push(file)
 
             // TODO: We might want to add some additional logic to not automatically download attachments over a certain size.
             // if (file.content) {
@@ -399,8 +399,12 @@ export default async (props: EmailOpts) => {
             new Promise((resolve, reject) => {
               // Save email to drive
 
-              // Add bodyAsHtml back to email obj
-              msgObj = { ...msgObj, bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body }
+              // Add bodyAsHtml and attachments back to email obj
+              msgObj = { 
+                ...msgObj, 
+                bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body ,
+                attachments: msg.email.attachments
+              }
 
               FileUtil
                 .saveEmailToDrive({ email: msgObj, drive, ipfs })
@@ -409,6 +413,7 @@ export default async (props: EmailOpts) => {
 
                   const _email = {
                     ...msgObj,
+                    attachments: JSON.stringify(attachments),
                     path: file.path,
                     size: file.size,
                     cid: file.cid,
@@ -418,13 +423,15 @@ export default async (props: EmailOpts) => {
 
                   Email.insert(_email)
                     .then(async (eml: EmailSchema) => {
-                      if(eml.aliasId) {
-                        await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
-                        store.setFolderCount(_email.aliasId, 1)
-                      } else {
-                        await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
-                        store.setFolderCount(_email.folderId, 1)
-                      }
+                      setTimeout(() => {
+                        if(eml.aliasId) {
+                          Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                          store.setFolderCount(_email.aliasId, 1)
+                        } else {
+                          Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
+                          store.setFolderCount(_email.folderId, 1)
+                        }
+                      })
                       
                       resolve(eml)
                     })
@@ -725,23 +732,23 @@ export default async (props: EmailOpts) => {
         email.bodyAsHtml = `<div>${removeMd(email.bodyAsText)}</div>`
       }
 
-      if(typeof email.attachments === 'string') {
-        email.attachments = JSON.parse(email.attachments)
-      }
+      // if(typeof email.attachments === 'string') {
+      //   email.attachments = JSON.parse(email.attachments)
+      // }
 
       if(typeof eml.bccJSON === 'string'){
         email.bcc = JSON.parse(eml.bccJSON) //bcc gets stripped unpon send so we need to restore from collection
       }
        
-      for(let i = 0; i < email.attachments.length; i += 1) {
-        const _file = email.attachments[i]
-        if(!_file.hash && !_file.key && !_file.header) {
-          const attachment = await File.findOne({ path: _file.path })
-          _file.hash = attachment.hash
-          _file.header = attachment.header
-          _file.key = attachment.key
-        }
-      }
+      // for(let i = 0; i < email.attachments.length; i += 1) {
+      //   const _file = email.attachments[i]
+      //   if(!_file.hash && !_file.key && !_file.header) {
+      //     // const attachment = await File.findOne({ path: _file.path })
+      //     // _file.hash = attachment.hash
+      //     // _file.header = attachment.header
+      //     // _file.key = attachment.key
+      //   }
+      // }
 
       eml.bodyAsHtml = email.bodyAsHtml
       eml.bodyAsText = email.bodyAsText
