@@ -135,6 +135,7 @@ export interface AliasSchema {
   namespaceKey: string | undefined
   fwdAddresses?: any
   count: number
+  seq?: number
   disabled?: boolean | undefined
   whitelisted?: boolean | undefined
   // Timestamps

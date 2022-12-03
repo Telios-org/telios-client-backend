@@ -97,6 +97,7 @@ export default async (props: AliasOpts) => {
       namespaceName,
       domain,
       address,
+      seq,
       description,
       fwdAddresses,
       disabled,
@@ -138,6 +139,7 @@ export default async (props: AliasOpts) => {
         name: address,
         namespaceKey: namespaceName,
         count: 0,
+        seq,
         description,
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
@@ -175,11 +177,11 @@ export default async (props: AliasOpts) => {
       let aliases
 
       if(payload.namespaceKeys && payload.namespaceKeys.length) {
-        aliases = await Alias.find({ namespaceKey: { $in: [...payload.namespaceKeys] }}).sort('createdAt', -1)
+        aliases = await Alias.find({ namespaceKey: { $in: [...payload.namespaceKeys] }})
       } else if(payload.namespaceKeys && payload.namespaceKeys.length === 0) {
-        aliases = await Alias.find({ namespaceKey: { $in: [null] }}).sort('createdAt', -1)
+        aliases = await Alias.find({ namespaceKey: { $in: [null] }})
       } else {
-        aliases = await Alias.find().sort('createdAt', -1)
+        aliases = await Alias.find()
       }
 
       const outputAliases = aliases.map((a: AliasSchema) => {

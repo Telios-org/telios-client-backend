@@ -13,7 +13,7 @@ export class AliasModel {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Alias')
 
-    await this.collection.createIndex(['createdAt', 'name', 'aliasId'])
+    await this.collection.createIndex(['name', 'aliasId'])
     
     return this.collection
   }

@@ -423,16 +423,14 @@ export default async (props: EmailOpts) => {
 
                   Email.insert(_email)
                     .then(async (eml: EmailSchema) => {
-                      
-                      //setTimeout(() => {
-                        // if(_email.aliasId) {
-                        //   await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
-                        //   store.setFolderCount(_email.aliasId, 1)
-                        // } else {
-                        //   await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
-                        //   store.setFolderCount(_email.folderId, 1)
-                        // }
-                      //}, 1000)
+                      if(_email.aliasId) {
+                        await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                        store.setFolderCount(_email.aliasId, 1)
+                      } else {
+                        await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
+                        store.setFolderCount(_email.folderId, 1)
+                      }
+
                       resolve(eml)
                     })
                     .catch((err: any) => {
