@@ -134,8 +134,10 @@ export default async (props: FolderOpts) => {
     try {
       const Folder = store.models.Folder
 
-      // await Folder.update({ folderId: id }, { count: currCount + amount } )
-
+      const currCount = store.getFolderCount(id)
+      await Folder.update({ folderId: id }, { count: currCount + amount } )
+      store.setFolderCount(id, currCount + amount)
+      
       channel.send({ event: 'folder:updateFolderCount:callback', updated: true })
     } catch(err: any) {
       channel.send({

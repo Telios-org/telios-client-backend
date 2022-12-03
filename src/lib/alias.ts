@@ -301,8 +301,10 @@ export default async (props: AliasOpts) => {
       try {
         const Alias = store.models.Alias
 
-        // await Alias.update({ aliasId: id }, { count: currCount + amount })
-  
+        const currCount = store.getFolderCount(id)
+        await Alias.update({ aliasId: id }, { count: currCount + amount })
+        store.setFolderCount(id, currCount + amount)
+        
         channel.send({ event: 'alias:updateAliasCount:callback', updated: true })
       } catch(err:any) {
         channel.send({
