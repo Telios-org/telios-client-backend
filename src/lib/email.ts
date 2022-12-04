@@ -926,7 +926,8 @@ export default async (props: EmailOpts) => {
               hash: file.hash,
               header: file.header,
               discoveryKey: file.discoveryKey,
-              filename: file.filename
+              filename: file.filename,
+              path: file.path
             })
           }
         })
