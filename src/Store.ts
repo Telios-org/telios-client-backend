@@ -45,7 +45,8 @@ export class Store extends EventEmitter{
     super()
     
     this._teliosSDK = new ClientSDK({ 
-      provider: apiURL || envAPI.prod
+      provider: apiURL || envAPI.prod,
+      IPFSGateway
     })
 
     this.sdk = {
