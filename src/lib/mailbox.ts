@@ -123,7 +123,7 @@ export default async (props: MailboxOpts) => {
         mailboxId = _id.toString('hex')
       }
 
-      const mailbox: MailboxSchema = await Mailbox.insert({ _id, address, mailboxId })
+      const mailbox: MailboxSchema = await Mailbox.insert({ _id, address, mailboxId, type: 'PRIMARY' })
 
       for (const folder of DefaultFolders) {
         let _folder: any = { ...folder }
@@ -153,7 +153,7 @@ export default async (props: MailboxOpts) => {
     try {
       const Mailbox = store.models.Mailbox
 
-      const mailbox: MailboxSchema = await Mailbox.update({ mailboxId }, { name })
+      const mailbox: MailboxSchema = await Mailbox.update({ mailboxId }, { displayName: name })
 
       channel.send({ event: 'mailbox:updateMailboxName:callback', data: mailbox })
     } catch(err: any) {

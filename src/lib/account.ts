@@ -100,6 +100,7 @@ export default async (props: AccountOpts) => {
       const acctDoc = await accountModel.insert({
         _id,
         accountId: _id.toString('hex'),
+        type: 'PRIMARY',
         uid: accountUID,
         driveSyncingPublicKey: drive.publicKey,
         secretBoxPubKey: secretBoxKeypair.publicKey,
@@ -178,6 +179,7 @@ export default async (props: AccountOpts) => {
         event: 'account:create:callback',
         data: {
           accountId: _id.toString('hex'),
+          type: 'PRIMARY',
           uid: accountUID,
           deviceId: account.device_id,
           signedAcct: account,

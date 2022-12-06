@@ -71,6 +71,7 @@ export interface DeviceSchema {
 
 export interface AccountSchema {
   _id?: any,
+  type: 'PRIMARY' | 'CLAIMED' | 'SUB',
   accountId?: string
   displayName?: string
   avatar?: string
@@ -92,6 +93,7 @@ export interface AccountSchema {
 
 export interface MailboxSchema {
   _id?: any,
+  type: 'PRIMARY' | 'CLAIMED' | 'SUB',
   mailboxId: string
   address: string
   name?: string
