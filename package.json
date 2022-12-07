@@ -12,6 +12,7 @@
     "test-main": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/000_debug.test.js | tap-spec",
     "sync": "cross-env NODE_ENV=test_sdk npm run build; tape tests/07_remoteSync.test.js | tap-spec",
     "prepare": "npm run build",
+    "preinstall": "npx force-resolutions --force",
     "build": "tsc"
   },
   "repository": {
@@ -26,7 +27,7 @@
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
     "@telios/client-sdk": "^7.0.6",
-    "@telios/nebula": "^4.0.4",
+    "@telios/nebula": "^4.0.5",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
@@ -46,5 +47,8 @@
     "tape": "^5.4.0",
     "tape-promise": "^4.0.0",
     "typescript": "^4.5.4"
+  },
+  "resolutions": {
+    "@hyperswarm/dht": "5.0.25"
   }
 }
