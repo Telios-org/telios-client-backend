@@ -1,3 +1,5 @@
+const Crypto = require('@telios/nebula/lib/crypto')
+
 import { AliasOpts } from '../types'
 import {
   AccountSchema, 
@@ -17,8 +19,6 @@ export default async (props: AliasOpts) => {
   if (event === 'alias:registerAliasNamespace') {
     try {
       const { mailboxId, namespace } = payload
-
-      const Crypto = store.sdk.crypto
 
       const AliasNamespace = store.models.AliasNamespace
 
@@ -97,6 +97,7 @@ export default async (props: AliasOpts) => {
       namespaceName,
       domain,
       address,
+      seq,
       description,
       fwdAddresses,
       disabled,
@@ -110,7 +111,6 @@ export default async (props: AliasOpts) => {
       let keypair
 
       const Alias = store.models.Alias
-      const Crypto = store.sdk.crypto
       const account: AccountSchema = store.getAccount()
 
       if(namespaceName) {
@@ -139,6 +139,7 @@ export default async (props: AliasOpts) => {
         name: address,
         namespaceKey: namespaceName,
         count: 0,
+        seq,
         description,
         fwdAddresses: fwdAddresses.length > 0 ? fwdAddresses.join(',') : null,
         disabled,
@@ -176,39 +177,23 @@ export default async (props: AliasOpts) => {
       let aliases
 
       if(payload.namespaceKeys && payload.namespaceKeys.length) {
-        aliases = await Alias.find({ namespaceKey: { $in: [...payload.namespaceKeys] }}).sort('createdAt', -1)
+        aliases = await Alias.find({ namespaceKey: { $in: [...payload.namespaceKeys] }})
       } else if(payload.namespaceKeys && payload.namespaceKeys.length === 0) {
-        aliases = await Alias.find({ namespaceKey: { $in: [null] }}).sort('createdAt', -1)
+        aliases = await Alias.find({ namespaceKey: { $in: [null] }})
       } else {
-        aliases = await Alias.find().sort('createdAt', -1)
+        aliases = await Alias.find()
       }
 
-      const promises = aliases.map( async (a: AliasSchema) => {
-        const Email = store.models.Email
-
-        // Making sure the folder count is accurate
-        const { count } = await Alias.findOne({ aliasId: a.aliasId })
-        const emails = await Email.find({unread: true, aliasId: a.aliasId})
-        const newCount = await emails.length;
-
-        let updated = false
-        if(count !== newCount){
-          const { nModified } = await Alias.update({ aliasId: a.aliasId }, { count: newCount })
-          updated = nModified;
-        }
-
+      const outputAliases = aliases.map((a: AliasSchema) => {
+        store.setFolderCount(a.aliasId, a.count)
         return {
           ...a,
-          count: newCount,
           fwdAddresses:
             (a.fwdAddresses && a.fwdAddresses.length) > 0
               ? a.fwdAddresses.split(',')
-              : [],
-          createdAt: a.createdAt
+              : []
         }
       })
-
-      const outputAliases = await Promise.all(promises)
 
       channel.send({
         event: 'alias:getMailboxAliases:callback',
@@ -317,9 +302,11 @@ export default async (props: AliasOpts) => {
   
       try {
         const Alias = store.models.Alias
-  
-        await Alias.update({ aliasId: id }, { $inc: { count: amount } })
-  
+
+        // const currCount = store.getFolderCount(id)
+        // await Alias.update({ aliasId: id }, { count: currCount + amount })
+        // store.setFolderCount(id, currCount + amount)
+        
         channel.send({ event: 'alias:updateAliasCount:callback', updated: true })
       } catch(err:any) {
         channel.send({

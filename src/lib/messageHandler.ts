@@ -97,11 +97,10 @@ export default class MesssageHandler {
     })
 
     const ipfsFiles = files.filter(file => JSON.stringify(file) !== '{}' && file.cid)
-    const nebulaFiles = files.filter(file => !file.cid)
 
     // If files have an IPFS content identifier (cid) then fetch files from SIA/IPFS
     if(ipfsFiles.length) {
-      const batches = new RequestChunker(ipfsFiles, 5)
+      const batches = new RequestChunker(ipfsFiles, 1) // Only fetch one file at a time to reduce data corruption
 
       for (let batch of batches) {
         const requests = []
@@ -157,56 +156,6 @@ export default class MesssageHandler {
 
         await Promise.all(requests)
       }
-    }
-
-    // If files DO NOT have an IPFS content identifier (cid) then fetch files directly from peer's device (Nebula)
-    if(nebulaFiles.length) {
-      await this.drive.fetchFileBatch(nebulaFiles, (stream: any, file: any) => {
-        return new Promise((resolve, reject) => {
-          let content = ''
-
-          stream.on('data', (chunk: any) => {
-            content += chunk.toString('utf-8')
-          })
-
-          stream.on('error', (err: any) => {
-            if (!file.failed) {
-              file.failed = 1
-            } else {
-              file.failed += 1
-            }
-
-            this.channel.send({
-              event: 'messageHandler:fetchError',
-              data: {
-                file,
-                message: err.message,
-                stack: err.stack
-              }
-            })
-
-            resolve(null)
-          })
-
-          stream.on('end', () => {
-            content = JSON.parse(content)
-
-            this.channel.send({
-              event: 'messageHandler:fileFetched',
-              data: {
-                _id: file._id,
-                email: {
-                  key: file.key,
-                  header: file.header,
-                  content
-                },
-              }
-            })
-
-            resolve(null)
-          })
-        })
-      })
     }
   }
 

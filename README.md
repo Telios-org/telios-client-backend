@@ -27,7 +27,7 @@ if (!fs.existsSync(path.join(cwd, 'app.asar'))) {
   cwd = null;
 }
 
-const child = fork(filePath, [userDataPath, 'development'], {
+const child = fork(filePath, [userDataPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
   stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
   cwd
 })
@@ -68,7 +68,7 @@ const userDataPath = bridge.app.datadir()
 const env = 'development'
 
 // Instantiate backend
-ClientBackend(channel, userDataPath, env)
+ClientBackend(channel, userDataPath, env, userAgent)
 
 channel.send({ 
   event: 'account:create', 
@@ -122,6 +122,18 @@ const payload = {
 }
 ```
 
+#### `channel.on('account:login:status', data => {})`
+
+Retrieve status updates on the account login event
+
+Example:
+```js
+  channel.on('account:login:status', cb => {
+    const { data } = cb
+    console.log(data) // 'Migrating account data'
+  })
+```
+
 #### `channel.send({ event: 'account:resetPassword', payload })`
 ```js
 const payload = {
@@ -131,13 +143,16 @@ const payload = {
 }
 ```
 
-#### `channel.send({ event: 'account:authorized', payload })`
-
 #### `channel.send({ event: 'account:update', payload })`
 
 #### `channel.send({ event: 'account:retrieveStats' })`
 
-#### `channel.send({ event: 'account:logout' })`
+#### `channel.send({ event: 'account:logout', [payload] })`
+
+
+```js
+const payload = { kill: false } // optionally log out of an account without killing the main node thread
+```
 
 #### `channel.send({ event: 'account:refreshToken' })`
 
@@ -195,7 +210,20 @@ const payload = {
 }
 ```
 
-#### `channel.on('account:collection:updated', (data) => {} })`
+#### `channel.on('account:sync:callback', (data) => {})`
+
+Fires whenever a the status of account sync has received an update. You can use to this to show visually show users the current status of an account sync.
+
+Example:
+```js
+channel.on('account:sync:callback', (data) => {
+  const { data, error } = data
+
+  console.log(data.status) // example: 'Syncing data from peer device'
+})
+```
+
+#### `channel.on('account:collection:updated', (data) => {})`
 
 Fires whenever a collection is updated from a synced device or remote peer. Returns the collection name and updated values.
 
@@ -340,7 +368,7 @@ const payload = {
     cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
     bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
     bodyAsText: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
-    bodyAsHTML: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    bodyAsHtml: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
     attachments: [{
       filename: 'image.png',
       content: 'b64EncodedString',

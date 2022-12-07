@@ -4,7 +4,6 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { account } = require('@telios/client-sdk/lib/routes')
 
 let _channel
 let _account
@@ -89,10 +88,6 @@ test('account login success', async t => {
       email: 'bob@telios.io',
       password: 'letmein123'
     }
-  })
-
-  _channel.on('debug', data => {
-    console.log('DEBUG', data)
   })
 
   // _channel.on('drive:peer:updated', cb => {

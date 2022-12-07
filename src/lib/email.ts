@@ -78,7 +78,7 @@ export default async (props: EmailOpts) => {
                   });
               }else if(isOffWorlding){
                   //If we send the message outside the network we need to send the base64 content
-                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid } ).then((content: string) => {
+                  FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid, IPFSGateway: store.IPFSGateway } ).then((content: string) => {
                       _attachments.push({
                           ...attachment,
                           content
@@ -180,6 +180,8 @@ export default async (props: EmailOpts) => {
    *  SAVE INCOMING EMAIL TO DATABASE
    ************************************************/
   if (event === 'email:saveMessageToDB') {
+    const { messages, type, requestId } = payload
+
     try {
       const drive = store.getDrive()
       
@@ -187,8 +189,7 @@ export default async (props: EmailOpts) => {
       const AliasNamespace = store.models.AliasNamespace
       const Alias = store.models.Alias
       const File = store.models.File
-
-      const { messages, type, newMessage } = payload
+      const Folder = store.models.Folder
 
       const asyncMsgs: Promise<any>[] = []
       const asyncFolders: FolderSchema[] = []
@@ -218,35 +219,35 @@ export default async (props: EmailOpts) => {
           msg.email.attachments.length > 0
         ) {
           for(let file of msg.email.attachments) {
-            const fileId = file.fileId || uuidv4()
             let filename = file.filename || file.name || 'unnamed'
             if(file.contentType === "text/x-amp-html"){
               filename="x-amp-html.html"
             }
 
-            file = await FileUtil.saveFileToDrive(File, {
-              drive,
-              ipfs,
-              content: file.content,
-              file: {
-                _id: new ObjectID(),
-                id: fileId,
-                cid: file.cid,
-                emailId: msg.email.emailId || msg._id,
-                filename,
-                contentType: file.contentType,
-                size: file.size,
-                discoveryKey: file.discoveryKey || drive.discoveryKey,
-                hash: file.hash,
-                header: file.header,
-                key: file.key,
-                path: file.path
-              }
+            // file = await FileUtil.saveFileToDrive(File, {
+            //   drive,
+            //   ipfs,
+            //   content: file.content,
+            //   file: {
+            //     _id: new ObjectID(),
+            //     id: fileId,
+            //     cid: file.cid,
+            //     emailId: msg.email.emailId || msg._id,
+            //     filename,
+            //     contentType: file.contentType,
+            //     size: file.size,
+            //     discoveryKey: file.discoveryKey || drive.discoveryKey,
+            //     hash: file.hash,
+            //     header: file.header,
+            //     key: file.key,
+            //     path: file.path
+            //   }
+            // })
+
+            attachments.push({
+              filename,
+              size: file.size
             })
-
-            if(file.discovery_key) delete file.discovery_key
-
-            attachments.push(file)
 
             // TODO: We might want to add some additional logic to not automatically download attachments over a certain size.
             // if (file.content) {
@@ -274,12 +275,13 @@ export default async (props: EmailOpts) => {
               let localPart = recipient.address.split('@')[0]
 
               try {
-                const alias: AliasSchema = await Alias.findOne({ name: localPart })
-
-                // Recipient is an alias.
-                if(alias) {
-                  isAlias = true
-                  aliasId = localPart
+                const aliases: AliasSchema[] = await Alias.find()
+                
+                for(const alias of aliases) {
+                  if(alias.name === localPart) {
+                    isAlias = true
+                    aliasId = localPart
+                  }
                 }
               } catch(err: any) {
                 // not found
@@ -303,7 +305,13 @@ export default async (props: EmailOpts) => {
                 let aliasNamespace
 
                 try {
-                  aliasNamespace = await AliasNamespace.findOne({ name: recipAliasName })
+                  const aliasNamespaces = await AliasNamespace.find()
+
+                  for(const ns of aliasNamespaces) {
+                    if(ns.name === recipAliasName) {
+                      aliasNamespace = ns
+                    }
+                  }
                 } catch(err:any) {
 
                 }
@@ -337,7 +345,7 @@ export default async (props: EmailOpts) => {
                     createdAt: UTCtimestamp(),
                     updatedAt: UTCtimestamp()
                   })
-
+                  
                   aliasId = alias.aliasId
                   newAliases.push({ ...alias, fwdAddresses: [] })
                 } else {
@@ -391,16 +399,21 @@ export default async (props: EmailOpts) => {
             new Promise((resolve, reject) => {
               // Save email to drive
 
-              // Add bodyAsHtml back to email obj
-              msgObj = { ...msgObj, bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body }
+              // Add bodyAsHtml and attachments back to email obj
+              msgObj = { 
+                ...msgObj, 
+                bodyAsHtml: msg.email.bodyAsHtml || msg.email.html_body ,
+                attachments: msg.email.attachments
+              }
 
               FileUtil
                 .saveEmailToDrive({ email: msgObj, drive, ipfs })
-                .then((file: FileSchema) => {
+                .then(async (file: FileSchema) => {
                   delete msgObj.bodyAsHtml
 
                   const _email = {
                     ...msgObj,
+                    attachments: JSON.stringify(attachments),
                     path: file.path,
                     size: file.size,
                     cid: file.cid,
@@ -409,21 +422,22 @@ export default async (props: EmailOpts) => {
                   }
 
                   Email.insert(_email)
-                    .then((eml: EmailSchema) => {
-                      // For mapping mobile channel events
-                      if(msg.email.requestId) {
-                        eml.requestId = msg.email.requestId
+                    .then(async (eml: EmailSchema) => {
+                      if(_email.aliasId) {
+                        await Alias.update({ aliasId: _email.aliasId }, { $inc: { count: 1 }})
+                        store.setFolderCount(_email.aliasId, 1)
+                      } else {
+                        await Folder.update({ folderId: _email.folderId }, { $inc: { count: 1 } })
+                        store.setFolderCount(_email.folderId, 1)
                       }
-              
+
                       resolve(eml)
                     })
                     .catch((err: any) => {
-                      err.requestId = msg.email.requestId
                       reject(err)
                     })
                 })
                 .catch((err: any) => {
-                  err.requestId = msg.email.requestId
                   reject(err)
                 })
             })
@@ -450,7 +464,8 @@ export default async (props: EmailOpts) => {
             event: 'email:saveMessageToDB:callback',
             data: {
               msgArr,
-              newAliases
+              newAliases,
+              requestId
             }
           })
         })
@@ -458,7 +473,7 @@ export default async (props: EmailOpts) => {
           channel.send({
             event: 'email:saveMessageToDB:callback',
             error: {
-              requestId: e.requestId,
+              requestId,
               name: e.name,
               message: e.message,
               stacktrace: e.stack
@@ -470,7 +485,7 @@ export default async (props: EmailOpts) => {
       channel.send({
         event: 'email:saveMessageToDB:callback',
         error: {
-          requestId: err.requestId,
+          requestId,
           name: err.name,
           message: err.message,
           stacktrace: err.stack
@@ -701,11 +716,13 @@ export default async (props: EmailOpts) => {
       const drive = store.getDrive()
 
       const Email = store.models.Email
-      const File = store.models.File;
+      const File = store.models.File
+      const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
       const eml: EmailSchema = await Email.findOne({ emailId: payload.id })
 
-      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email', cid: eml.cid })
+      let email: any = await FileUtil.readFile(eml.path, { drive, type: 'email', cid: eml.cid, IPFSGateway: store.IPFSGateway })
 
       email = JSON.parse(email)
 
@@ -713,23 +730,23 @@ export default async (props: EmailOpts) => {
         email.bodyAsHtml = `<div>${removeMd(email.bodyAsText)}</div>`
       }
 
-      if(typeof email.attachments === 'string') {
-        email.attachments = JSON.parse(email.attachments)
-      }
+      // if(typeof email.attachments === 'string') {
+      //   email.attachments = JSON.parse(email.attachments)
+      // }
 
       if(typeof eml.bccJSON === 'string'){
         email.bcc = JSON.parse(eml.bccJSON) //bcc gets stripped unpon send so we need to restore from collection
       }
        
-      for(let i = 0; i < email.attachments.length; i += 1) {
-        const _file = email.attachments[i]
-        if(!_file.hash && !_file.key && !_file.header) {
-          const attachment = await File.findOne({ path: _file.path })
-          _file.hash = attachment.hash
-          _file.header = attachment.header
-          _file.key = attachment.key
-        }
-      }
+      // for(let i = 0; i < email.attachments.length; i += 1) {
+      //   const _file = email.attachments[i]
+      //   if(!_file.hash && !_file.key && !_file.header) {
+      //     // const attachment = await File.findOne({ path: _file.path })
+      //     // _file.hash = attachment.hash
+      //     // _file.header = attachment.header
+      //     // _file.key = attachment.key
+      //   }
+      // }
 
       eml.bodyAsHtml = email.bodyAsHtml
       eml.bodyAsText = email.bodyAsText
@@ -737,7 +754,15 @@ export default async (props: EmailOpts) => {
 
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
-        email.unread = false
+
+        if(eml.folderId === 5 && eml.aliasId && store.getFolderCount(eml.aliasId) > 0) {
+          await Alias.update({ aliasId: eml.aliasId }, { $inc:{ count: -1 } })
+        }
+        if(eml.folderId !== 5 && store.getFolderCount(eml.folderId) > 0) {
+          await Folder.update({ folderId: eml.folderId }, { $inc: { count: -1 }})
+        }
+        
+        eml.unread = false
       }
 
       channel.send({ event: 'email:getMessageById:callback', data: { id: eml.emailId, ...eml } })
@@ -763,8 +788,21 @@ export default async (props: EmailOpts) => {
       const { id } = payload
 
       const Email = store.models.Email
+      const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
+      const email = await Email.findOne({ emailId: id })
       await Email.update({ emailId: id }, { unread: true })
+
+      setTimeout(() => {
+        if (email.folderId === 5 && email.aliasId) {
+          Alias.update({ aliasId: email.aliasId }, { $inc: { count: 1 } });
+        }
+
+        if (email.folderId !== 5) {
+          Folder.update({ folderId: email.folderId }, { $inc: { count: 1 } });
+        }
+      })
 
       channel.send({ event: 'email:markAsUnread:callback', data: null })
     } catch(err: any) {
@@ -840,6 +878,8 @@ export default async (props: EmailOpts) => {
 
     try {
       const Email = store.models.Email
+      const Folder = store.models.Folder
+      const Alias = store.models.Alias
 
       const toFolder = messages[0].folder.toId
 
@@ -857,6 +897,21 @@ export default async (props: EmailOpts) => {
           }
         )
       }
+
+      setTimeout(async () => {
+        if(messages[0].folder.fromId === 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
+          const email = await Email.findOne({ emailId: messages[0].emailId })
+          Alias.update({ aliasId: email.aliasId }, { $inc:{ count: -Math.abs(messages.length) } })
+        }
+        if(messages[0].folder.fromId !== 5 && store.getFolderCount(messages[0].folder.fromId) > 0) {
+          Folder.update({ folderId: messages[0].folder.fromId }, { $inc: { count: -Math.abs(messages.length) }})
+        }
+
+        if(toFolder !== 2 && toFolder !== 3 && toFolder !== 4) {
+          Folder.update({ folderId: toFolder }, { $inc: { count: Math.abs(messages.length) }})
+        }
+      })
+
       channel.send({ event: 'email:moveMessages:callback', data: null })
     } catch(err: any) {
       channel.send({

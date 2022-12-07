@@ -19,21 +19,25 @@ export declare interface StoreSchema {
   env: 'development' | 'production' | 'test'
   drive: any
   encryptionKey: any
+  IPFSGateway: string
   teliosPubKey: string
   acctPath: string
   domain: {
     api: string
     mail: string
   }
+  folderCounts: any
   models: ModelType
   on: <K extends "peer-updated">(event: K, listener: IEmissions[K]) => this
   emit: <K extends "peer-updated">(event: K, ...args: Parameters<IEmissions[K]>) => boolean
+  setIPFSGateway(gatewayURL: string): void
+  getIPFSGateway(): string
   setDrive(props: setDriveOpts): any
   getDrive(): any
   setDriveStatus(string: DriveStatuses): any
   getDriveStatus(): DriveStatuses
   initModels(): Promise<void>
-  setAccount(account: AccountSchema | null): void
+  setAccount(account: AccountSchema | null, isNew: boolean): void
   getAccount(): AccountSchema
   setAccountSecrets(secrets: AccountSecrets): void
   getAccountSecrets(): AccountSecrets
@@ -49,6 +53,10 @@ export declare interface StoreSchema {
   getPeers(): Record<string, any>
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
+  killMatomo(): void
+  getFolderCount(folderId: any): any
+  setFolderCount(folderId: any, count: number): any
+  killMatomo(): void
 }
 
 export interface DeviceSchema {
@@ -60,10 +68,12 @@ export interface DeviceSchema {
   deviceType?: string,
   serverSig?: string
   driveSyncingPublicKey?: string
+  driveVersion: string
 }
 
 export interface AccountSchema {
   _id?: any,
+  type: 'PRIMARY' | 'CLAIMED' | 'SUB',
   accountId?: string
   displayName?: string
   avatar?: string
@@ -77,6 +87,7 @@ export interface AccountSchema {
   deviceId?: string
   serverSig?: string
   deviceInfo? : DeviceSchema
+  mnemonic: string
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -84,13 +95,13 @@ export interface AccountSchema {
 
 export interface MailboxSchema {
   _id?: any,
-  mailboxId: number
+  type: 'PRIMARY' | 'CLAIMED' | 'SUB',
+  mailboxId: string
   address: string
   name?: string
+  displayName?: string
   password?: string
-  mnemonic?: string
   domainKey?: string
-  driveEncryptionKey?: string
   drivePubKey?: string
   syncCode?: string
   // Timestamps
@@ -133,6 +144,7 @@ export interface AliasSchema {
   namespaceKey: string | undefined
   fwdAddresses?: any
   count: number
+  seq?: number
   disabled?: boolean | undefined
   whitelisted?: boolean | undefined
   // Timestamps

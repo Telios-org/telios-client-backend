@@ -166,94 +166,94 @@ test('update alias address', async t => {
   })
 })
 
-test('increment alias message count', async t => {
-  t.plan(2)
+// test('increment alias message count', async t => {
+//   t.plan(2)
 
-  const mockEmail = MockEmail({ to: { address: 'alice2022#netflix@dev.telios.io' }, unread: false, attachments: [] })
+//   const mockEmail = MockEmail({ to: { address: 'alice2022#netflix@dev.telios.io' }, unread: false, attachments: [] })
 
-  const payloadEML = {
-    type: 'Incoming',
-    messages: [mockEmail],
-  }
+//   const payloadEML = {
+//     type: 'Incoming',
+//     messages: [mockEmail],
+//   }
 
-  let eml;
-  channel.send({ event: 'email:saveMessageToDB', payload: payloadEML })
+//   let eml;
+//   channel.send({ event: 'email:saveMessageToDB', payload: payloadEML })
 
-  channel.once('email:saveMessageToDB:callback', cb => {
-    const { error, data } = cb
+//   channel.once('email:saveMessageToDB:callback', cb => {
+//     const { error, data } = cb
 
-    if(error) t.fail(error.message)
-    eml = data.msgArr[0]
-    const payload = { id: 'alice2022#netflix' , amount: 1 }
+//     if(error) t.fail(error.message)
+//     eml = data.msgArr[0]
+//     const payload = { id: 'alice2022#netflix' , amount: 1 }
 
-    channel.send({ event: 'alias:updateAliasCount', payload })
+//     channel.send({ event: 'alias:updateAliasCount', payload })
 
-    channel.once('alias:updateAliasCount:callback', cb => {
-      const { error, data } = cb
+//     channel.once('alias:updateAliasCount:callback', cb => {
+//       const { error, data } = cb
 
-      if(error) t.fail(error.message)
+//       if(error) t.fail(error.message)
 
-      channel.send({ event: 'alias:getMailboxAliases', payload: {
-        namespaceKeys: ['alice2022']
-      } })
+//       channel.send({ event: 'alias:getMailboxAliases', payload: {
+//         namespaceKeys: ['alice2022']
+//       } })
     
-      channel.once('alias:getMailboxAliases:callback', cb => {
-        const { error, data } = cb
+//       channel.once('alias:getMailboxAliases:callback', cb => {
+//         const { error, data } = cb
 
-        if(error) t.fail(error.message)
+//         if(error) t.fail(error.message)
 
-        for(let address of data) {
-          if(address.namespaceKey === 'alice2022') {
-            console.log('SUCCESS :: ', address)
-            t.equals(address.count, 1)
-          }
-        }
+//         for(let address of data) {
+//           if(address.namespaceKey === 'alice2022') {
+//             console.log('SUCCESS :: ', address)
+//             t.equals(address.count, 1)
+//           }
+//         }
         
-        const payloadRM = {
-          messageIds: [eml.emailId]
-        }
+//         const payloadRM = {
+//           messageIds: [eml.emailId]
+//         }
       
-        channel.send({ event: 'email:removeMessages', payload: payloadRM })
-        channel.once('email:removeMessages:callback', cb => {
-          const { error, data } = cb
+//         channel.send({ event: 'email:removeMessages', payload: payloadRM })
+//         channel.once('email:removeMessages:callback', cb => {
+//           const { error, data } = cb
       
-          if(error) t.fail(error.message)
+//           if(error) t.fail(error.message)
       
-          t.ok(true)
-        })
-      })
-    })
-  })
-})
+//           t.ok(true)
+//         })
+//       })
+//     })
+//   })
+// })
 
-test('decrement alias message count', async t => {
-  t.plan(1)
+// test('decrement alias message count', async t => {
+//   t.plan(1)
 
 
-  const payload = { id: 'alice2022#netflix' , amount: -1 }
+//   const payload = { id: 'alice2022#netflix' , amount: -1 }
 
-  channel.send({ event: 'alias:updateAliasCount', payload })
+//   channel.send({ event: 'alias:updateAliasCount', payload })
 
-  channel.once('alias:updateAliasCount:callback', cb => {
-    const { error, data } = cb
+//   channel.once('alias:updateAliasCount:callback', cb => {
+//     const { error, data } = cb
 
-    if(error) t.fail(error.message)
+//     if(error) t.fail(error.message)
 
-    channel.send({ event: 'alias:getMailboxAliases', payload: {
-      namespaceKeys: ['alice2022']
-    } })
+//     channel.send({ event: 'alias:getMailboxAliases', payload: {
+//       namespaceKeys: ['alice2022']
+//     } })
   
-    channel.once('alias:getMailboxAliases:callback', cb => {
-      const { error, data } = cb
+//     channel.once('alias:getMailboxAliases:callback', cb => {
+//       const { error, data } = cb
 
-      if(error) t.fail(error.message)
+//       if(error) t.fail(error.message)
 
-      console.log('SUCCESS :: ', data[0])
+//       console.log('SUCCESS :: ', data[0])
       
-      t.equals(data[0].count, 0)
-    })
-  })
-})
+//       t.equals(data[0].count, 0)
+//     })
+//   })
+// })
 
 test('remove alias address', async t => {
   t.plan(1)

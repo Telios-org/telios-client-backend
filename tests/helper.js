@@ -14,7 +14,7 @@ class Channel extends EventEmitter {
     if(!fs.existsSync(path.join(__dirname, 'Accounts')))
       fs.mkdirSync(path.join(__dirname, 'Accounts'), { recursive: true })
 
-    this.process = fork('./index', [dirPath, 'development'], {
+    this.process = fork('./index', [dirPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     })
 
@@ -65,7 +65,7 @@ module.exports.OpenChannel = () => {
   })
 }
 
-module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread, attachments, requestId }) => {
+module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, aliasId, unread, attachments }) => {
   const uuid = uuidv4()
 
   let _to = [ { name: 'Alice Drumpf', address: 'alice@telios.io', account_key:'fd6ee19c98c8d7fc1ff51b1c85c5d42947614e61cfc726633476bc8b61f3fb6a' } ]
@@ -107,7 +107,6 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
   }
   
   return {
-    requestId,
     emailId,
     folderId,
     aliasId,

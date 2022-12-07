@@ -27,6 +27,7 @@ export interface ModelType {
 export interface MainOpts {
   channel: any
   userDataPath: string
+  userAgent: string
   env: 'development' | 'production' | 'test'
 }
 
@@ -59,7 +60,8 @@ export interface AccountMessage {
     newPass: string,
     driveKey: string,
     encryptionKey: string
-    mnemonic: string
+    mnemonic: string,
+    kill: boolean
   }
 }
 
@@ -152,7 +154,10 @@ export interface DomainMessage {
         | 'domain:updateMailbox'
         | 'domain:deleteMailbox'
   payload: {
+    type: 'CLAIMED' | 'SUB'
     name: string
+    displayName: string,
+    address: string,
     email: string
     domain: string
     deviceType: 'DESKTOP' | 'MOBILE'

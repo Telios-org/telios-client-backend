@@ -36,12 +36,13 @@ test('send email', async t => {
 test('save incoming email to database', async t => {
   t.plan(3)
 
-  const requestId = 'drzD321dfCxz12';
-  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false, requestId })
+  const requestId = 'ceb69aa8-1a54-41df-837c-279b9e4e0aac';
+  const mockEmail = MockEmail({ subject: 'New Incoming Message', emailId: null, folderId: 1, aliasId: null, unread: false })
 
   const payload = {
     type: 'Incoming',
     messages: [mockEmail],
+    requestId
   }
 
   channel.send({ event: 'email:saveMessageToDB', payload })
@@ -54,7 +55,7 @@ test('save incoming email to database', async t => {
     console.log('SUCCESS :: ', data)
     
     t.equals(data.msgArr.length, 1)
-    t.equals(data.msgArr[0].requestId, requestId)
+    t.equals(data.requestId, requestId)
 
     for(const email of data.msgArr) {
       t.ok(email.cid)
@@ -111,21 +112,31 @@ test('save incoming alias email', async t => {
 test('save email attachments', async t => {
   t.plan(1)
 
-  const payload = {
-    filepath: __dirname + '\\newDir\\test.png',
-    attachments: JSON.parse(__email.attachments)
-  }
+  channel.send({ event: 'email:getMessageById', payload: { id: __email.emailId } })
 
-  channel.send({ event: 'email:saveFiles', payload })
-
-  channel.once('email:saveFiles:callback', cb => {
+  channel.once('email:getMessageById:callback', cb => {
     const { error, data } = cb
-
-    console.log('DATA', data);
 
     if(error) t.fail(error.message)
 
-    t.ok(true)
+    __email = data
+
+    const payload = {
+      filepath: __dirname + '\\newDir\\test.png',
+      attachments: data.attachments
+    }
+
+    channel.send({ event: 'email:saveFiles', payload })
+
+    channel.once('email:saveFiles:callback', cb => {
+      const { error, data } = cb
+
+      console.log('DATA', data);
+
+      if(error) t.fail(error.message)
+
+      t.ok(true)
+    })
   })
 
   t.teardown(() => {
@@ -136,14 +147,14 @@ test('save email attachments', async t => {
 
 test('forward email out of network', async t => {
   t.plan(3)
-
+  
   const payload = {
     email: MockEmail({ 
       emailId: null, 
       folderId: 1, 
       aliasId: null, 
       unread: false,
-      attachments: JSON.parse(__email.attachments) 
+      attachments: __email.attachments
     })
   }
 
@@ -171,7 +182,7 @@ test('forward email in network', async t => {
       folderId: 1, 
       aliasId: null, 
       unread: false,
-      attachments: JSON.parse(__email.attachments),
+      attachments: __email.attachments,
       bcc:[]
     })
   }
@@ -182,7 +193,7 @@ test('forward email in network', async t => {
     const { error, data, meta } = cb
     if(error) t.fail(error.stack)
 
-    const attachments = JSON.parse(data.attachments)
+    const attachments = data.attachments
 
     t.ok(data.emailId)
     t.ok(attachments[0].content === undefined)
@@ -294,7 +305,7 @@ test('move emails to another folder', async t => {
     return {
       ...msg,
       folder: {
-        toId: 1
+        toId: 5
       }
     }
   })
@@ -312,7 +323,7 @@ test('move emails to another folder', async t => {
 
     // Verify emails correctly moved
     const payload = {
-      id: 1
+      id: 5
     }
   
     channel.send({ event: 'email:getMessagesByFolderId', payload })
@@ -325,7 +336,7 @@ test('move emails to another folder', async t => {
       console.log(emails)
 
       for(const email of emails) {
-        t.equals(email.folderId, 1)
+        t.equals(email.folderId, 5)
       }
     })
   })

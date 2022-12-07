@@ -16,10 +16,11 @@ import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
 import { DomainModel } from './models/domain.model'
+import { Matomo } from './Matomo'
 
 export class Store extends EventEmitter{
   public sdk
-  public env: string
+  public env: 'development' | 'production' | 'test'
   public drive: any
   public encryptionKey: any
   public teliosPubKey: string
@@ -28,6 +29,7 @@ export class Store extends EventEmitter{
     api: string
     mail: string
   }
+  public folderCounts: any
   public models: ModelType
 
   private _teliosSDK: any
@@ -38,12 +40,15 @@ export class Store extends EventEmitter{
   private _connections: Record<string, any>
   private _peers: Record<string, any>
   private _driveStatus: DriveStatuses = 'OFFLINE'
+  private _userAgent: string
+  private _matomo: any
 
-  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string) {
+  constructor(env: 'development' | 'production' | 'test', userAgent: string, signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
     super()
     
     this._teliosSDK = new ClientSDK({ 
-      provider: apiURL || envAPI.prod
+      provider: apiURL || envAPI.prod,
+      IPFSGateway
     })
 
     this.sdk = {
@@ -59,8 +64,11 @@ export class Store extends EventEmitter{
       mail: env === 'production' || !env ? envAPI.prodMail : envAPI.devMail,
     }
 
-    this.env = env
+    this.IPFSGateway = IPFSGateway || 'https://ipfs.filebase.io/ipfs'
 
+    this._userAgent = userAgent
+
+    this.env = env
     
     this.models = {
       // @ts-ignore
@@ -85,6 +93,8 @@ export class Store extends EventEmitter{
       Domain: new DomainModel(this)
     }
 
+    this.folderCounts = {}
+
     this.drive = null
     this.encryptionKey = ''
     this.acctPath = ''
@@ -93,6 +103,7 @@ export class Store extends EventEmitter{
     
     this._account = {
       uid: '',
+      type: 'PRIMARY',
       driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
@@ -105,8 +116,10 @@ export class Store extends EventEmitter{
           secretKey: ''
         },
         deviceId: '',
-        serverSig: ''
-      }
+        serverSig: '',
+        driveVersion: ''
+      },
+      mnemonic: ''
     }
 
     this._authPayload = {
@@ -130,6 +143,14 @@ export class Store extends EventEmitter{
     this._swarm = null
   }
 
+  public setIPFSGateway(gatewayURL: string) {
+    this.IPFSGateway = gatewayURL
+  }
+
+  public getIPFSGateway() : string {
+    return this.IPFSGateway
+  }
+
   public setDrive(props: setDriveOpts) {
     const { name, driveKey, blind, keyPair, encryptionKey, broadcast = true, acl = [] } = props
     
@@ -146,7 +167,7 @@ export class Store extends EventEmitter{
       checkNetworkStatus: true,
       syncFiles: false,
       blind: blind ? blind : false,
-      broadcast,
+      broadcast: true,
       swarmOpts: {
         server: true,
         client: true
@@ -192,7 +213,15 @@ export class Store extends EventEmitter{
     }
   }
 
-  public async setAccount(account: AccountSchema) {
+  public getFolderCount(folderId: any) {
+    return this.folderCounts[folderId]
+  }
+
+  public setFolderCount(folderId: any, count: number) {
+    this.folderCounts[folderId] = count
+  }
+
+  public async setAccount(account: AccountSchema, isNew: boolean) {
     this._account = account
 
     if(account) {
@@ -214,6 +243,10 @@ export class Store extends EventEmitter{
 
           this.setKeypair(keypair)
         }
+      }
+
+      if(!this._matomo) {
+        this._initMatomo(isNew)
       }
     }
   }
@@ -306,5 +339,25 @@ export class Store extends EventEmitter{
     }
 
     return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.keyPair?.secretKey);
+  }
+
+  public killMatomo() {
+    if(this._matomo) {
+      this._matomo.kill()
+      this._matomo = null
+    }
+  }
+
+  private _initMatomo(isNew: boolean) {
+    this._matomo = new Matomo(this._account, this._userAgent, this.env, envAPI)
+
+    let params = {
+      e_c: 'Account',
+      e_a: isNew ? 'Registered' : 'Signin',
+      new_visit: 1
+    }
+
+    this._matomo.event(params, () => { return this.refreshToken() })
+    this._matomo.heartBeat(30000, () => { return this.refreshToken() })
   }
 }

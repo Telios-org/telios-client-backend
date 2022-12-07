@@ -1,6 +1,7 @@
 import { Store } from '../Store'
 import { DomainOpts } from '../types'
-import { DomainSchema, StoreSchema } from '../schemas'
+import { DomainSchema, MailboxSchema } from '../schemas'
+import { DefaultFolders } from '../models/folder.model'
 import { UTCtimestamp } from '../util/date.util'
 
 const generator = require('generate-password')
@@ -223,24 +224,46 @@ export default async (props: DomainOpts) => {
   if (event === 'domain:registerMailbox') {
     try {  
       const mailboxModel = store.models.Mailbox
-
+      const folderModel = store.models.Folder
+      const DomainSDK = store.sdk.domain
+      
+      // Create the new sub account
       const account = await createDomainAccount(payload)
 
-      // Save drive/pass/keys to current account's mailbox doc
+      // Register mailbox with backend api
+      await DomainSDK.registerMailbox({ 
+        name: payload.displayName, 
+        mailbox_key: account.secretBoxPubKey, 
+        addr: payload.address 
+      })
 
-      // channel.send({
-      //   event: 'domain:registerMailbox:callback',
-      //   data: {
-      //     accountId: _id.toString('hex'),
-      //     uid: accountUID,
-      //     deviceId: account.device_id,
-      //     signedAcct: account,
-      //     secretBoxKeypair,
-      //     signingKeypair,
-      //     mnemonic,
-      //     sig: serverSig,
-      //   }
-      // })
+      // Create mailbox doc for sub account
+      const _id = new ObjectID()
+      const mailboxId = _id.toString('hex')
+
+      const mailbox: MailboxSchema = await mailboxModel.insert({ 
+        _id,
+        displayName: payload.displayName,
+        password: account.password,
+        address: payload.address,
+        domainKey: payload.domain,
+        mailboxId, 
+        type: payload.type
+      })
+
+      for (const folder of DefaultFolders) {
+        let _folder: any = { ...folder }
+        _folder.mailboxId = mailbox.mailboxId
+        await folderModel.insert(_folder)
+      }
+
+      channel.send({
+        event: 'domain:registerMailbox:callback',
+        data: {
+          account,
+          mailbox
+        }
+      })
     } catch (err: any) {
       channel.send({
         event: 'domain:registerMailbox:callback',
@@ -266,7 +289,7 @@ export default async (props: DomainOpts) => {
   if (event === 'domain:deleteMailbox') {
   }
 
-  async function createDomainAccount(payload: { email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE' }) {
+  async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE' }) {
     // Clone a new store for domain mailbox
     const _store = new Store(store.env, store.teliosPubKey, store.domain.api)
     const password = generatePassword(13)
@@ -339,12 +362,14 @@ export default async (props: DomainOpts) => {
     // Save account to drive's Account collection
     const acctDoc = await accountModel.insert({
       _id,
+      type: payload.type,
       accountId: _id.toString('hex'),
       uid: accountUID,
       driveSyncingPublicKey: drive.publicKey,
       secretBoxPubKey: secretBoxKeypair.publicKey,
       secretBoxPrivKey: secretBoxKeypair.privateKey,
       driveEncryptionKey: encryptionKey,
+      mnemonic,
       createdAt: UTCtimestamp(),
       updatedAt: UTCtimestamp()
     })
@@ -357,12 +382,13 @@ export default async (props: DomainOpts) => {
       },
       deviceId: account.device_id,
       deviceType: payload.deviceType || 'DESKTOP',
-      serverSig: serverSig
+      serverSig: serverSig,
+      driveVersion: "2.0"
     }
 
     accountModel.setDeviceInfo(deviceInfo, password)
 
-    await _store.setAccount({...acctDoc, deviceInfo })
+    await _store.setAccount({...acctDoc, deviceInfo }, true)
 
     _store.setAccountSecrets({ email: payload.email, password })
 
@@ -409,6 +435,11 @@ export default async (props: DomainOpts) => {
     _store.setDriveStatus('ONLINE')
 
     _store.initSocketIO(_store.getAccount(), channel)
+
+    return {
+      ...acctDoc,
+      password
+    }
   }
 }
 

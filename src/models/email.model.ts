@@ -108,7 +108,7 @@ export class EmailModel {
   }
 
   public async remove(doc: EmailProps, opts?: any) {
-    return this.collection.remove(doc, opts)
+    return this.collection.delete(doc, opts)
   }
 
   public async search(query: string) : Promise<EmailSchema[]> {

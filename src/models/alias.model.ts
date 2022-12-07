@@ -13,7 +13,7 @@ export class AliasModel {
     this._drive = this._store.getDrive()
     this.collection = await this._drive.db.collection('Alias')
 
-    await this.collection.createIndex(['createdAt', 'name'])
+    await this.collection.createIndex(['name', 'aliasId'])
     
     return this.collection
   }
@@ -31,10 +31,14 @@ export class AliasModel {
   }
 
   public async remove(doc: any, opts?: any) {
-    return this.collection.remove(doc, opts)
+    return this.collection.delete(doc, opts)
   }
  
   public async update(doc:any, props: any, opts?:any) {
+    if(props['$inc']) {
+      const currentCount = this._store.getFolderCount(doc.aliasId)
+      this._store.setFolderCount(doc.aliasId, currentCount + props['$inc'].count)
+    }
     return this.collection.update(doc, props, opts)
   }
 
