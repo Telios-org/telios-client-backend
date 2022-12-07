@@ -49,9 +49,7 @@
     "typescript": "^4.5.4"
   },
   "overrides": {
-    "hyperswarm": {
-      "@hyperswarm/dht": "5.0.25"
-    }
+    "@hyperswarm/dht": "5.0.25"
   },
   "resolutions": {
     "@hyperswarm/dht": "5.0.25"
