@@ -77,7 +77,7 @@ export default async (props: AccountOpts) => {
           recovery_email: payload.recoveryEmail,
           device_drive_key: drive.publicKey,
           device_signing_key: signingKeypair.publicKey,
-        },
+        }
       }
 
       // Prepare registration payload

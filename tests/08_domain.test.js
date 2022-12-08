@@ -146,6 +146,40 @@ test('get all domains', async t => {
   })
 })
 
+test('register domain mailbox', async t => {
+  t.plan(6)
+
+  const payload = { 
+    type: 'SUB', 
+    email: 'bob@telios.app',
+    displayName: 'John Doe',
+    domain: 'telios.app', 
+    recoveryEmail: 'bob_recovery@mail.com',
+    deviceType: 'DESKTOP'
+  }
+
+  channel.send({ event: 'domain:registerMailbox',  payload })
+
+  channel.once('domain:registerMailbox:callback', cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.message)
+
+    t.ok(data.account.password)
+    t.equals(data.account.type, 'SUB')
+    t.equals(data.mailbox.type, 'SUB')
+    t.equals(data.mailbox.displayName, 'John Doe')
+    t.equals(data.mailbox.domainKey, 'telios.app')
+    t.ok(data.mailbox.password)
+  })
+})
+
+// test('update domain mailbox', async t => {
+// })
+
+// test('delete domain mailbox', async t => {
+// })
+
 test('delete custom domain', async t => {
   t.plan(1)
 
@@ -168,12 +202,3 @@ test('delete custom domain', async t => {
     channel.kill()
   })
 })
-
-// test('register domain mailbox', async t => {
-// })
-
-// test('update domain mailbox', async t => {
-// })
-
-// test('delete domain mailbox', async t => {
-// })

@@ -649,6 +649,18 @@ const payload = {
 
 #### `channel.send({ event: 'domain:getDomains' })`
 
+#### `channel.send({ event: 'domain:registerMailbox', payload })`
+```js
+const payload = { 
+  type: 'SUB' | 'CLAIMED', 
+  email: 'bob@telios.app',
+  displayName: 'John Doe',
+  domain: 'telios.app',
+  recoveryEmail: 'bob_recovery@mail.com',
+  deviceType: 'DESKTOP' | 'MOBILE'
+}
+```
+
 #### `channel.send({ event: 'domain:delete' })`
 ```js
 const payload = {

@@ -10,6 +10,7 @@ const fs = require('fs')
 const path = require('path')
 const BSON = require('bson')
 const { ObjectID } = BSON
+const Crypto = require('@telios/nebula/lib/crypto')
 
 export default async (props: DomainOpts) => {
   const { channel, userDataPath, msg, store } = props
@@ -17,7 +18,6 @@ export default async (props: DomainOpts) => {
 
   const Domain = store.sdk.domain
   const Account = store.sdk.account
-  const Crypto = store.sdk.crypto
 
   /***************************************
    *  CHECK IF DOMAIN IS AVAILABLE
@@ -290,13 +290,17 @@ export default async (props: DomainOpts) => {
   }
 
   async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE' }) {
+    const mailboxModel = store.models.Mailbox
     // Clone a new store for domain mailbox
     const _store = new Store(store.env, store.teliosPubKey, store.domain.api)
     const password = generatePassword(13)
-    
     const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
-    const parentAccountsDir = path.join(userDataPath)
-    const domainsDir = `${parentAccountsDir}/${payload.email}/Domains`
+
+    const mailbox = await mailboxModel.findOne({ type: 'PRIMARY' })
+
+    const parentAccountsDir = path.join(userDataPath, `/${mailbox.address}`)
+
+    const domainsDir = `${parentAccountsDir}/Domains`
     const domainDir = `${domainsDir}/${payload.domain}`
 
     if (!fs.existsSync(domainsDir)) {
@@ -308,6 +312,8 @@ export default async (props: DomainOpts) => {
     }
 
     const acctPath = path.join(domainDir, `/${payload.email}`)
+
+    _store.acctPath = acctPath
 
     fs.mkdirSync(acctPath)
 
@@ -341,7 +347,7 @@ export default async (props: DomainOpts) => {
         recovery_email: payload.recoveryEmail,
         device_drive_key: drive.publicKey,
         device_signing_key: signingKeypair.publicKey,
-      },
+      }
     }
 
     // Prepare registration payload
@@ -351,7 +357,7 @@ export default async (props: DomainOpts) => {
     )
 
     const registerPayload = {
-      account: { type: payload.deviceType, ...account },
+      account,
       sig: accountSig
     }
 
