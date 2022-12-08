@@ -755,10 +755,10 @@ export default async (props: EmailOpts) => {
       if (eml.unread) {
         await Email.update({ emailId: eml.emailId }, { unread: false })
 
-        if(eml.folderId === 5 && eml.aliasId && store.getFolderCount(eml.aliasId) > 0) {
+        if(eml.folderId === 5 && eml.aliasId) {
           await Alias.update({ aliasId: eml.aliasId }, { $inc:{ count: -1 } })
         }
-        if(eml.folderId !== 5 && store.getFolderCount(eml.folderId) > 0) {
+        if(eml.folderId !== 5) {
           await Folder.update({ folderId: eml.folderId }, { $inc: { count: -1 }})
         }
         

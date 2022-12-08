@@ -1,6 +1,7 @@
 const path = require('path')
 const removeMd = require('remove-markdown')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
+const { v4: uuidv4 } = require('uuid')
 
 import { MsgHelperMessage } from '../types'
 import { 
@@ -117,19 +118,46 @@ export default class MesssageHandler {
 
                 stream.on('end', () => {
                   content = JSON.parse(content);
-                  this.channel.send({
-                    event: 'messageHandler:fileFetched',
-                    data: {
-                      _id: file._id,
-                      email: {
-                        key: file.key,
-                        header: file.header,
-                        content
-                      },
-                    }
+
+                  const email = transformEmail({
+                    key: file.key,
+                    header: file.header,
+                    content
                   });
 
-                  return resolve()
+                  const requestId = uuidv4()
+
+                  this.channel.send({ 
+                    event: 'email:saveMessageToDB', 
+                    payload: {
+                      messages: [email],
+                      requestId,
+                      type: 'Incoming',
+                      async: false
+                    } 
+                  })
+
+                  this.channel.once('email:saveMessageToDB:callback', (cb: any) => {
+                    const { error, data } = cb
+
+                    if(error) return reject(error)
+
+                    if(data.requestId === requestId) {
+                      this.channel.send({
+                        event: 'messageHandler:fileFetched',
+                        data: {
+                          _id: file._id,
+                          email: {
+                            key: file.key,
+                            header: file.header,
+                            content
+                          },
+                        }
+                      })
+    
+                      return resolve()
+                    } 
+                  })
                 });
 
                 stream.on('error', (err) => {
@@ -305,4 +333,24 @@ export default class MesssageHandler {
       this.fetchBatch(batch)
     }
   }
+}
+
+
+function transformEmail(data: any) {
+  const { path, key, header } = data.email;
+  const email = data.email.content;
+
+  return {
+    unread: true,
+    fromJSON: JSON.stringify(email.from),
+    toJSON: JSON.stringify(email.to),
+    ccJSON: JSON.stringify(email.cc),
+    bccJSON: JSON.stringify(email.bcc),
+    bodyAsHtml: email.html_body,
+    bodyAsText: email.text_body,
+    path,
+    encKey: key,
+    encHeader: header,
+    ...email
+  };
 }
