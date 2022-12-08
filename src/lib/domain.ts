@@ -245,7 +245,7 @@ export default async (props: DomainOpts) => {
         _id,
         displayName: payload.displayName,
         password: account.password,
-        address: payload.address,
+        address: payload.email,
         domainKey: payload.domain,
         mailboxId, 
         type: payload.type

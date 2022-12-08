@@ -165,6 +165,8 @@ test('register domain mailbox', async t => {
 
     if(error) t.fail(error.message)
 
+    console.log(data)
+
     t.ok(data.account.password)
     t.equals(data.account.type, 'SUB')
     t.equals(data.mailbox.type, 'SUB')
