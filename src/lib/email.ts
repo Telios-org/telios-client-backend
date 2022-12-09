@@ -445,42 +445,50 @@ export default async (props: EmailOpts) => {
         }
       }
 
-      Promise.all(asyncMsgs)
-        .then(async items => {
-          const msgArr: EmailSchema[] = []
+      return new Promise((resolve, reject) => {
+        Promise.all(asyncMsgs)
+          .then(async items => {
+            const msgArr: EmailSchema[] = []
 
-          await Promise.all(asyncFolders)
+            await Promise.all(asyncFolders)
 
-          for(const item of items) {
-            if (item) {
-              const msg = { ...item }
+            for(const item of items) {
+              if (item) {
+                const msg = { ...item }
 
-              msg.unread = msg.unread ? true : false
-              msgArr.push(msg)
+                msg.unread = msg.unread ? true : false
+                msgArr.push(msg)
+              }
             }
-          }
 
-          return channel.send({
-            event: 'email:saveMessageToDB:callback',
-            data: {
+            resolve({
               msgArr,
               newAliases,
               requestId
-            }
+            })
+
+            return channel.send({
+              event: 'email:saveMessageToDB:callback',
+              data: {
+                msgArr,
+                newAliases,
+                requestId
+              }
+            })
           })
-        })
-        .catch(e => {
-          channel.send({
-            event: 'email:saveMessageToDB:callback',
-            error: {
-              requestId,
-              name: e.name,
-              message: e.message,
-              stacktrace: e.stack
-            }
+          .catch(e => {
+            channel.send({
+              event: 'email:saveMessageToDB:callback',
+              error: {
+                requestId,
+                name: e.name,
+                message: e.message,
+                stacktrace: e.stack
+              }
+            })
+            reject(e)
           })
-          throw e
-        })
+      })
     } catch(err: any) {
       channel.send({
         event: 'email:saveMessageToDB:callback',
@@ -491,6 +499,8 @@ export default async (props: EmailOpts) => {
           stacktrace: err.stack
         }
       })
+
+      throw err
     }
   }
 

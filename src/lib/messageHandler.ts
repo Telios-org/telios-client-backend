@@ -9,6 +9,7 @@ import {
   StoreSchema
 } from '../schemas'
 import { Stream } from 'stream'
+import Email from './email'
 
 
 export default class MesssageHandler {
@@ -17,13 +18,15 @@ export default class MesssageHandler {
   private ipfs: any
   private channel: any
   private store: StoreSchema
+  private userDataPath: string
 
-  constructor(channel:any, store: StoreSchema) {
+  constructor(channel:any, userDataPath:string, store: StoreSchema) {
     this.drive = null
     this.mailbox = null
     this.ipfs = null
     this.channel = channel
     this.store = store
+    this.userDataPath = userDataPath
   }
 
   async initDrive() {
@@ -116,7 +119,7 @@ export default class MesssageHandler {
                   content += chunk.toString('utf-8')
                 });
 
-                stream.on('end', () => {
+                stream.on('end', async () => {
                   content = JSON.parse(content);
 
                   const email = transformEmail({
@@ -127,37 +130,22 @@ export default class MesssageHandler {
 
                   const requestId = uuidv4()
 
-                  this.channel.send({ 
-                    event: 'email:saveMessageToDB', 
-                    payload: {
-                      messages: [email],
-                      requestId,
-                      type: 'Incoming',
-                      async: false
-                    } 
+                  await Email({ 
+                    channel: this.channel, 
+                    userDataPath: this.userDataPath, 
+                    msg: {
+                      event: 'email:saveMessageToDB', 
+                      payload: {
+                        messages: [email],
+                        requestId,
+                        type: 'Incoming',
+                        async: false
+                      }  
+                    }, 
+                    store: this.store 
                   })
-
-                  this.channel.once('email:saveMessageToDB:callback', (cb: any) => {
-                    const { error, data } = cb
-
-                    if(error) return reject(error)
-
-                    if(data.requestId === requestId) {
-                      this.channel.send({
-                        event: 'messageHandler:fileFetched',
-                        data: {
-                          _id: file._id,
-                          email: {
-                            key: file.key,
-                            header: file.header,
-                            content
-                          },
-                        }
-                      })
-    
-                      return resolve()
-                    } 
-                  })
+                  
+                  return resolve()
                 });
 
                 stream.on('error', (err) => {
