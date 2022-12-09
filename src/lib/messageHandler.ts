@@ -144,6 +144,13 @@ export default class MesssageHandler {
                     }, 
                     store: this.store 
                   })
+
+                  this.channel.send({
+                    event: 'messageHandler:fileFetched',
+                    data: {
+                      _id: file._id
+                    }
+                  });
                   
                   return resolve()
                 });
@@ -325,8 +332,8 @@ export default class MesssageHandler {
 
 
 function transformEmail(data: any) {
-  const { path, key, header } = data.email;
-  const email = data.email.content;
+  const { path, key, header } = data;
+  const email = data.content;
 
   return {
     unread: true,
