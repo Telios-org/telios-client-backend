@@ -225,8 +225,31 @@ export default class MesssageHandler {
         })
       })
 
-      stream.on('end', () => {
+      stream.on('end', async () => {
         content = JSON.parse(content)
+
+        const email = transformEmail({
+          key: fileMeta.key,
+          header: fileMeta.header,
+          content
+        });
+
+        const requestId = uuidv4()
+
+        await Email({ 
+          channel: this.channel, 
+          userDataPath: this.userDataPath, 
+          msg: {
+            event: 'email:saveMessageToDB', 
+            payload: {
+              messages: [email],
+              requestId,
+              type: 'Incoming',
+              async: false
+            }  
+          }, 
+          store: this.store 
+        })
 
         // Send OS notification
         this.notify({
@@ -241,12 +264,7 @@ export default class MesssageHandler {
         this.channel.send({
           event: 'messageHandler:fileFetched',
           data: {
-            _id: fileMeta._id,
-            email: {
-              key: fileMeta.key,
-              header: fileMeta.header,
-              content
-            },
+            _id: fileMeta._id
           }
         })
       })
