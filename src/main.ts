@@ -19,7 +19,7 @@ export = (props: MainOpts) => {
   let resource: any
   // @ts-ignore
   let store: StoreSchema = new Store(env, userAgent, null, null)
-  let messageHandler = new MessageHandler(channel, store)
+  let messageHandler = new MessageHandler(channel, userDataPath, store)
   
   channel.on('message', async (msg: any) => {
     if(!resource) {
@@ -32,7 +32,7 @@ export = (props: MainOpts) => {
         const IPFSGateway = env === 'production' ? resource.IPFS_GATEWAY : resource.IPFS_GATEWAY_DEV
         // @ts-ignore`
         store = new Store(env, userAgent, signingPubKey, apiURL, IPFSGateway)
-        messageHandler = new MessageHandler(channel, store)
+        messageHandler = new MessageHandler(channel, userDataPath, store)
       } catch(err:any) {
         // No internet connection
       }
