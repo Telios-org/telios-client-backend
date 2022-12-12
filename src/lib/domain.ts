@@ -234,7 +234,7 @@ export default async (props: DomainOpts) => {
       await DomainSDK.registerMailbox({ 
         name: payload.displayName, 
         mailbox_key: account.secretBoxPubKey, 
-        addr: payload.address 
+        addr: payload.email
       })
 
       // Create mailbox doc for sub account
@@ -292,7 +292,7 @@ export default async (props: DomainOpts) => {
   async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE' }) {
     const mailboxModel = store.models.Mailbox
     // Clone a new store for domain mailbox
-    const _store = new Store(store.env, store.teliosPubKey, store.domain.api)
+    const _store = new Store(store.env, store._userAgent, store.teliosPubKey, store.domain.api, store.IPFSGateway)
     const password = generatePassword(13)
     const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
 

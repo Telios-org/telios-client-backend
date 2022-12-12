@@ -9,6 +9,7 @@ interface IEmissions {
 }
 
 export declare interface StoreSchema {
+  _userAgent: string
   sdk: {
     account: any
     mailbox: any
