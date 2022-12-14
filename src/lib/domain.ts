@@ -248,7 +248,9 @@ export default async (props: DomainOpts) => {
         address: payload.email,
         domainKey: payload.domain,
         mailboxId, 
-        type: payload.type
+        type: payload.type,
+        createdAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp()
       })
 
       for (const folder of DefaultFolders) {

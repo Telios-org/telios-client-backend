@@ -17,7 +17,13 @@ export default async (props: MailboxOpts) => {
    **************************************/
   if (event === 'mailbox:register') {
     try {
-      await MailboxSDK.registerMailbox(payload)
+      const acctSecrets = store.getAccountSecrets()
+      const _payload = { 
+        ...payload, 
+        password: acctSecrets.password,
+        domainKey: 'telios.io'
+      }
+      await MailboxSDK.registerMailbox(_payload)
       channel.send({ event: 'mailbox:register:callback', data: payload })
     } catch(err: any) {
       channel.send({
@@ -91,8 +97,22 @@ export default async (props: MailboxOpts) => {
       const Mailbox = store.models.Mailbox
 
       const mailboxes: MailboxSchema[] = await Mailbox.find()
+
+      const _mailboxes = mailboxes.map(mailbox => {
+        if(mailbox.type === 'PRIMARY' && !mailbox.password || mailbox.type === 'PRIMARY' && !mailbox.domainKey) {
+          const acctSecrets = store.getAccountSecrets()
+          
+          return {
+            ...mailbox,
+            password: acctSecrets.password,
+            domainKey: 'telios.io'
+          }
+        } else {
+          return mailbox
+        }
+      })
       
-      channel.send({ event: 'mailbox:getMailboxes:callback', data: mailboxes })
+      channel.send({ event: 'mailbox:getMailboxes:callback', data: _mailboxes })
     } catch(err: any) {
       channel.send({
         event: 'mailbox:getMailboxes:callback',
