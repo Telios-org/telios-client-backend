@@ -2,6 +2,7 @@ import { DefaultFolders } from '../models/folder.model'
 
 import { MailboxOpts } from '../types'
 import { AccountSchema, MailboxSchema} from '../schemas'
+import { UTCtimestamp } from '../util/date.util'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -17,13 +18,7 @@ export default async (props: MailboxOpts) => {
    **************************************/
   if (event === 'mailbox:register') {
     try {
-      const acctSecrets = store.getAccountSecrets()
-      const _payload = { 
-        ...payload, 
-        password: acctSecrets.password,
-        domainKey: 'telios.io'
-      }
-      await MailboxSDK.registerMailbox(_payload)
+      await MailboxSDK.registerMailbox(payload)
       channel.send({ event: 'mailbox:register:callback', data: payload })
     } catch(err: any) {
       channel.send({
@@ -143,7 +138,19 @@ export default async (props: MailboxOpts) => {
         mailboxId = _id.toString('hex')
       }
 
-      const mailbox: MailboxSchema = await Mailbox.insert({ _id, address, mailboxId, type: 'PRIMARY' })
+      const acctSecrets = store.getAccountSecrets()
+
+      const mailbox: MailboxSchema = await Mailbox.insert({ 
+        _id, 
+        address, 
+        mailboxId,
+        displayName: address,
+        type: 'PRIMARY',
+        password: acctSecrets.password,
+        domainKey: 'telios.io',
+        createdAt: UTCtimestamp(),
+        updatedAt: UTCtimestamp()
+      })
 
       for (const folder of DefaultFolders) {
         let _folder: any = { ...folder }
@@ -173,7 +180,7 @@ export default async (props: MailboxOpts) => {
     try {
       const Mailbox = store.models.Mailbox
 
-      const mailbox: MailboxSchema = await Mailbox.update({ mailboxId }, { displayName: name })
+      const mailbox: MailboxSchema = await Mailbox.update({ mailboxId }, { displayName: name, updatedAt: UTCtimestamp() })
 
       channel.send({ event: 'mailbox:updateMailboxName:callback', data: mailbox })
     } catch(err: any) {
