@@ -750,7 +750,17 @@ export default async (props: AccountOpts) => {
   }
 
   async function login(kp?: { publicKey: string, secretKey: string}) {
-    const acctPath = `${userDataPath}/${payload.email}`
+    const domain = payload.email.split('@')[1]
+
+    let acctPath
+
+    // Handle account path for custom domains
+    if(domain !== 'telios.io' && domain !== 'dev.telios.io') {
+      //TODO: This will need to be refactored for claimable mailboxes
+      acctPath = `${userDataPath}/Domains/${domain}/${payload.email}`
+    } else {
+      acctPath = `${userDataPath}/${payload.email}`
+    }
 
     store.acctPath = acctPath
     

@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
-    "@telios/client-sdk": "^7.0.7",
+    "@telios/client-sdk": "^8.0.0",
     "@telios/nebula": "^4.0.8",
     "@telios/nebula-migrate": "git+https://github.com/Telios-org/nebula-migrate",
     "blakejs": "^1.2.1",
