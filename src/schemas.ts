@@ -106,7 +106,9 @@ export interface MailboxSchema {
   displayName?: string
   password?: string
   domainKey?: string
-  drivePubKey?: string
+  driveSyncingPublicKey?: string
+  driveEncryptionKey?: string
+  mnemonic?: string
   syncCode?: string
   // Timestamps
   createdAt?: string

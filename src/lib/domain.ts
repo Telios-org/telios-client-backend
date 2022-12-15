@@ -243,12 +243,15 @@ export default async (props: DomainOpts) => {
 
       const mailbox: MailboxSchema = await mailboxModel.insert({ 
         _id,
+        mailboxId,
+        domainKey: payload.domain,
+        type: payload.type,
+        address: payload.email,
         displayName: payload.displayName,
         password: account.password,
-        address: payload.email,
-        domainKey: payload.domain,
-        mailboxId, 
-        type: payload.type,
+        driveSyncingPublicKey: account.driveSyncingPublicKey,
+        driveEncryptionKey: account.driveEncryptionKey,
+        mnemonic: account.mnemonic,
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
       })
