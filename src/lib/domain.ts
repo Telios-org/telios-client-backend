@@ -241,6 +241,7 @@ export default async (props: DomainOpts) => {
       const _id = new ObjectID()
       const mailboxId = _id.toString('hex')
 
+      // TODO: Create a sync code for claimable mailboxes
       const mailbox: MailboxSchema = await mailboxModel.insert({ 
         _id,
         mailboxId,

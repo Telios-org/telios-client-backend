@@ -1278,8 +1278,8 @@ function getAcctPath(source: string, email: string) {
   } else {
     const domain = email.split('@')[1]
 
-    for(let i = 0; i < primaryAccts.length; i++) {
-      const domainsPath = path.join(source, `${primaryAccts[i]}/Domains`)
+    for(const acct of primaryAccts) {
+      const domainsPath = path.join(source, `${acct}/Domains`)
 
       if(fs.existsSync(domainsPath)) {
         const domains = fs.readdirSync(domainsPath, { withFileTypes: true })
@@ -1287,16 +1287,16 @@ function getAcctPath(source: string, email: string) {
           .map((dirent:any) => dirent.name)
 
         if(domains.indexOf(domain) > -1) {
-          for(let i = 0; i < domains.length; i++) {
-            const domainsAcctPath = path.join(source, `${primaryAccts[i]}/Domains/${domains[i]}`)
+          for(const domain of domains) {
+            const domainsAcctPath = path.join(source, `${acct}/Domains/${domain}`)
 
             const domainAccts = fs.readdirSync(domainsAcctPath, { withFileTypes: true })
               .filter((dirent:any) => dirent.isDirectory())
               .map((dirent:any) => dirent.name)
 
-            for(let i = 0; i < domainAccts.length; i++) {
+            for(const dAcct of domainAccts) {
               if(domainAccts.indexOf(email) > -1) {
-                return path.join(source, `/${primaryAccts[i]}/Domains/${domains[i]}/${domainAccts[i]}`)
+                return path.join(source, `/${acct}/Domains/${domain}/${dAcct}`)
               }
             }
           }
