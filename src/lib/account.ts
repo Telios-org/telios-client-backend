@@ -1295,7 +1295,7 @@ function getAcctPath(source: string, email: string) {
               .map((dirent:any) => dirent.name)
 
             for(const dAcct of domainAccts) {
-              if(domainAccts.indexOf(email) > -1) {
+              if(dAcct === email) {
                 return path.join(source, `/${acct}/Domains/${domain}/${dAcct}`)
               }
             }
