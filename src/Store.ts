@@ -250,6 +250,14 @@ export class Store extends EventEmitter{
       }
     }
   }
+
+  public setAccountPath(path: string): void {
+    this.acctPath = path
+  }
+
+  public getAccountPath(): string {
+    return this.acctPath
+  }
   
   public getAccount() : AccountSchema {
     return this._account
@@ -345,6 +353,80 @@ export class Store extends EventEmitter{
     if(this._matomo) {
       this._matomo.kill()
       this._matomo = null
+    }
+  }
+
+  public async clear() {
+    this.folderCounts = {}
+
+    this.drive = null
+    this.encryptionKey = ''
+    this.acctPath = ''
+    // Fallback to production signing public key if it could not be fetched from well-known resource
+    this.teliosPubKey = "fa8932f0256a4233dde93195d24a6ae4d93cc133d966f3c9f223e555953c70c1"
+    
+    this._account = {
+      uid: '',
+      type: 'PRIMARY',
+      driveSyncingPublicKey: '',
+      driveEncryptionKey:  '',
+      secretBoxPubKey:  '',
+      secretBoxPrivKey:  '',
+      signingPubKey:  '',
+      signingPrivKey:  '',
+      deviceInfo: {
+        keyPair: {
+          publicKey: '',
+          secretKey: ''
+        },
+        deviceId: '',
+        serverSig: '',
+        driveVersion: ''
+      },
+      mnemonic: ''
+    }
+
+    this._authPayload = {
+      claims: {
+        account_key: '',
+        device_signing_key: '',
+        device_id: ''
+      },
+      device_signing_priv_key: '',
+      sig: ''
+    }
+
+    this._accountSecrets = {
+      password: '',
+      email: ''
+    }
+    
+    this._keyPairs = new Map()
+    this._connections = new Map()
+    this._peers = new Map()
+    this._swarm = null
+
+    this.models = {
+      // @ts-ignore
+      Account: new AccountModel(this),
+      // @ts-ignore
+      Alias: new AliasModel(this),
+      // @ts-ignore
+      AliasNamespace: new AliasNamespaceModel(this),
+      // @ts-ignore
+      Contact: new ContactModel(this),
+      // @ts-ignore
+      Email: new EmailModel(this),
+      // @ts-ignore
+      File: new FileModel(this),
+      // @ts-ignore
+      Folder: new FolderModel(this),
+      // @ts-ignore
+      Mailbox: new MailboxModel(this),
+      // @ts-ignore
+      Migrate: new MigrateModel(this),
+      // @ts-ignore
+      Domain: new DomainModel(this)
     }
   }
 

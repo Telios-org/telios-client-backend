@@ -4,7 +4,7 @@ const test = _test(tape)
 const { OpenChannel } = require('./helper')
 
 let channel
-
+let subAcct
 
 test('check if custom domain name is available', async t => {
   t.plan(1)
@@ -167,12 +167,52 @@ test('register domain mailbox', async t => {
 
     console.log(data)
 
+    subAcct = data
+
     t.ok(data.account.password)
     t.equals(data.account.type, 'SUB')
     t.equals(data.mailbox.type, 'SUB')
     t.equals(data.mailbox.displayName, 'John Doe')
     t.equals(data.mailbox.domainKey, 'telios.app')
     t.ok(data.mailbox.password)
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('log in to sub mailbox', async t => {
+  t.plan(1)
+  channel = await OpenChannel()
+
+  channel.send({ event: 'account:logout', payload: { kill: false } })
+
+  channel.once('account:logout:callback', () => {
+
+    channel.send({
+      event: 'account:login',
+      payload: {
+        email: 'bob@telios.app',
+        password: subAcct.mailbox.password
+      }
+    })
+
+    channel.once('account:login:callback', cb => {
+      const { error, data } = cb
+  
+      if(error) {
+        console.log(error)
+        t.fail(error.message)
+        channel.kill()
+      }
+
+      t.equals('SUB', data.type)
+    })
+  })
+
+  t.teardown(async () => {
+    channel.kill()
   })
 })
 
@@ -184,6 +224,8 @@ test('register domain mailbox', async t => {
 
 test('delete custom domain', async t => {
   t.plan(1)
+
+  channel = await OpenChannel()
 
   channel.send({
     event: 'domain:delete',

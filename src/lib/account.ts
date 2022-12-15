@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path')
-import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 const { v4: uuidv4 } = require('uuid')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
@@ -9,6 +8,7 @@ const Drive = require('@telios/nebula')
 const Migrate = require('@telios/nebula-migrate')
 const Crypto = require('@telios/nebula/lib/crypto')
 
+import { UTCtimestamp } from '../util/date.util'
 import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
@@ -18,7 +18,7 @@ const BSON = require('bson')
 const { ObjectID } = BSON
 
 export default async (props: AccountOpts) => {
-  const { channel, userDataPath, msg, store } = props
+  let { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
   const Account = store.sdk.account
   
@@ -665,8 +665,7 @@ export default async (props: AccountOpts) => {
         await drive.close()
       }
 
-      store.setAccountSecrets({ email: undefined, password: undefined })
-      await store.setAccount(null, false)
+      await store.clear()
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 
@@ -750,19 +749,9 @@ export default async (props: AccountOpts) => {
   }
 
   async function login(kp?: { publicKey: string, secretKey: string}) {
-    const domain = payload.email.split('@')[1]
+    const acctPath = getAcctPath(userDataPath, payload.email)
 
-    let acctPath
-
-    // Handle account path for custom domains
-    if(domain !== 'telios.io' && domain !== 'dev.telios.io') {
-      //TODO: This will need to be refactored for claimable mailboxes
-      acctPath = `${userDataPath}/Domains/${domain}/${payload.email}`
-    } else {
-      acctPath = `${userDataPath}/${payload.email}`
-    }
-
-    store.acctPath = acctPath
+    store.setAccountPath(acctPath)
     
     let mnemonic
     let encryptionKey
@@ -1276,5 +1265,43 @@ async function reconnectDrive(channel: any, store: StoreSchema) {
       }, 
       data: null 
     })
+  }
+}
+
+function getAcctPath(source: string, email: string) {
+  const primaryAccts = fs.readdirSync(source, { withFileTypes: true })
+    .filter((dirent:any) => dirent.isDirectory())
+    .map((dirent:any) => dirent.name)
+
+  if(primaryAccts.indexOf(email) > -1) {
+    return path.join(source, email)
+  } else {
+    const domain = email.split('@')[1]
+
+    for(let i = 0; i < primaryAccts.length; i++) {
+      const domainsPath = path.join(source, `${primaryAccts[i]}/Domains`)
+
+      if(fs.existsSync(domainsPath)) {
+        const domains = fs.readdirSync(domainsPath, { withFileTypes: true })
+          .filter((dirent:any) => dirent.isDirectory())
+          .map((dirent:any) => dirent.name)
+
+        if(domains.indexOf(domain) > -1) {
+          for(let i = 0; i < domains.length; i++) {
+            const domainsAcctPath = path.join(source, `${primaryAccts[i]}/Domains/${domains[i]}`)
+
+            const domainAccts = fs.readdirSync(domainsAcctPath, { withFileTypes: true })
+              .filter((dirent:any) => dirent.isDirectory())
+              .map((dirent:any) => dirent.name)
+
+            for(let i = 0; i < domainAccts.length; i++) {
+              if(domainAccts.indexOf(email) > -1) {
+                return path.join(source, `/${primaryAccts[i]}/Domains/${domains[i]}/${domainAccts[i]}`)
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

@@ -39,6 +39,8 @@ export declare interface StoreSchema {
   getDriveStatus(): DriveStatuses
   initModels(): Promise<void>
   setAccount(account: AccountSchema | null, isNew: boolean): void
+  setAccountPath(path: string): void
+  getAccountPath(): string
   getAccount(): AccountSchema
   setAccountSecrets(secrets: AccountSecrets): void
   getAccountSecrets(): AccountSecrets
@@ -57,6 +59,7 @@ export declare interface StoreSchema {
   killMatomo(): void
   getFolderCount(folderId: any): any
   setFolderCount(folderId: any, count: number): any
+  clear(): void
   killMatomo(): void
 }
 

@@ -49,7 +49,7 @@ export class AccountModel {
   }
 
   public setDeviceInfo(payload: DeviceSchema, password: string) {
-    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+    const filePath = path.join(`${this._store.getAccountPath()}/Drive/device`)
 
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
@@ -57,7 +57,7 @@ export class AccountModel {
   }
 
   public getDeviceInfo(password: string): any {
-    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+    const filePath = path.join(`${this._store.getAccountPath()}/Drive/device`)
 
     if (!fs.existsSync(filePath)) return null 
 
@@ -103,7 +103,7 @@ export class AccountModel {
     if(customPath) {
       vaultPath = customPath
     } else {
-      vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
+      vaultPath = path.join(`${this._store.getAccountPath()}/Drive/Files/`, type)
     }
 
     if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }
