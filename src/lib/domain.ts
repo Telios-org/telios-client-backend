@@ -224,11 +224,10 @@ export default async (props: DomainOpts) => {
   if (event === 'domain:registerMailbox') {
     try {  
       const mailboxModel = store.models.Mailbox
-      const folderModel = store.models.Folder
       const DomainSDK = store.sdk.domain
       
       // Create the new sub account
-      const account = await createDomainAccount(payload)
+      const { account, store: _store, password } = await createDomainAccount(payload)
 
       // Register mailbox with backend api
       await DomainSDK.registerMailbox({ 
@@ -241,32 +240,47 @@ export default async (props: DomainOpts) => {
       const _id = new ObjectID()
       const mailboxId = _id.toString('hex')
 
-      // TODO: Create a sync code for claimable mailboxes
-      const mailbox: MailboxSchema = await mailboxModel.insert({ 
+      const mPayload = { 
         _id,
         mailboxId,
         domainKey: payload.domain,
         type: payload.type,
         address: payload.email,
         displayName: payload.displayName,
-        password: account.password,
+        password: password,
         driveSyncingPublicKey: account.driveSyncingPublicKey,
         driveEncryptionKey: account.driveEncryptionKey,
         mnemonic: account.mnemonic,
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
-      })
+      }
+
+      // TODO: Create a sync code for claimable mailboxes
+      const mailbox: MailboxSchema = await mailboxModel.insert(mPayload)
+
+      const _mailboxModel = _store.models.Mailbox
+      const _folderModel = _store.models.Folder
+      // Create mailbox and folders for the sub account
+      const subMailbox: MailboxSchema = await _mailboxModel.insert(mPayload)
 
       for (const folder of DefaultFolders) {
         let _folder: any = { ...folder }
-        _folder.mailboxId = mailbox.mailboxId
-        await folderModel.insert(_folder)
+        _folder.mailboxId = subMailbox.mailboxId
+        await _folderModel.insert(_folder)
       }
+
+      // Close the new account
+      const _drive = _store.getDrive()
+      await _drive.close()
+      await _store.clear()
 
       channel.send({
         event: 'domain:registerMailbox:callback',
         data: {
-          account,
+          account: {
+            ...account,
+            password
+          },
           mailbox
         }
       })
@@ -449,8 +463,9 @@ export default async (props: DomainOpts) => {
     _store.initSocketIO(_store.getAccount(), channel)
 
     return {
-      ...acctDoc,
-      password
+      account: acctDoc,
+      password,
+      store: _store
     }
   }
 }

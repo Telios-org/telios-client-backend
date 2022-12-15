@@ -356,7 +356,7 @@ export class Store extends EventEmitter{
     }
   }
 
-  public async clear() {
+  public clear() {
     this.folderCounts = {}
 
     this.drive = null

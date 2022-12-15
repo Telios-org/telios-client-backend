@@ -665,7 +665,7 @@ export default async (props: AccountOpts) => {
         await drive.close()
       }
 
-      await store.clear()
+      store.clear()
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 

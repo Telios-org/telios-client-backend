@@ -165,8 +165,6 @@ test('register domain mailbox', async t => {
 
     if(error) t.fail(error.message)
 
-    console.log(data)
-
     subAcct = data
 
     t.ok(data.account.password)
