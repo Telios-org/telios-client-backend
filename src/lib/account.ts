@@ -731,9 +731,6 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      //joinPeer(store, store.teliosPubKey, channel)
-      //store.initSocketIO()
-
       channel.send({ event: 'account:drive:reconnect:callback', error: null })
     } catch(err: any) {
       channel.send({ 
@@ -1251,7 +1248,6 @@ async function reconnectDrive(channel: any, store: StoreSchema) {
     // Initialize models
     await store.initModels()
 
-    //joinPeer(store, store.teliosPubKey, channel)
     store.initSocketIO(store.getAccount(), channel)
 
     channel.send({ event: 'account:drive:reconnect:callback', error: null })

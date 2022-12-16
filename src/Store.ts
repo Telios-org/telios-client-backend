@@ -42,6 +42,7 @@ export class Store extends EventEmitter{
   private _driveStatus: DriveStatuses = 'OFFLINE'
   private _userAgent: string
   private _matomo: any
+  private _socket: any
 
   constructor(env: 'development' | 'production' | 'test', userAgent: string, signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
     super()
@@ -141,6 +142,7 @@ export class Store extends EventEmitter{
     this._connections = new Map()
     this._peers = new Map()
     this._swarm = null
+    this._socket = null
   }
 
   public setIPFSGateway(gatewayURL: string) {
@@ -297,7 +299,7 @@ export class Store extends EventEmitter{
     const token = this.refreshToken()
     const domain = this.domain.api.replace('https://', 'wss://')
 
-    const socket = io(domain, {
+    this._socket = io(domain, {
       path: '/socket.io/',
       reconnectionDelayMax: 10000,
       auth: {
@@ -305,15 +307,15 @@ export class Store extends EventEmitter{
       }
     });
 
-    socket.on('connect', () => {
+    this._socket.on('connect', () => {
       channel.send({ event: 'Websocket connection established...'})
     })
 
-    socket.on('disconnect', () => {
+    this._socket.on('disconnect', () => {
       channel.send({ event: 'Websocket disconnected from server...'})
     })
 
-    socket.on('email', (data: any) => {
+    this._socket.on('email', (data: any) => {
       channel.send({
         event: 'account:newMessage',
         data: { meta: data.meta, account, async: true },
@@ -357,6 +359,8 @@ export class Store extends EventEmitter{
   }
 
   public clear() {
+    this._socket.close()
+    this._socket = null
     this.folderCounts = {}
 
     this.drive = null
