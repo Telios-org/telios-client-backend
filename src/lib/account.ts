@@ -880,12 +880,6 @@ export default async (props: AccountOpts) => {
 
       let account = await accountModel.findOne()
 
-      if(!account.plan) {
-        const AccountSDK = store.sdk.account
-        const stats = await AccountSDK.retrieveStats()
-        await accountModel.update({ accountId: account.accountId }, { plan: stats.plan })
-      }
-
       channel.send({ event: 'account:login:status', data: 'Account initalized' })
       
       // Monkey patch: Support older accounts when this info was stored in the account collection
@@ -972,6 +966,12 @@ export default async (props: AccountOpts) => {
       handleDriveSyncEvents() // Listen for and sync updates from remote peers/devices
 
       store.initSocketIO(store.getAccount(), channel)
+
+      if(!account.plan) {
+        const AccountSDK = store.sdk.account
+        const stats = await AccountSDK.retrieveStats()
+        await accountModel.update({ accountId: account.accountId }, { plan: stats.plan })
+      }
       
       channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
     } catch (err: any) {
