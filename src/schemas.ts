@@ -78,6 +78,7 @@ export interface DeviceSchema {
 export interface AccountSchema {
   _id?: any,
   type: 'PRIMARY' | 'CLAIMED' | 'SUB',
+  plan: string
   accountId?: string
   displayName?: string
   avatar?: string

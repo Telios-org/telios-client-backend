@@ -116,11 +116,12 @@ test('account login success', async t => {
 })
 
 test('update account', async t => {
-  t.plan(1)
+  t.plan(2)
 
   _channel.send({
     event: 'account:update',
     payload: {
+      accountId: _account.accountId,
       avatar: 'somebase64encodedtext'
     }
   })
@@ -130,7 +131,29 @@ test('update account', async t => {
     
     if(error) t.fail(error.message)
 
-    t.ok(data)
+    t.equals(data.nMatched, 1)
+    t.equals(data.nModified, 1)
+  })
+})
+
+test('update account plan', async t => {
+  t.plan(2)
+
+  _channel.send({
+    event: 'account:updatePlan',
+    payload: {
+      accountId: _account.accountId,
+      plan: 'FOUNDER'
+    }
+  })
+
+  _channel.on('account:updatePlan:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    t.equals(data.nMatched, 1)
+    t.equals(data.nModified, 1)
   })
 })
 

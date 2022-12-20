@@ -100,6 +100,7 @@ export default async (props: AccountOpts) => {
         _id,
         accountId: _id.toString('hex'),
         type: 'PRIMARY',
+        plan: 'FREE',
         uid: accountUID,
         driveSyncingPublicKey: drive.publicKey,
         secretBoxPubKey: secretBoxKeypair.publicKey,
@@ -603,6 +604,30 @@ export default async (props: AccountOpts) => {
   }
 
   /*************************************************
+   *  UPDATE ACCOUNT PLAN
+   ************************************************/
+  if (event === 'account:updatePlan') {
+    const { accountId, plan } = payload
+
+    try {
+      const Account = store.models.Account
+
+      const account = await Account.update({ accountId }, { plan })
+      channel.send({ event: 'account:updatePlan:callback', data: account })
+    } catch (err: any) {
+      channel.send({
+        event: 'account:updatePlan:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
+    }
+  }
+
+  /*************************************************
    *  GET ACCOUNT STATS
    ************************************************/
   if (event === 'account:retrieveStats') {
@@ -854,6 +879,12 @@ export default async (props: AccountOpts) => {
       await store.initModels()
 
       let account = await accountModel.findOne()
+
+      if(!account.plan) {
+        const AccountSDK = store.sdk.account
+        const stats = await AccountSDK.retrieveStats()
+        await accountModel.update({ accountId: account.accountId }, { plan: stats.plan })
+      }
 
       channel.send({ event: 'account:login:status', data: 'Account initalized' })
       

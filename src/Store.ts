@@ -105,6 +105,7 @@ export class Store extends EventEmitter{
     this._account = {
       uid: '',
       type: 'PRIMARY',
+      plan: 'FREE',
       driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
@@ -372,6 +373,7 @@ export class Store extends EventEmitter{
     this._account = {
       uid: '',
       type: 'PRIMARY',
+      plan: 'FREE',
       driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',

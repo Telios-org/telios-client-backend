@@ -248,6 +248,7 @@ export default async (props: DomainOpts) => {
         address: payload.email,
         displayName: payload.displayName,
         password: password,
+        recoveryEmail: payload.recoveryEmail,
         driveSyncingPublicKey: account.driveSyncingPublicKey,
         driveEncryptionKey: account.driveEncryptionKey,
         mnemonic: account.mnemonic,
@@ -309,29 +310,42 @@ export default async (props: DomainOpts) => {
   if (event === 'domain:deleteMailbox') {
   }
 
-  async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE' }) {
+  async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE', password?: string }) {
     const mailboxModel = store.models.Mailbox
+    
+    let password = generatePassword(13)
+
+    if(payload.password) {
+      password = payload.password
+    }
+
     // Clone a new store for domain mailbox
     const _store = new Store(store.env, store._userAgent, store.teliosPubKey, store.domain.api, store.IPFSGateway)
-    const password = generatePassword(13)
+    
     const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
 
     const mailbox = await mailboxModel.findOne({ type: 'PRIMARY' })
 
-    const parentAccountsDir = path.join(userDataPath, `/${mailbox.address}`)
+    let acctPath
 
-    const domainsDir = `${parentAccountsDir}/Domains`
-    const domainDir = `${domainsDir}/${payload.domain}`
+    if(payload.type === 'CLAIMED') {
+      const parentAccountsDir = path.join(userDataPath, `/${mailbox.address}`)
 
-    if (!fs.existsSync(domainsDir)) {
-      fs.mkdirSync(domainsDir)
+      const domainsDir = `${parentAccountsDir}/Domains`
+      const domainDir = `${domainsDir}/${payload.domain}`
+
+      if (!fs.existsSync(domainsDir)) {
+        fs.mkdirSync(domainsDir)
+      }
+
+      if (!fs.existsSync(domainDir)) {
+        fs.mkdirSync(domainDir)
+      }
+
+      acctPath = path.join(domainDir, `/${payload.email}`)
+    } else {
+      acctPath = path.join(userDataPath, `/${payload.email}`)
     }
-
-    if (!fs.existsSync(domainDir)) {
-      fs.mkdirSync(domainDir)
-    }
-
-    const acctPath = path.join(domainDir, `/${payload.email}`)
 
     _store.acctPath = acctPath
 
@@ -389,6 +403,7 @@ export default async (props: DomainOpts) => {
     const acctDoc = await accountModel.insert({
       _id,
       type: payload.type,
+      plan: 'SUB',
       accountId: _id.toString('hex'),
       uid: accountUID,
       driveSyncingPublicKey: drive.publicKey,

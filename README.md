@@ -654,6 +654,7 @@ const payload = {
 const payload = { 
   type: 'SUB' | 'CLAIMED', 
   email: 'bob@telios.app',
+  password: 'letmein123',
   displayName: 'John Doe',
   domain: 'telios.app',
   recoveryEmail: 'bob_recovery@mail.com',

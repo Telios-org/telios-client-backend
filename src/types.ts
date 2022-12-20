@@ -41,6 +41,7 @@ export interface AccountMessage {
         | 'account:sync'
         | 'account:remove'
         | 'account:update'
+        | 'account:updatePlan'
         | 'account:retrieveStats' 
         | 'account:logout' 
         | 'account:exit'
@@ -49,7 +50,8 @@ export interface AccountMessage {
   payload: {
     accountId: string,
     displayName: string,
-    deviceType: 'DESKTOP' | 'MOBILE'
+    deviceType: 'DESKTOP' | 'MOBILE',
+    plan: string,
     avatar: string,
     email: string
     password: string
