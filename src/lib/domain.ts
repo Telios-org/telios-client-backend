@@ -83,7 +83,24 @@ export default async (props: DomainOpts) => {
    **************************************/
   if (event === 'domain:delete') {
     try {
+      const DomainSDK = store.sdk.domain
       const domainModel = store.models.Domain
+      const mailboxModel = store.models.Mailbox
+
+      const mailboxes = await mailboxModel.find({ domainKey: payload.domain })
+
+      for(const mailbox of mailboxes) {
+          // Delete from API
+        await DomainSDK.deleteMailbox({ addr: mailbox.address })
+
+        // Remove from local DB
+        await mailboxModel.remove({ address: mailbox.address })
+
+        // Remove from disk
+        const acctPath = getAcctPath(userDataPath, mailbox.address)
+        rmdir(acctPath)
+      }
+
       const res = await Domain.delete(payload)
       await domainModel.remove({ name: payload.domain })
       channel.send({ event: 'domain:delete:callback', data: res })
