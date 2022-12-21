@@ -13,6 +13,7 @@ import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
 import * as FileUtil from '../util/file.util'
+import { rmdir, getAcctPath } from '../util/base.util'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
@@ -784,18 +785,33 @@ export default async (props: AccountOpts) => {
     // Initialize account collection
     const accountModel = store.models.Account
 
-    try {
-      deviceInfo = accountModel.getDeviceInfo(payload.password)
-    } catch(err:any) {
-      // file does not exist
+    if(payload.password) {
+      try {
+        deviceInfo = accountModel.getDeviceInfo(payload.password)
+      } catch(err:any) {
+        // file does not exist
+      }
     }
-    
+
     try {
       try {
         channel.send({ event: 'account:login:status', data: 'Decrypting account data' })
         
         // Retrieve drive encryption key from vault using master password
-        let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
+        let _keyPair
+
+        if(payload.password) {
+          const vault = accountModel.getVault(payload.password, 'vault')
+          encryptionKey = vault.drive_encryption_key
+          _keyPair = vault.keyPair
+        } else {
+          const { master_pass } = accountModel.getVault(payload.mnemonic, 'recovery')
+          const vault = accountModel.getVault(master_pass, 'vault')
+          encryptionKey = vault.drive_encryption_key
+          _keyPair = vault.keyPair
+
+          deviceInfo = accountModel.getDeviceInfo(master_pass)
+        }
 
         // Existing account that already has a keyPair but has not created a deviceInfo file
         if(!kp && !deviceInfo) {
@@ -1250,85 +1266,27 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
   )
 }
 
-function rmdir(dir:string) {
-  const list = fs.readdirSync(dir)
+// async function reconnectDrive(channel: any, store: StoreSchema) {
+//   try {
+//     const drive = store.getDrive()
+//     await drive.close()
+//     await drive.ready()
 
-  for(let i = 0; i < list.length; i++) {
-    const filename = path.join(dir, list[i])
-    const stat = fs.statSync(filename)
+//     // Initialize models
+//     await store.initModels()
 
-    if(filename == "." || filename == "..") {
-      // pass these files
-    } else if(stat.isDirectory()) {
-      // rmdir recursively
-      rmdir(filename)
-    } else {
-      // rm fiilename
-      fs.unlinkSync(filename)
-    }
-  }
-  fs.rmdirSync(dir)
-}
+//     store.initSocketIO(store.getAccount(), channel)
 
-async function reconnectDrive(channel: any, store: StoreSchema) {
-  try {
-    const drive = store.getDrive()
-    await drive.close()
-    await drive.ready()
-
-    // Initialize models
-    await store.initModels()
-
-    store.initSocketIO(store.getAccount(), channel)
-
-    channel.send({ event: 'account:drive:reconnect:callback', error: null })
-  } catch(err: any) {
-    channel.send({ 
-      event: 'account:drive:reconnect:callback', 
-      error: {
-        name: err.name,
-        message: err.message,
-        stacktrace: err.stack,
-      }, 
-      data: null 
-    })
-  }
-}
-
-function getAcctPath(source: string, email: string) {
-  const primaryAccts = fs.readdirSync(source, { withFileTypes: true })
-    .filter((dirent:any) => dirent.isDirectory())
-    .map((dirent:any) => dirent.name)
-
-  if(primaryAccts.indexOf(email) > -1) {
-    return path.join(source, email)
-  } else {
-    const domain = email.split('@')[1]
-
-    for(const acct of primaryAccts) {
-      const domainsPath = path.join(source, `${acct}/Domains`)
-
-      if(fs.existsSync(domainsPath)) {
-        const domains = fs.readdirSync(domainsPath, { withFileTypes: true })
-          .filter((dirent:any) => dirent.isDirectory())
-          .map((dirent:any) => dirent.name)
-
-        if(domains.indexOf(domain) > -1) {
-          for(const domain of domains) {
-            const domainsAcctPath = path.join(source, `${acct}/Domains/${domain}`)
-
-            const domainAccts = fs.readdirSync(domainsAcctPath, { withFileTypes: true })
-              .filter((dirent:any) => dirent.isDirectory())
-              .map((dirent:any) => dirent.name)
-
-            for(const dAcct of domainAccts) {
-              if(dAcct === email) {
-                return path.join(source, `/${acct}/Domains/${domain}/${dAcct}`)
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
+//     channel.send({ event: 'account:drive:reconnect:callback', error: null })
+//   } catch(err: any) {
+//     channel.send({ 
+//       event: 'account:drive:reconnect:callback', 
+//       error: {
+//         name: err.name,
+//         message: err.message,
+//         stacktrace: err.stack,
+//       }, 
+//       data: null 
+//     })
+//   }
+// }

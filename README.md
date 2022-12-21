@@ -662,6 +662,13 @@ const payload = {
 }
 ```
 
+#### `channel.send({ event: 'domain:deleteMailbox', payload })`
+```js
+const payload = { 
+  address: 'bob@telios.app'
+}
+```
+
 #### `channel.send({ event: 'domain:delete' })`
 ```js
 const payload = {

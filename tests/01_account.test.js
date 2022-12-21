@@ -90,17 +90,6 @@ test('account login success', async t => {
     }
   })
 
-  // _channel.on('drive:peer:updated', cb => {
-  //   const { error, data } = cb
-  
-  //   if(error) t.fail(error.message)
-
-  //   if(data && data.status === 'ONLINE') {
-  //     t.ok(data.peerKey)
-  //     t.equals(true, data.server)
-  //   }
-  // })
-
   _channel.once('account:login:callback', cb => {
     const { error, data } = cb
     
@@ -328,6 +317,36 @@ test('reconnect account drive', async t => {
       t.ok(1, 'Account drive successfully reconnected.')
     })
     
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('account login with passphrase', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'bob@telios.io',
+      mnemonic: _account.mnemonic
+    }
+  })
+
+  channel.on('account:login:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) {
+      console.log(error)
+    }
+
+    console.log('SUCCESS :: ', data)
+
+    t.ok(data.uid)
   })
 
   t.teardown(async () => {

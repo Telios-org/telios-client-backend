@@ -200,7 +200,6 @@ test('log in to sub mailbox', async t => {
       const { error, data } = cb
   
       if(error) {
-        console.log(error)
         t.fail(error.message)
         channel.kill()
       }
@@ -217,13 +216,30 @@ test('log in to sub mailbox', async t => {
 // test('update domain mailbox', async t => {
 // })
 
-// test('delete domain mailbox', async t => {
-// })
+test('delete domain mailbox', async t => {
+  t.plan(1)
+  
+  channel = await OpenChannel()
+
+  const payload = {
+    address: subAcct.mailbox.address
+  }
+
+  channel.send({ event: 'domain:deleteMailbox', payload })
+
+  channel.on('domain:deleteMailbox:callback', cb => {
+    const { error, data } = cb
+  
+    if(error) {
+      t.fail(error.message)
+    }
+
+    t.ok(data)
+  })
+})
 
 test('delete custom domain', async t => {
   t.plan(1)
-
-  channel = await OpenChannel()
 
   channel.send({
     event: 'domain:delete',

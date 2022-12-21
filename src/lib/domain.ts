@@ -3,6 +3,7 @@ import { DomainOpts } from '../types'
 import { DomainSchema, MailboxSchema } from '../schemas'
 import { DefaultFolders } from '../models/folder.model'
 import { UTCtimestamp } from '../util/date.util'
+import { rmdir, getAcctPath } from '../util/base.util'
 
 const generator = require('generate-password')
 const { randomBytes } = require('crypto')
@@ -232,7 +233,8 @@ export default async (props: DomainOpts) => {
       // Register mailbox with backend api
       await DomainSDK.registerMailbox({ 
         name: payload.displayName, 
-        mailbox_key: account.secretBoxPubKey, 
+        mailbox_key: account.secretBoxPubKey,
+        type: payload.type,
         addr: payload.email
       })
 
@@ -302,12 +304,40 @@ export default async (props: DomainOpts) => {
    *  UPDATE DOMAIN MAILBOX
    **************************************/
   if (event === 'domain:updateMailbox') {
+    // What are we updating?
   }
 
   /***************************************
    *  DELETE DOMAIN MAILBOX
    **************************************/
   if (event === 'domain:deleteMailbox') {
+    const DomainSDK = store.sdk.domain
+    const mailboxModel = store.models.Mailbox
+
+    try { 
+      // Delete from API
+      await DomainSDK.deleteMailbox({ addr: payload.address })
+
+      // Remove from local DB
+      await mailboxModel.remove({ address: payload.address })
+
+      // Remove from disk
+      const acctPath = getAcctPath(userDataPath, payload.address)
+      rmdir(acctPath)
+
+      channel.send({ event: 'domain:deleteMailbox:callback', data: true })
+
+    } catch (err: any) {
+      channel.send({
+        event: 'domain:deleteMailbox:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
+        },
+        data: null
+      })
+    }
   }
 
   async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE', password?: string }) {
