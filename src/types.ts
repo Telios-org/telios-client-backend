@@ -35,6 +35,8 @@ export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
         | 'account:resetPassword'
+        | 'account:updatePassword'
+        | 'account:createNewPassphrase'
         | 'account:recover'
         | 'account:createSyncCode'
         | 'account:getSyncInfo'

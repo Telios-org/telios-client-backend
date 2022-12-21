@@ -10,6 +10,10 @@ interface IEmissions {
 
 export declare interface StoreSchema {
   _userAgent: string
+  _accountSecrets: {
+    email: string
+    password: string
+  }
   sdk: {
     account: any
     mailbox: any

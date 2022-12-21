@@ -41,8 +41,8 @@ export default async (props: AccountOpts) => {
       // Generate account key bundle
       let { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
 
-      if(payload.mnemonic) {
-        mnemonic = payload.mnemonic
+      if(payload.passphrase) {
+        mnemonic = payload.passphrase
       }
 
       let encryptionKey = Crypto.generateAEDKey()
@@ -106,7 +106,7 @@ export default async (props: AccountOpts) => {
         driveSyncingPublicKey: drive.publicKey,
         secretBoxPubKey: secretBoxKeypair.publicKey,
         secretBoxPrivKey: secretBoxKeypair.privateKey,
-        driveEncryptionKey: encryptionKey,
+        driveEncryptionKey: encryptionKey.toString('hex'),
         mnemonic,
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
@@ -211,13 +211,99 @@ export default async (props: AccountOpts) => {
     login()
   }
 
+  /*****************************************************
+   *  OVERRIDE EXISTING PASSPHRASE WITH NEW PASSPHRASE
+   ****************************************************/
+  if(event === 'account:createNewPassphrase') {
+    try {
+      const accountModel = store.models.Account
+      const account = store.getAccount()
+      const password = store._accountSecrets.password
+
+      // Generate new mnemonic
+      let { mnemonic } = Account.makeKeys()
+
+      // Retrieve drive encryption key and keyPair from vault using old master password
+      const { drive_encryption_key: encryptionKey } = accountModel.getVault(password, 'vault')
+
+      // Get device keypair
+      const deviceInfo = accountModel.getDeviceInfo(password)
+
+      // Update recovery file with new password
+      await accountModel.setVault(mnemonic, 'recovery', { master_pass: password })
+
+      // Update vault file with new password
+      await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
+
+      // Re-encrypt device info file with new pass
+      await accountModel.setDeviceInfo(deviceInfo, password)
+
+      await accountModel.update({ accountId: account.accountId }, { mnemonic })
+
+      channel.send({ event: 'account:createNewPassphrase:callback', data: { mnemonic } })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:createNewPassphrase:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
+
+  /*****************************************************
+   *  UPDATE EXISTING PASSWORD
+   ****************************************************/
+  if(event === 'account:updatePassword') {
+    try {
+      const { newPass } = payload
+      const acctPath = getAcctPath(userDataPath, payload.email)
+      store.acctPath = acctPath
+      const accountModel = store.models.Account
+      const account = store.getAccount()
+
+      // Get old password
+      const oldPass = store._accountSecrets.password
+
+      // Retrieve drive encryption key and keyPair from vault using old master password
+      const { drive_encryption_key: encryptionKey } = accountModel.getVault(oldPass, 'vault')
+
+      // Get device keypair
+      const deviceInfo = accountModel.getDeviceInfo(oldPass)
+
+      // Update recovery file with new password
+      await accountModel.setVault(account.mnemonic, 'recovery', { master_pass: newPass })
+      
+      // Update vault file with new password
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+
+      // Re-encrypt device info file with new pass
+      await accountModel.setDeviceInfo(deviceInfo, newPass)
+
+      channel.send({ event: 'account:updatePassword:callback', data: true })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:updatePassword:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
+
   /*************************************************
    *  FORGOT PASSWORD
    ************************************************/
   if(event === 'account:resetPassword') {
     const { passphrase, newPass } = payload
 
-    const acctPath = `${userDataPath}/${payload.email}`
+    const acctPath = getAcctPath(userDataPath, payload.email)
 
     store.acctPath = acctPath
 
@@ -805,7 +891,7 @@ export default async (props: AccountOpts) => {
           encryptionKey = vault.drive_encryption_key
           _keyPair = vault.keyPair
         } else {
-          const { master_pass } = accountModel.getVault(payload.mnemonic, 'recovery')
+          const { master_pass } = accountModel.getVault(payload.passphrase, 'recovery')
           const vault = accountModel.getVault(master_pass, 'vault')
           encryptionKey = vault.drive_encryption_key
           _keyPair = vault.keyPair

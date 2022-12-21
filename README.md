@@ -134,13 +134,40 @@ Example:
   })
 ```
 
+#### `channel.send({ event: 'account:updatePassword', payload })`
+Update the account's password while already logged into the account
+
+Example:
+```js
+const payload = {
+  email: 'bob@telios.io',
+  newPass: '321inmelet'
+}
+```
+
 #### `channel.send({ event: 'account:resetPassword', payload })`
+Reset an account's password in the event the account the password is lost
+
+Exmaple:
 ```js
 const payload = {
   passphrase: 'hub edit torch trust silent absorb news process pioneer category arrive prevent scrub senior cruise love wire elder field parent device physical warm clutch',
   email: 'bob@telios.io',
   newPass: 'letmein999',
 }
+```
+
+#### `channel.send({ event: 'account:createNewPassphrase' })`
+Generates a new passphrase if the original passphrase was lost and you still have access to the master password
+
+Exmaple:
+```js
+channel.send({ event: 'account:createNewPassphrase' })
+
+channel.on('account:createNewPassphrase:callback', cb => {
+  const { error, data } = cb
+  console.log(data.mnemonic)
+})
 ```
 
 #### `channel.send({ event: 'account:update', payload })`
