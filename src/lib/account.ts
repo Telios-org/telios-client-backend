@@ -727,6 +727,7 @@ export default async (props: AccountOpts) => {
         plan: stats.plan,
         dailyEmailUsed: stats.daily_email_used,
         dailyEmailResetDate: stats.daily_email_reset_date,
+        domainUsed: stats.domain_used,
         namespaceUsed: stats.namespace_used,
         aliasesUsed: stats.aliases_used,
         storageSpaceUsed: stats.storage_space_used,
@@ -735,7 +736,9 @@ export default async (props: AccountOpts) => {
         maxAliasNames: stats.maxAliasNames,
         maxAliasAddresses: stats.maxAliasAddresses,
         maxGBCloudStorage: stats.maxGBCloudStorage,
-        maxGBBandwidth: stats.maxGBBandwidth
+        maxGBBandwidth: stats.maxGBBandwidth,
+        maxDomains: stats.maxDomains,
+        hasClaimableMailboxes: stats.hasClaimableMailboxes
       }
 
       channel.send({ event: 'account:retrieveStats:callback', error: null, data: finalPayload })
