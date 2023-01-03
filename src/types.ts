@@ -158,7 +158,7 @@ export interface DomainMessage {
         | 'domain:updateMailbox'
         | 'domain:deleteMailbox'
   payload: {
-    type: 'CLAIMED' | 'SUB'
+    type: 'CLAIMABLE' | 'SUB'
     name: string
     displayName: string,
     address: string,

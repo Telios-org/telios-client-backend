@@ -147,10 +147,10 @@ test('get all domains', async t => {
 })
 
 test('register domain mailbox', async t => {
-  t.plan(6)
+  t.plan(7)
 
   const payload = { 
-    type: 'SUB', 
+    type: 'CLAIMABLE', 
     email: 'bob@telios.app',
     displayName: 'John Doe',
     domain: 'telios.app', 
@@ -167,9 +167,10 @@ test('register domain mailbox', async t => {
 
     subAcct = data
 
+    t.ok(data.syncCode)
     t.ok(data.account.password)
-    t.equals(data.account.type, 'SUB')
-    t.equals(data.mailbox.type, 'SUB')
+    t.equals(data.account.type, 'CLAIMABLE')
+    t.equals(data.mailbox.type, 'CLAIMABLE')
     t.equals(data.mailbox.displayName, 'John Doe')
     t.equals(data.mailbox.domainKey, 'telios.app')
     t.ok(data.mailbox.password)
@@ -204,7 +205,7 @@ test('log in to sub mailbox', async t => {
         channel.kill()
       }
 
-      t.equals('SUB', data.type)
+      t.equals('CLAIMABLE', data.type)
     })
   })
 

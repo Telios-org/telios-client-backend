@@ -89,6 +89,7 @@ export default async (props: DomainOpts) => {
 
       const mailboxes = await mailboxModel.find({ domainKey: payload.domain })
 
+      // Delete all domain sub mailboxes
       for(const mailbox of mailboxes) {
           // Delete from API
         await DomainSDK.deleteMailbox({ addr: mailbox.address })
@@ -243,6 +244,7 @@ export default async (props: DomainOpts) => {
     try {  
       const mailboxModel = store.models.Mailbox
       const DomainSDK = store.sdk.domain
+      let syncCode;
       
       // Create the new sub account
       const { account, store: _store, password } = await createDomainAccount(payload)
@@ -289,6 +291,12 @@ export default async (props: DomainOpts) => {
         await _folderModel.insert(_folder)
       }
 
+      // Create a sync code if this is a claimable mailbox
+      if(payload.type === 'CLAIMABLE') {
+        const { code } = await DomainSDK.sendMailboxInvite({ addr: payload.email, inviteEmail: payload.recoveryEmail, password })
+        syncCode = code
+      }
+
       // Close the new account
       const _drive = _store.getDrive()
       await _drive.close()
@@ -301,6 +309,7 @@ export default async (props: DomainOpts) => {
             ...account,
             password
           },
+          syncCode,
           mailbox
         }
       })
@@ -357,7 +366,7 @@ export default async (props: DomainOpts) => {
     }
   }
 
-  async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMED', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE', password?: string }) {
+  async function createDomainAccount(payload: { type: 'SUB' | 'CLAIMABLE', email: string, domain: string, recoveryEmail: string, deviceType: 'DESKTOP' | 'MOBILE', password?: string }) {
     const mailboxModel = store.models.Mailbox
     
     let password = generatePassword(13)
@@ -375,7 +384,7 @@ export default async (props: DomainOpts) => {
 
     let acctPath
 
-    if(payload.type === 'CLAIMED') {
+    if(payload.type === 'CLAIMABLE') {
       const parentAccountsDir = path.join(userDataPath, `/${mailbox.address}`)
 
       const domainsDir = `${parentAccountsDir}/Domains`

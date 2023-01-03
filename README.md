@@ -679,7 +679,7 @@ const payload = {
 #### `channel.send({ event: 'domain:registerMailbox', payload })`
 ```js
 const payload = { 
-  type: 'SUB' | 'CLAIMED', 
+  type: 'SUB' | 'CLAIMABLE', 
   email: 'bob@telios.app',
   password: 'letmein123',
   displayName: 'John Doe',
