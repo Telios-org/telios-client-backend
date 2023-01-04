@@ -252,7 +252,7 @@ export default async (props: DomainOpts) => {
       // Register mailbox with backend api
       await DomainSDK.registerMailbox({ 
         name: payload.displayName, 
-        mailbox_key: account.secretBoxPubKey,
+        account_key: account.secretBoxPubKey,
         type: payload.type,
         addr: payload.email
       })
