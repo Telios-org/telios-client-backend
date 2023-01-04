@@ -314,6 +314,9 @@ export default async (props: DomainOpts) => {
         }
       })
     } catch (err: any) {
+      const acctPath = getAcctPath(userDataPath, payload.address)
+      rmdir(acctPath)
+      
       channel.send({
         event: 'domain:registerMailbox:callback',
         error: {
