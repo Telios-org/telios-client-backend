@@ -689,6 +689,15 @@ const payload = {
 }
 ```
 
+#### `channel.send({ event: 'domain:resendMailboxInvite', payload })`
+```js
+const payload = { 
+  addr: 'bob@telios.app',
+  password: 'letmein123',
+  inviteEmail: 'bob_recovery@mail.com'
+}
+```
+
 #### `channel.send({ event: 'domain:deleteMailbox', payload })`
 ```js
 const payload = { 

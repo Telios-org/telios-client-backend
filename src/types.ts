@@ -155,7 +155,7 @@ export interface DomainMessage {
         | 'domain:verifyOwnership' 
         | 'domain:verifyDNS'
         | 'domain:registerMailbox'
-        | 'domain:updateMailbox'
+        | 'domain:resendMailboxInvite'
         | 'domain:deleteMailbox'
   payload: {
     type: 'CLAIMABLE' | 'SUB'
@@ -165,7 +165,8 @@ export interface DomainMessage {
     email: string
     domain: string
     deviceType: 'DESKTOP' | 'MOBILE'
-    recoveryEmail: string
+    recoveryEmail: string,
+    password: string
   }
 }
 

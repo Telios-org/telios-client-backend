@@ -316,7 +316,7 @@ export default async (props: DomainOpts) => {
     } catch (err: any) {
       const acctPath = getAcctPath(userDataPath, payload.address)
       rmdir(acctPath)
-      
+
       channel.send({
         event: 'domain:registerMailbox:callback',
         error: {
@@ -329,11 +329,33 @@ export default async (props: DomainOpts) => {
     }
   }
 
-    /***************************************
-   *  UPDATE DOMAIN MAILBOX
+  /***************************************
+   *  REGISTER NEW DOMAIN MAILBOX
    **************************************/
-  if (event === 'domain:updateMailbox') {
-    // What are we updating?
+  if (event === 'domain:resendMailboxInvite') {
+    try {
+      const DomainSDK = store.sdk.domain
+      const { code } = await DomainSDK.sendMailboxInvite({ 
+        addr: payload.email, 
+        inviteEmail: payload.recoveryEmail, 
+        password: payload.password
+      })
+
+      channel.send({
+        event: 'domain:resendMailboxInvite:callback',
+        data: { code }
+      })
+    } catch(err:any) {
+      channel.send({
+        event: 'domain:resendMailboxInvite:callback',
+        error: {
+          name: err.name,
+          message: err.message,
+          stacktrace: err.stack,
+        },
+        data: null
+      })
+    }
   }
 
   /***************************************
