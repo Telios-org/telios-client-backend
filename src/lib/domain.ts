@@ -298,10 +298,12 @@ export default async (props: DomainOpts) => {
       }
 
       // Close the new account
-      const _drive = _store.getDrive()
-      await _drive.close()
-      await _store.clear()
-
+      setTimeout(async () => {
+        const _drive = _store.getDrive()
+        await _drive.close()
+        await _store.clear()
+      }, 10000)
+      
       channel.send({
         event: 'domain:registerMailbox:callback',
         data: {
