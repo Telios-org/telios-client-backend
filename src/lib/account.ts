@@ -144,23 +144,23 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      if(!account.signingPubKey && !account.signingPrivKey) {
-        let { signingKeypair } = Account.makeKeys()
+      
+      let { signingKeypair: mainSigKeypair } = Account.makeKeys()
 
-        await Account.registerSigningKey({ signing_key: signingKeypair.publicKey })
+      await Account.registerSigningKey({ signing_key: mainSigKeypair.publicKey })
 
-        // Save account to drive's Account collection
-        await accountModel.update(
-          { 
-            accountId: acctDoc.accountId 
-          }, 
-          { 
-            signingPubKey: signingKeypair.publicKey,
-            signingPrivKey: signingKeypair.privateKey,
-            updatedAt: UTCtimestamp()
-          }
-        )
-      }
+      // Save account to drive's Account collection
+      await accountModel.update(
+        { 
+          accountId: acctDoc.accountId 
+        }, 
+        { 
+          signingPubKey: mainSigKeypair.publicKey,
+          signingPrivKey: mainSigKeypair.privateKey,
+          updatedAt: UTCtimestamp()
+        }
+      )
+      
 
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
@@ -259,6 +259,8 @@ export default async (props: AccountOpts) => {
    ****************************************************/
   if(event === 'account:updatePassword') {
     try {
+      const Mailbox = store.models.Mailbox
+
       const { newPass } = payload
       const acctPath = getAcctPath(userDataPath, payload.email)
       store.acctPath = acctPath
@@ -282,6 +284,9 @@ export default async (props: AccountOpts) => {
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
+
+      // Update mailbox doc with new password
+      await Mailbox.update({ address: payload.email }, { password: newPass })
 
       channel.send({ event: 'account:updatePassword:callback', data: true })
     } catch(err:any) {
