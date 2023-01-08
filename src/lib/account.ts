@@ -1083,7 +1083,7 @@ export default async (props: AccountOpts) => {
         await accountModel.update({ accountId: account.accountId }, { plan: stats.plan })
       }
       
-      channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
+      channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo }})
     } catch (err: any) {
       if(drive) await drive.close()
       store.killMatomo()
