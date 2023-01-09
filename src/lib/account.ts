@@ -314,6 +314,7 @@ export default async (props: AccountOpts) => {
 
     try {
       const accountModel = store.models.Account
+      const mailboxModel = store.models.Mailbox
 
       // Get old password
       const { master_pass } = accountModel.getVault(passphrase, 'recovery')
@@ -368,6 +369,9 @@ export default async (props: AccountOpts) => {
 
       // Re-encrypt device info file with new pass
       await accountModel.setDeviceInfo(deviceInfo, newPass)
+
+      // Update mailbox doc with new password
+      await mailboxModel.update({ address: payload.email }, { password: newPass })
 
       await drive.close()
 
