@@ -1,6 +1,7 @@
 const path = require('path')
 const removeMd = require('remove-markdown')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
+const { v4: uuidv4 } = require('uuid')
 
 import { MsgHelperMessage } from '../types'
 import { 
@@ -8,6 +9,7 @@ import {
   StoreSchema
 } from '../schemas'
 import { Stream } from 'stream'
+import Email from './email'
 
 
 export default class MesssageHandler {
@@ -16,13 +18,15 @@ export default class MesssageHandler {
   private ipfs: any
   private channel: any
   private store: StoreSchema
+  private userDataPath: string
 
-  constructor(channel:any, store: StoreSchema) {
+  constructor(channel:any, userDataPath:string, store: StoreSchema) {
     this.drive = null
     this.mailbox = null
     this.ipfs = null
     this.channel = channel
     this.store = store
+    this.userDataPath = userDataPath
   }
 
   async initDrive() {
@@ -97,11 +101,10 @@ export default class MesssageHandler {
     })
 
     const ipfsFiles = files.filter(file => JSON.stringify(file) !== '{}' && file.cid)
-    const nebulaFiles = files.filter(file => !file.cid)
 
     // If files have an IPFS content identifier (cid) then fetch files from SIA/IPFS
     if(ipfsFiles.length) {
-      const batches = new RequestChunker(ipfsFiles, 5)
+      const batches = new RequestChunker(ipfsFiles, 1) // Only fetch one file at a time to reduce data corruption
 
       for (let batch of batches) {
         const requests = []
@@ -116,20 +119,39 @@ export default class MesssageHandler {
                   content += chunk.toString('utf-8')
                 });
 
-                stream.on('end', () => {
+                stream.on('end', async () => {
                   content = JSON.parse(content);
+
+                  const email = transformEmail({
+                    key: file.key,
+                    header: file.header,
+                    content
+                  });
+
+                  const requestId = uuidv4()
+
+                  await Email({ 
+                    channel: this.channel, 
+                    userDataPath: this.userDataPath, 
+                    msg: {
+                      event: 'email:saveMessageToDB', 
+                      payload: {
+                        messages: [email],
+                        requestId,
+                        type: 'Incoming',
+                        async: false
+                      }  
+                    }, 
+                    store: this.store 
+                  })
+
                   this.channel.send({
                     event: 'messageHandler:fileFetched',
                     data: {
-                      _id: file._id,
-                      email: {
-                        key: file.key,
-                        header: file.header,
-                        content
-                      },
+                      _id: file._id
                     }
                   });
-
+                  
                   return resolve()
                 });
 
@@ -157,56 +179,6 @@ export default class MesssageHandler {
 
         await Promise.all(requests)
       }
-    }
-
-    // If files DO NOT have an IPFS content identifier (cid) then fetch files directly from peer's device (Nebula)
-    if(nebulaFiles.length) {
-      await this.drive.fetchFileBatch(nebulaFiles, (stream: any, file: any) => {
-        return new Promise((resolve, reject) => {
-          let content = ''
-
-          stream.on('data', (chunk: any) => {
-            content += chunk.toString('utf-8')
-          })
-
-          stream.on('error', (err: any) => {
-            if (!file.failed) {
-              file.failed = 1
-            } else {
-              file.failed += 1
-            }
-
-            this.channel.send({
-              event: 'messageHandler:fetchError',
-              data: {
-                file,
-                message: err.message,
-                stack: err.stack
-              }
-            })
-
-            resolve(null)
-          })
-
-          stream.on('end', () => {
-            content = JSON.parse(content)
-
-            this.channel.send({
-              event: 'messageHandler:fileFetched',
-              data: {
-                _id: file._id,
-                email: {
-                  key: file.key,
-                  header: file.header,
-                  content
-                },
-              }
-            })
-
-            resolve(null)
-          })
-        })
-      })
     }
   }
 
@@ -253,8 +225,31 @@ export default class MesssageHandler {
         })
       })
 
-      stream.on('end', () => {
+      stream.on('end', async () => {
         content = JSON.parse(content)
+
+        const email = transformEmail({
+          key: fileMeta.key,
+          header: fileMeta.header,
+          content
+        });
+
+        const requestId = uuidv4()
+
+        await Email({ 
+          channel: this.channel, 
+          userDataPath: this.userDataPath, 
+          msg: {
+            event: 'email:saveMessageToDB', 
+            payload: {
+              messages: [email],
+              requestId,
+              type: 'Incoming',
+              async: false
+            }  
+          }, 
+          store: this.store 
+        })
 
         // Send OS notification
         this.notify({
@@ -269,12 +264,7 @@ export default class MesssageHandler {
         this.channel.send({
           event: 'messageHandler:fileFetched',
           data: {
-            _id: fileMeta._id,
-            email: {
-              key: fileMeta.key,
-              header: fileMeta.header,
-              content
-            },
+            _id: fileMeta._id
           }
         })
       })
@@ -356,4 +346,24 @@ export default class MesssageHandler {
       this.fetchBatch(batch)
     }
   }
+}
+
+
+function transformEmail(data: any) {
+  const { path, key, header } = data;
+  const email = data.content;
+
+  return {
+    unread: true,
+    fromJSON: JSON.stringify(email.from),
+    toJSON: JSON.stringify(email.to),
+    ccJSON: JSON.stringify(email.cc),
+    bccJSON: JSON.stringify(email.bcc),
+    bodyAsHtml: email.html_body,
+    bodyAsText: email.text_body,
+    path,
+    encKey: key,
+    encHeader: header,
+    ...email
+  };
 }

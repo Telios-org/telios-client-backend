@@ -29,7 +29,7 @@ export class MigrateModel {
   }
 
   public async remove(doc: any, opts?: any) {
-    return this.collection.remove(doc, opts)
+    return this.collection.delete(doc, opts)
   }
  
   public async update(doc:any, props: any, opts?:any) {

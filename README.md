@@ -27,7 +27,7 @@ if (!fs.existsSync(path.join(cwd, 'app.asar'))) {
   cwd = null;
 }
 
-const child = fork(filePath, [userDataPath, 'development'], {
+const child = fork(filePath, [userDataPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
   stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
   cwd
 })
@@ -68,7 +68,7 @@ const userDataPath = bridge.app.datadir()
 const env = 'development'
 
 // Instantiate backend
-ClientBackend(channel, userDataPath, env)
+ClientBackend(channel, userDataPath, env, userAgent)
 
 channel.send({ 
   event: 'account:create', 
@@ -122,7 +122,33 @@ const payload = {
 }
 ```
 
+#### `channel.on('account:login:status', data => {})`
+
+Retrieve status updates on the account login event
+
+Example:
+```js
+  channel.on('account:login:status', cb => {
+    const { data } = cb
+    console.log(data) // 'Migrating account data'
+  })
+```
+
+#### `channel.send({ event: 'account:updatePassword', payload })`
+Update the account's password while already logged into the account
+
+Example:
+```js
+const payload = {
+  email: 'bob@telios.io',
+  newPass: '321inmelet'
+}
+```
+
 #### `channel.send({ event: 'account:resetPassword', payload })`
+Reset an account's password in the event the account the password is lost
+
+Exmaple:
 ```js
 const payload = {
   passphrase: 'hub edit torch trust silent absorb news process pioneer category arrive prevent scrub senior cruise love wire elder field parent device physical warm clutch',
@@ -131,13 +157,29 @@ const payload = {
 }
 ```
 
-#### `channel.send({ event: 'account:authorized', payload })`
+#### `channel.send({ event: 'account:createNewPassphrase' })`
+Generates a new passphrase if the original passphrase was lost and you still have access to the master password
+
+Exmaple:
+```js
+channel.send({ event: 'account:createNewPassphrase' })
+
+channel.on('account:createNewPassphrase:callback', cb => {
+  const { error, data } = cb
+  console.log(data.mnemonic)
+})
+```
 
 #### `channel.send({ event: 'account:update', payload })`
 
 #### `channel.send({ event: 'account:retrieveStats' })`
 
-#### `channel.send({ event: 'account:logout' })`
+#### `channel.send({ event: 'account:logout', [payload] })`
+
+
+```js
+const payload = { kill: false } // optionally log out of an account without killing the main node thread
+```
 
 #### `channel.send({ event: 'account:refreshToken' })`
 
@@ -195,7 +237,20 @@ const payload = {
 }
 ```
 
-#### `channel.on('account:collection:updated', (data) => {} })`
+#### `channel.on('account:sync:callback', (data) => {})`
+
+Fires whenever a the status of account sync has received an update. You can use to this to show visually show users the current status of an account sync.
+
+Example:
+```js
+channel.on('account:sync:callback', (data) => {
+  const { data, error } = data
+
+  console.log(data.status) // example: 'Syncing data from peer device'
+})
+```
+
+#### `channel.on('account:collection:updated', (data) => {})`
 
 Fires whenever a collection is updated from a synced device or remote peer. Returns the collection name and updated values.
 
@@ -340,7 +395,7 @@ const payload = {
     cc: [{"name":"Json Waterfall","address":"jwaterfall@telios.io"}],
     bcc: [{"name":"Albus Dumbeldore","address":"albus.dumbeldore@howgwarts.edu"}],
     bodyAsText: 'This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0',
-    bodyAsHTML: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
+    bodyAsHtml: '<div>This is a test message-d510aa65-40c0-4b36-98ba-84735aa961d0</div>',
     attachments: [{
       filename: 'image.png',
       content: 'b64EncodedString',
@@ -527,6 +582,133 @@ const payload = {
 ```js
 const payload = {
   id: contact.contactId
+}
+```
+
+## Custom Domains API
+#### `channel.send({ event: 'domain:isAvailable', payload })`
+
+Checks if a domain has already been registered.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:register', payload })`
+
+Register a new custom domain. This only initially adds the custom domain record in the database, but does not create the domain on the mailserver. The domain won't get created on the mailserver until it has been verified.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+Example response:
+```js
+// Use verification to send DNS instructions for creating verifcation TXT record
+{
+  domain: "telios.app",
+  verification: {
+    name: "@",
+    type: "TXT",
+    value: "telios-verification=d48808347d7d8a0b91f2e3af9d77ce33"
+  }
+}
+```
+
+#### `channel.send({ event: 'domain:verifyOwnership', payload })`
+Verify that the user owns the domain they're trying to register. Once verified, the domain is created on the mailserver. Mail will not start routing through this domain until all checks are passed on the `verifyDNS` step.
+
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:verifyDNS', payload })`
+Returns additional DNS records that need to be set and their verification status. Once all records have been verified, the domain is set to `active` and mail will start being delivered.
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+Example response:
+```js
+[
+  {
+    "type": "MX",
+    "name": "telios.app",
+    "value": "mailer.telios.app",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "telios.app",
+    "value": "v=spf1 include:mailer.telios.app ~all",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "dkim._domainkey.telios.app",
+    "value": "",
+    "verified": true
+  },
+  {
+    "type": "TXT",
+    "name": "_dmarc.telios.app",
+    "value": "v=DMARC1;p=quarantine",
+    "verified": true
+  }
+]
+
+```
+
+#### `channel.send({ event: 'domain:getDomainByName', payload })`
+```js
+const payload = {
+  domain: 'telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:getDomains' })`
+
+#### `channel.send({ event: 'domain:registerMailbox', payload })`
+```js
+const payload = { 
+  type: 'SUB' | 'CLAIMABLE', 
+  email: 'bob@telios.app',
+  password: 'letmein123',
+  displayName: 'John Doe',
+  domain: 'telios.app',
+  recoveryEmail: 'bob_recovery@mail.com',
+  deviceType: 'DESKTOP' | 'MOBILE'
+}
+```
+
+#### `channel.send({ event: 'domain:resendMailboxInvite', payload })`
+```js
+const payload = { 
+  addr: 'bob@telios.app',
+  password: 'letmein123',
+  inviteEmail: 'bob_recovery@mail.com'
+}
+```
+
+#### `channel.send({ event: 'domain:deleteMailbox', payload })`
+```js
+const payload = { 
+  address: 'bob@telios.app'
+}
+```
+
+#### `channel.send({ event: 'domain:delete' })`
+```js
+const payload = {
+  domain: 'telios.app'
 }
 ```
 

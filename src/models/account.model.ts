@@ -16,8 +16,13 @@ export class AccountModel {
     this._store = store
   }
 
-  public async ready() {
-    this._drive = this._store.getDrive()
+  public async ready(drive?:any) {
+    if(!drive) {
+      this._drive = this._store.getDrive()
+    } else {
+      this._drive = drive
+    }
+
     this.collection = await this._drive.db.collection('Account')
 
     return this.collection
@@ -36,7 +41,7 @@ export class AccountModel {
   }
 
   public async remove(doc: any, opts?: any) {
-    return this.collection.remove(doc, opts)
+    return this.collection.delete(doc, opts)
   }
  
   public async update(doc:any, props: any, opts?:any) {
@@ -44,7 +49,7 @@ export class AccountModel {
   }
 
   public setDeviceInfo(payload: DeviceSchema, password: string) {
-    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+    const filePath = path.join(`${this._store.getAccountPath()}/Drive/device`)
 
     const cipher = this._encrypt(JSON.stringify(payload), password)
 
@@ -52,7 +57,7 @@ export class AccountModel {
   }
 
   public getDeviceInfo(password: string): any {
-    const filePath = path.join(`${this._store.acctPath}/Drive/device`)
+    const filePath = path.join(`${this._store.getAccountPath()}/Drive/device`)
 
     if (!fs.existsSync(filePath)) return null 
 
@@ -91,8 +96,15 @@ export class AccountModel {
   public getVault(
     password: string,
     type: 'recovery' | 'vault',
+    customPath?: string
   ): { drive_encryption_key: any, keyPair: any, master_pass: any } {
-    const vaultPath = path.join(`${this._store.acctPath}/Drive/Files/`, type)
+    let vaultPath
+
+    if(customPath) {
+      vaultPath = customPath
+    } else {
+      vaultPath = path.join(`${this._store.getAccountPath()}/Drive/Files/`, type)
+    }
 
     if (!fs.existsSync(vaultPath)) throw { type: 'VAULTERROR', message: `${type} file not found.` }
 

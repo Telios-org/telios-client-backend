@@ -14,7 +14,7 @@ class Channel extends EventEmitter {
     if(!fs.existsSync(path.join(__dirname, 'Accounts')))
       fs.mkdirSync(path.join(__dirname, 'Accounts'), { recursive: true })
 
-    this.process = fork('./index', [dirPath, 'development'], {
+    this.process = fork('./index', [dirPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     })
 
@@ -110,6 +110,67 @@ module.exports.MockEmail = ({ subject, to, from, cc, bcc, emailId, folderId, ali
     emailId,
     folderId,
     aliasId,
+    subject: subject || `Subject-${uuid}`,
+    unread,
+    date: new Date().toUTCString(),
+    to: _to,
+    from: _from,
+    cc: _cc,
+    bcc: _bcc,
+    text_body: `This is a test message-${uuid}`,
+    bodyAsText: `This is a test message-${uuid}`,
+    html_body: `<div>This is a test message-${uuid}</div>`,
+    bodyAsHtml: `<div>This is a test message-${uuid}</div>`,
+    attachments: _attachments,
+    path: null,
+    // Timestamps
+    createdAt: new Date().toUTCString(),
+    updatedAt: new Date().toUTCString()
+  }
+}
+
+module.exports.MockAliasEmail = ({ subject, to, from, cc, bcc, aliasAddress, unread, attachments }) => {
+  const uuid = uuidv4()
+
+  let _to = [ { name: 'Alice Drumpf', address: aliasAddress } ]
+  let _from = [ { name: 'Bob Kinderly', address: 'bob@telios.io', account_key:'deb827d7326235dc4d59fc65d0fadff362259a29e23fe26c9e45baa5e2f07d07' } ]
+  let _cc = [ { name: 'Json Waterfall', address: 'jwaterfall@telios.io', account_key:'8eee3a83210d1060f1c13f90490828e10f8442e5d1dd0df1f56beb6cef17cd30' } ]
+  let _bcc = [ { name: 'Albus Dumbeldore', address: 'albus.dumbeldore@howgwarts.edu' } ]
+  let _attachments = [{
+    filename: 'test_image.png',
+    extension: '.png',
+    contentType: 'image/png',
+    size: 280000000,
+    content: b64EncodedAttachment
+  }]
+
+
+  if(to){
+    if(Array.isArray(to)) _to = to
+    else _to.push(to)
+  }
+
+  if(from){
+    if(Array.isArray(from)) _from = from
+    else _from.push(from)
+  }
+
+  if(cc){
+    if(Array.isArray(cc)) _cc = cc
+    else _to.push(cc)
+  }
+
+  if(bcc){
+    if(Array.isArray(bcc)) _bcc = bcc
+    else _to.push(bcc)
+  }
+
+  if(attachments){
+    if(Array.isArray(attachments)) _attachments = attachments
+    else _to.push(attachments)
+  }
+  
+  return {
     subject: subject || `Subject-${uuid}`,
     unread,
     date: new Date().toUTCString(),

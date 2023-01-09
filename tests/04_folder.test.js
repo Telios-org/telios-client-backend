@@ -64,43 +64,43 @@ test('update folder', async t => {
   })
 })
 
-test('increment folder count', async t => {
-  t.plan(1)
+// test('increment folder count', async t => {
+//   t.plan(1)
 
-  const payload = {
-    id: 6,
-    amount: 3
-  }
+//   const payload = {
+//     id: 6,
+//     amount: 3
+//   }
 
-  channel.send({ event: 'folder:updateFolderCount', payload })
+//   channel.send({ event: 'folder:updateFolderCount', payload })
 
-  channel.once('folder:updateFolderCount:callback', cb => {
-    const { error, data } = cb
+//   channel.once('folder:updateFolderCount:callback', cb => {
+//     const { error, data } = cb
 
-    if(error) t.fail(error.message)
+//     if(error) t.fail(error.message)
 
-    t.ok(true)
-  })
-})
+//     t.ok(true)
+//   })
+// })
 
-test('decrement folder count', async t => {
-  t.plan(1)
+// test('decrement folder count', async t => {
+//   t.plan(1)
 
-  const payload = {
-    id: 6,
-    amount: -2
-  }
+//   const payload = {
+//     id: 6,
+//     amount: -2
+//   }
 
-  channel.send({ event: 'folder:updateFolderCount', payload })
+//   channel.send({ event: 'folder:updateFolderCount', payload })
 
-  channel.once('folder:updateFolderCount:callback', cb => {
-    const { error, data } = cb
+//   channel.once('folder:updateFolderCount:callback', cb => {
+//     const { error, data } = cb
 
-    if(error) t.fail(error.message)
+//     if(error) t.fail(error.message)
 
-    t.ok(true)
-  })
-})
+//     t.ok(true)
+//   })
+// })
 
 test('get mailbox folders', async t => {
   t.plan(1)

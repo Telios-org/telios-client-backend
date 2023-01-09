@@ -61,6 +61,7 @@ test('get contact by ID', async t => {
     
     t.ok(data.contactId)
   })
+
 })
 
 test('update contact', async t => {

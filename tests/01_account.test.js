@@ -4,10 +4,11 @@ const test = _test(tape)
 const path = require('path')
 const fs = require('fs')
 const Channel = require('./helper')
-const { account } = require('@telios/client-sdk/lib/routes')
+const { createLogicalNot } = require('typescript')
 
 let _channel
 let _account
+let _mnemonic
 
 test('create account', async t => {
   t.plan(3)
@@ -52,6 +53,77 @@ test('create account', async t => {
   })
 })
 
+test('update password from logged in account', async t => {
+  t.plan(2)
+
+  channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  await login('bob@telios.io', 'letmein321', channel)
+
+  channel.send({
+    event: 'account:updatePassword',
+    payload: {
+      email: 'bob@telios.io',
+      newPass: '321inmelet'
+    }
+  })
+
+  channel.on('account:updatePassword:callback', async cb => {
+    const { error, data } = cb
+
+    if(error) t.fail(error.stack)
+   
+    t.ok(data)
+
+    await logout()
+    channel.kill()
+
+    const _channel = new Channel(path.join(__dirname, 'Accounts'))
+
+    const account = await login('bob@telios.io', '321inmelet', _channel)
+
+    t.ok(account)
+
+    t.teardown(async () => {
+      _channel.kill()
+    })
+  })
+
+  async function login(email, password, channel) {
+    return new Promise((resolve, reject) => {
+      channel.send({
+        event: 'account:login',
+        payload: {
+          email,
+          password
+        }
+      })
+  
+      channel.on('account:login:callback', cb => {
+        const { error, data } = cb
+      
+        if(error) return reject(error)
+  
+        resolve(data)
+      })
+    })
+  }
+
+  async function logout() {
+    return new Promise((resolve, reject) => {
+      channel.send({ event: 'account:logout' })
+  
+      channel.on('account:logout:callback', cb => {
+        const { error, data } = cb
+      
+        if(error) return reject(error)
+  
+        resolve()
+      })
+    })
+  }
+})
+
 test('Reset password with passphrase', async t => {
   t.plan(1)
   const channel = new Channel(path.join(__dirname, 'Accounts'))
@@ -91,21 +163,6 @@ test('account login success', async t => {
     }
   })
 
-  _channel.on('debug', data => {
-    console.log('DEBUG', data)
-  })
-
-  // _channel.on('drive:peer:updated', cb => {
-  //   const { error, data } = cb
-  
-  //   if(error) t.fail(error.message)
-
-  //   if(data && data.status === 'ONLINE') {
-  //     t.ok(data.peerKey)
-  //     t.equals(true, data.server)
-  //   }
-  // })
-
   _channel.once('account:login:callback', cb => {
     const { error, data } = cb
     
@@ -121,11 +178,12 @@ test('account login success', async t => {
 })
 
 test('update account', async t => {
-  t.plan(1)
+  t.plan(2)
 
   _channel.send({
     event: 'account:update',
     payload: {
+      accountId: _account.accountId,
       avatar: 'somebase64encodedtext'
     }
   })
@@ -135,7 +193,29 @@ test('update account', async t => {
     
     if(error) t.fail(error.message)
 
-    t.ok(data)
+    t.equals(data.nMatched, 1)
+    t.equals(data.nModified, 1)
+  })
+})
+
+test('update account plan', async t => {
+  t.plan(2)
+
+  _channel.send({
+    event: 'account:updatePlan',
+    payload: {
+      accountId: _account.accountId,
+      plan: 'FOUNDER'
+    }
+  })
+
+  _channel.on('account:updatePlan:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) t.fail(error.message)
+
+    t.equals(data.nMatched, 1)
+    t.equals(data.nModified, 1)
   })
 })
 
@@ -310,6 +390,60 @@ test('reconnect account drive', async t => {
       t.ok(1, 'Account drive successfully reconnected.')
     })
     
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('create new account passphrase', async t => {
+  t.plan(1)
+
+  const channel = await Channel.OpenChannel()
+
+  channel.send({ event: 'account:createNewPassphrase' })
+
+  channel.on('account:createNewPassphrase:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) {
+      console.log(error)
+    }
+
+    _mnemonic = data.mnemonic
+
+    t.ok(data.mnemonic)
+  })
+
+  t.teardown(async () => {
+    channel.kill()
+  })
+})
+
+test('account login with passphrase', async t => {
+  t.plan(1)
+
+  const channel = new Channel(path.join(__dirname, 'Accounts'))
+
+  channel.send({
+    event: 'account:login',
+    payload: {
+      email: 'bob@telios.io',
+      passphrase: _mnemonic
+    }
+  })
+
+  channel.on('account:login:callback', cb => {
+    const { error, data } = cb
+    
+    if(error) {
+      console.log(error)
+    }
+
+    console.log('SUCCESS :: ', data)
+
+    t.ok(data.uid)
   })
 
   t.teardown(async () => {

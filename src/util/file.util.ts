@@ -8,6 +8,7 @@ const fetch = require('node-fetch')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
+const pump = require('pump')
 
 export const saveEmailToDrive = async (opts: { email: EmailSchema, drive: any, ipfs?: any }) : Promise<FileSchema> => {
   return new Promise((resolve, reject) => {
@@ -58,7 +59,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
     // When file is over 25mb create readstream from file path
     if(opts.file.localPath) {
       readStream = fs.createReadStream(opts.file.localPath)
-      opts.file.path = `/file/${uuidv4()}`
+      opts.file.path = `/file/${filename}`
     }
     
     if(opts.content) {
@@ -68,7 +69,7 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
       readStream.end(buff)
 
       if(!opts.file.path) {
-        opts.file.path = `/file/${uuidv4()}`
+        opts.file.path = `/file/${filename}`
       }
     }
 
@@ -142,19 +143,25 @@ export const saveFileToDrive = async (File: any, opts: { file: any, content?: st
   })
 }
 
-export const saveFileFromEncryptedStream = async (
-  writeStream: any, 
-  opts: { 
-    discoveryKey: string, 
-    drive: any, 
-    key: string, 
-    header: string, 
-    hash: string, 
-    filename: string, 
-    path: string, 
-    cid?: string, 
-    ipfs?: any 
-  }) => {
+export const syncRecoveryFiles = async (opts: { fileName: string, dest: string, store: any, drive: any }): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const fileSyncInt = setInterval(async () => {
+      try {
+        const fileData = await opts.drive.metadb.findOne({ path: `/${opts.fileName}` })
+        clearInterval(fileSyncInt)
+        const stream = await getFileByCID({ cid: fileData.custom_data.cid, IPFSGateway: opts.store.IPFSGateway, async: true })
+        const ws = fs.createWriteStream(opts.dest)
+        pump(stream, ws, async (err: any) => {
+          if(err) return reject(err)
+          const file = fs.readFileSync(opts.dest)
+          return resolve(file)
+        })
+      } catch(e) {}
+    }, 1000)
+  })
+}
+
+export const saveFileFromEncryptedStream = async (writeStream: any, opts: { discoveryKey: string, drive: any, key: string, header: string, hash: string, filename: string, cid?: string, ipfs?: any }) => {
   return new Promise((resolve: any, reject: any) => {
     if(!opts.cid && opts.discoveryKey && opts.drive.discoveryKey !== opts.discoveryKey) {
       opts.drive.fetchFileByDriveHash(opts.discoveryKey, opts.hash, { key: opts.key, header: opts.header })
@@ -180,7 +187,7 @@ export const saveFileFromEncryptedStream = async (
           throw err
         })
     } else {
-      opts.drive.readFile(opts.path, { key: opts.key, header: opts.header })
+      opts.drive.readFile(`/file/${opts.filename}`, { key: opts.key, header: opts.header })
         .then((stream: any) => {
           stream.on('data', (chunk: any) => {
             writeStream.write(chunk)

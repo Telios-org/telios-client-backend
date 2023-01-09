@@ -1,32 +1,27 @@
 const fs = require('fs');
 const path = require('path')
-import { UTCtimestamp } from '../util/date.util'
 const { randomBytes } = require('crypto')
 const { v4: uuidv4 } = require('uuid')
-const HyperbeeMessages = require('hyperbee/lib/messages.js')
 const RequestChunker = require('@telios/nebula/util/requestChunker')
+const pump = require('pump')
+const Drive = require('@telios/nebula')
+const Migrate = require('@telios/nebula-migrate')
+const Crypto = require('@telios/nebula/lib/crypto')
 
-
-import { AccountOpts, DriveStatuses } from '../types'
+import { UTCtimestamp } from '../util/date.util'
+import { AccountOpts } from '../types'
 import { StoreSchema } from '../schemas'
 import { Stream } from 'stream'
-const pump = require('pump')
 import * as FileUtil from '../util/file.util'
-import { Store } from '../Store';
+import { rmdir, getAcctPath } from '../util/base.util'
 
 const BSON = require('bson')
 const { ObjectID } = BSON
 
-let _network = {
-  internet: true,
-  drive: true
-}
-
 export default async (props: AccountOpts) => {
-  const { channel, userDataPath, msg, store } = props
+  let { channel, userDataPath, msg, store } = props
   const { event, payload } = msg
   const Account = store.sdk.account
-  const Crypto = store.sdk.crypto
   
   /*************************************************
    *  CREATE ACCOUNT
@@ -46,10 +41,10 @@ export default async (props: AccountOpts) => {
       // Generate account key bundle
       let { secretBoxKeypair, signingKeypair, mnemonic } = Account.makeKeys()
 
-      if(payload.mnemonic) {
-        mnemonic = payload.mnemonic
+      if(payload.passphrase) {
+        mnemonic = payload.passphrase
       }
-      
+
       let encryptionKey = Crypto.generateAEDKey()
 
       if(!payload.encryptionKey) {
@@ -83,7 +78,7 @@ export default async (props: AccountOpts) => {
           recovery_email: payload.recoveryEmail,
           device_drive_key: drive.publicKey,
           device_signing_key: signingKeypair.publicKey,
-        },
+        }
       }
 
       // Prepare registration payload
@@ -94,8 +89,7 @@ export default async (props: AccountOpts) => {
 
       const registerPayload = {
         account,
-        sig: accountSig,
-        vcode: payload.vcode,
+        sig: accountSig
       }
 
       const { _sig: serverSig } = await Account.register(registerPayload) // Register account with API server
@@ -106,11 +100,14 @@ export default async (props: AccountOpts) => {
       const acctDoc = await accountModel.insert({
         _id,
         accountId: _id.toString('hex'),
+        type: 'PRIMARY',
+        plan: 'FREE',
         uid: accountUID,
         driveSyncingPublicKey: drive.publicKey,
         secretBoxPubKey: secretBoxKeypair.publicKey,
         secretBoxPrivKey: secretBoxKeypair.privateKey,
-        driveEncryptionKey: encryptionKey,
+        driveEncryptionKey: encryptionKey.toString('hex'),
+        mnemonic,
         createdAt: UTCtimestamp(),
         updatedAt: UTCtimestamp()
       })
@@ -123,14 +120,15 @@ export default async (props: AccountOpts) => {
         },
         deviceId: account.device_id,
         deviceType: payload.deviceType || 'DESKTOP',
-        serverSig: serverSig
+        serverSig: serverSig,
+        driveVersion: "2.0"
       }
 
       accountModel.setDeviceInfo(deviceInfo, payload.password)
 
       //handleDriveMessages(drive, acctDoc, channel, store) // listen for async messages/emails coming from p2p network
 
-      await store.setAccount({...acctDoc, deviceInfo })
+      await store.setAccount({...acctDoc, deviceInfo}, true)
 
       store.setAccountSecrets({ email: payload.email, password: payload.password })
 
@@ -146,23 +144,23 @@ export default async (props: AccountOpts) => {
 
       store.setAuthPayload(auth)
 
-      if(!account.signingPubKey && !account.signingPrivKey) {
-        let { signingKeypair } = Account.makeKeys()
+      
+      let { signingKeypair: mainSigKeypair } = Account.makeKeys()
 
-        await Account.registerSigningKey({ signing_key: signingKeypair.publicKey })
+      await Account.registerSigningKey({ signing_key: mainSigKeypair.publicKey })
 
-        // Save account to drive's Account collection
-        await accountModel.update(
-          { 
-            accountId: acctDoc.accountId 
-          }, 
-          { 
-            signingPubKey: signingKeypair.publicKey,
-            signingPrivKey: signingKeypair.privateKey,
-            updatedAt: UTCtimestamp()
-          }
-        )
-      }
+      // Save account to drive's Account collection
+      await accountModel.update(
+        { 
+          accountId: acctDoc.accountId 
+        }, 
+        { 
+          signingPubKey: mainSigKeypair.publicKey,
+          signingPrivKey: mainSigKeypair.privateKey,
+          updatedAt: UTCtimestamp()
+        }
+      )
+      
 
       // Create recovery file with master pass
       await accountModel.setVault(mnemonic, 'recovery', {
@@ -182,6 +180,7 @@ export default async (props: AccountOpts) => {
         event: 'account:create:callback',
         data: {
           accountId: _id.toString('hex'),
+          type: 'PRIMARY',
           uid: accountUID,
           deviceId: account.device_id,
           signedAcct: account,
@@ -192,6 +191,7 @@ export default async (props: AccountOpts) => {
         }
       })
     } catch (err: any) {
+      store.killMatomo()
       channel.send({
         event: 'account:create:callback',
         error: {
@@ -211,13 +211,104 @@ export default async (props: AccountOpts) => {
     login()
   }
 
+  /*****************************************************
+   *  OVERRIDE EXISTING PASSPHRASE WITH NEW PASSPHRASE
+   ****************************************************/
+  if(event === 'account:createNewPassphrase') {
+    try {
+      const accountModel = store.models.Account
+      const account = store.getAccount()
+      const password = store._accountSecrets.password
+
+      // Generate new mnemonic
+      let { mnemonic } = Account.makeKeys()
+
+      // Retrieve drive encryption key and keyPair from vault using old master password
+      const { drive_encryption_key: encryptionKey } = accountModel.getVault(password, 'vault')
+
+      // Get device keypair
+      const deviceInfo = accountModel.getDeviceInfo(password)
+
+      // Update recovery file with new password
+      await accountModel.setVault(mnemonic, 'recovery', { master_pass: password })
+
+      // Update vault file with new password
+      await accountModel.setVault(password, 'vault', { drive_encryption_key: encryptionKey })
+
+      // Re-encrypt device info file with new pass
+      await accountModel.setDeviceInfo(deviceInfo, password)
+
+      await accountModel.update({ accountId: account.accountId }, { mnemonic })
+
+      channel.send({ event: 'account:createNewPassphrase:callback', data: { mnemonic } })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:createNewPassphrase:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
+
+  /*****************************************************
+   *  UPDATE EXISTING PASSWORD
+   ****************************************************/
+  if(event === 'account:updatePassword') {
+    try {
+      const Mailbox = store.models.Mailbox
+
+      const { newPass } = payload
+      const acctPath = getAcctPath(userDataPath, payload.email)
+      store.acctPath = acctPath
+      const accountModel = store.models.Account
+      const account = store.getAccount()
+
+      // Get old password
+      const oldPass = store._accountSecrets.password
+
+      // Retrieve drive encryption key and keyPair from vault using old master password
+      const { drive_encryption_key: encryptionKey } = accountModel.getVault(oldPass, 'vault')
+
+      // Get device keypair
+      const deviceInfo = accountModel.getDeviceInfo(oldPass)
+
+      // Update recovery file with new password
+      await accountModel.setVault(account.mnemonic, 'recovery', { master_pass: newPass })
+      
+      // Update vault file with new password
+      await accountModel.setVault(newPass, 'vault', { drive_encryption_key: encryptionKey })
+
+      // Re-encrypt device info file with new pass
+      await accountModel.setDeviceInfo(deviceInfo, newPass)
+
+      // Update mailbox doc with new password
+      await Mailbox.update({ address: payload.email }, { password: newPass })
+
+      channel.send({ event: 'account:updatePassword:callback', data: true })
+    } catch(err:any) {
+      channel.send({
+        event: 'account:updatePassword:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null,
+      })
+    }
+  }
+
   /*************************************************
    *  FORGOT PASSWORD
    ************************************************/
   if(event === 'account:resetPassword') {
     const { passphrase, newPass } = payload
 
-    const acctPath = `${userDataPath}/${payload.email}`
+    const acctPath = getAcctPath(userDataPath, payload.email)
 
     store.acctPath = acctPath
 
@@ -255,7 +346,7 @@ export default async (props: AccountOpts) => {
 
       // handleDriveMessages(drive, fullAcct, channel, store) // listen for async messages/emails coming from p2p network
 
-      await store.setAccount(fullAcct)
+      await store.setAccount(fullAcct, false)
 
       let auth = {
         claims: {
@@ -281,7 +372,9 @@ export default async (props: AccountOpts) => {
       await drive.close()
 
       store.setAccountSecrets({ email: undefined, password: undefined })
-      store.setAccount(null)
+      store.setAccount(null, false)
+      
+      store.killMatomo()
 
       channel.send({
         event: 'account:resetPassword:callback',
@@ -290,6 +383,7 @@ export default async (props: AccountOpts) => {
         },
       })
     } catch(err: any) {
+      store.killMatomo()
       channel.send({
         event: 'account:resetPassword:callback',
         error: { 
@@ -375,14 +469,13 @@ export default async (props: AccountOpts) => {
   
   // Step 3 - Start sync
   if (event === 'account:sync') {
-
     const { driveKey, email, password } = payload
 
     const Account = store.sdk.account
     
     const accountUID = randomBytes(8).toString('hex') // This is used as an anonymous ID that is sent to Matomo
     const parentAccountsDir = path.join(userDataPath)
-    
+
     if (!fs.existsSync(parentAccountsDir)) {
       fs.mkdirSync(parentAccountsDir)
     }
@@ -405,19 +498,24 @@ export default async (props: AccountOpts) => {
       secretKey: signingKeypair.privateKey
     }
 
-    // Create device drive
-    let drive = store.setDrive({
-      name: `${acctPath}/Drive`,
-      driveKey: driveKey,
-      keyPair,
+    channel.send({ event: 'account:sync:callback', data: { status: 'Initializing new account' }})
+
+    let drive = new Drive(`${acctPath}/Drive2`, driveKey, {
+      broadcast: false,
       blind: true,
-      broadcast: false
+      syncFiles: false,
+      swarmOpts: {
+        server: true,
+        client: true
+      },
+      fullTextSearch: true
     })
 
     // Step 4. Begin replication
     try {
       await drive.ready()
-    } catch(err) {
+      channel.send({ event: 'account:sync:callback', data: { status: 'Starting data migration' }})
+    } catch(err:any) {
       //@ts-ignore
       await drive.close()
       throw err
@@ -429,56 +527,113 @@ export default async (props: AccountOpts) => {
 
     let hasVault = false
     let hasRecovery = false
-
-    const metaFileStream = drive.metadb.createReadStream({ live: true, reverse: true })
+    let driveSynced = false
 
     // If the vault or recovery file is missing after 1 min of syncing then kill sync.
-    setTimeout(async () => {
-      if(!hasVault || !hasRecovery) {
-        await drive.close()
-        channel.send({
-          event: 'account:sync:callback',
-          error: { 
-            name: 'Sync Failed', 
-            message: 'Unable to sync recovery file and or vault file within the alotted time.', 
-            stack: null
-          },
-          data: null
-        })
-        return
-      }
-    }, 60000)
+    // setTimeout(async () => {
+    //   if(!hasVault || !hasRecovery || !driveSynced) {
+    //     await drive.close()
+    //     channel.send({
+    //       event: 'account:sync:callback',
+    //       error: { 
+    //         name: 'Sync Failed', 
+    //         message: 'Unable to sync recovery file and or vault file within the alotted time.', 
+    //         stack: null
+    //       },
+    //       data: null
+    //     })
+    //     return
+    //   }
+    // }, 60000)
 
-    // Loop through the file meta to extract the vault file. Once we have the vault file we can use
-    // the master password to decipher this file and grab the drive encryption key
-    metaFileStream.on('data', async (data:any) => {
-      if(data?.value?.toString().indexOf('hyperbee') === -1) {
-        const op = HyperbeeMessages.Node.decode(data.value)
-        const node = {
-          key: op.key.toString('utf8'),
-          value: JSON.parse(op.value.toString('utf8')),
-          seq: data.seq
-        }
+    try {
+      // Sync Recovery file
+      const recoveryFile = await FileUtil.syncRecoveryFiles({ 
+        fileName: 'recovery', 
+        dest: path.join(`${acctPath}/Drive2/Files`, '/recovery'),
+        drive, 
+        store 
+      })
 
-        const file = node?.value
+      channel.send({ event: 'account:sync:callback', data: { status: 'Synced recovery file' }})
+      hasRecovery = true
 
-        // Once we sync the vault file we can use the master password to gain access to the drive
-        if(file?.custom_data?.cid && !hasRecovery && file?.path?.indexOf('recovery') > -1) {
-          hasRecovery = true
-          
+      // Sync Vault file
+      const vaultFile = await FileUtil.syncRecoveryFiles({ 
+        fileName: 'vault', 
+        dest: path.join(`${acctPath}/Drive2/Files`, '/vault'),
+        drive, 
+        store 
+      })
+
+      channel.send({ event: 'account:sync:callback', data: { status: 'Synced vault file' }})
+      hasVault = true
+
+      const vault = accountModel.getVault(password, 'vault', path.join(`${acctPath}/Drive2/Files/`, '/vault'))
+      encryptionKey = vault.drive_encryption_key
+
+      channel.send({ event: 'account:sync:callback', data: { status: 'Vault file deciphered' }})
+
+      // // Close the drive so we can restart it with the encryption key
+      await drive.close()
+      rmdir(`${acctPath}/Drive2`)
+      drive = null
+      
+
+      channel.send({ event: 'account:sync:callback', data: { status: 'Starting new account drive' }})
+
+      const _drive = store.setDrive({
+        name: `${acctPath}/Drive`,
+        driveKey,
+        encryptionKey,
+        keyPair
+      })
+
+      await _drive.ready()
+
+      const checkDataInt = setInterval(async () => {
+        let acctDocs
+        let mboxDocs
+        let folderDocs
+
+        const acctCol = await _drive.database.collection('Account')
+        const mboxCol = await _drive.database.collection('Mailbox')
+        const folderCol = await _drive.database.collection('Folder')
+
+        acctDocs = await acctCol.find()
+        mboxDocs = await mboxCol.find()
+        folderDocs = await folderCol.find()
+
+        channel.send({ event: 'account:sync:callback', data: { status: 'Syncing data from peer device' }})
+
+        if(acctDocs.length && mboxDocs.length && folderDocs.length) {
+          clearInterval(checkDataInt)
+          channel.send({ event: 'account:sync:callback', data: { status: 'Data sync complete' }})
           try {
-            const fileData = await FileUtil.getFileByCID({ cid: file.custom_data.cid, IPFSGateway: store.IPFSGateway, async: true })
+            // Step 5. Set Device info and login
+            const deviceId = uuidv4()
+
+            accountModel.setDeviceInfo({
+              keyPair,
+              deviceId: deviceId,
+              deviceType: payload.deviceType,
+              driveSyncingPublicKey: driveKey,
+              driveVersion: "2.0"
+            }, payload.password)
+
+            await _drive._localDB.put('vault', { isSet: true })
+
+            await _drive.close()
+
+            channel.send({ event: 'account:sync:callback', data: { status: 'New account drive closed' }})
+
+            driveSynced = true
             
-            const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
-
-            pump(fileData, ws, async (err: any) => {})
+            setTimeout(() => {
+              channel.send({ event: 'account:sync:callback', data: { status: 'Logging in to synced account' }})
+              login(keyPair)
+            }, 2000)
           } catch(err:any) {
-            await drive.close()
-
-            // Remove account directory
-            const acctPath = path.join(userDataPath, `/${payload.email}`)
-            rmdir(acctPath)
-
             channel.send({
               event: 'account:sync:callback',
               error: { 
@@ -488,143 +643,32 @@ export default async (props: AccountOpts) => {
               },
               data: null
             })
-            return
           }
         }
-        
-        if(file?.custom_data?.cid && !hasVault && file?.path?.indexOf('vault') > -1) {
-          hasVault = true
+      }, 5000)
 
-          const stream = await FileUtil.getFileByCID({ cid: file.custom_data.cid, IPFSGateway: store.IPFSGateway, async: true })
-          const ws = fs.createWriteStream(path.join(`${acctPath}/Drive/Files/`, file.path))
+      fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/recovery'), recoveryFile)
+      fs.writeFileSync(path.join(`${acctPath}/Drive/Files`, '/vault'), vaultFile)
 
-          pump(stream, ws, async (err: any) => {
-            channel.send({ event: 'debug', data: 'VAULT DONE'})
-            if(err) return channel.send({ event: 'debug', data: { error: err.message, stack: err.stack }})
-            channel.send({ event: 'debug', data: 'PRE DECIPHER VAULT'})
-            try {
-              const vault = accountModel.getVault(password, 'vault')
-              encryptionKey = vault.drive_encryption_key
-              channel.send({ event: 'debug', data: { encryptionKey }})
-            } catch(err: any) {
-              channel.send({
-                event: 'account:sync:callback',
-                error: { 
-                  name: err.name, 
-                  message: err.message, 
-                  stack: err.stack 
-                },
-                data: null
-              })
+      channel.send({ event: 'account:sync:callback', data: { status: 'New drive ready' }})
+    } catch(err:any) {
+      channel.send({ event: 'debug', data: { message: err.message, stack: err.stack } })
+      await drive.close()
 
-              await drive.close()
+      // Remove account directory
+      const acctPath = path.join(userDataPath, `/${payload.email}`)
+      rmdir(acctPath)
 
-              // Remove account directory
-              const acctPath = path.join(userDataPath, `/${payload.email}`)
-              rmdir(acctPath)
-
-              return
-            }
-
-            try {
-              // Close the drive so we can restart it with the encryption key
-              await drive.close()
-
-              const _drive = store.setDrive({
-                name: `${acctPath}/Drive`,
-                encryptionKey,
-                driveKey: driveKey,
-                keyPair
-              })
-
-              // Step 5. Listen for when core sync is complete
-              _drive.once('remote-cores-downloaded', () => {
-                let ready = false
-                channel.send({ event: 'debug', data: 'REMOTE CORES DOWNLOADED'})
-                
-                const coreInt = setInterval(async () => {
-                  if(!ready) {
-                    ready = true
-
-                    try {
-                      await store.initModels()
-                      const accountModel = store.models.Account
-
-                      let acct:any[] = []
-                    
-                      acct = await accountModel.find()
-
-                      // Wait for when account collection is ready since every peer will have this
-                      if(acct.length > 0) {
-                        clearInterval(coreInt)
-
-                        // Step 6. Set Device info and login
-                        try {
-                          const deviceId = uuidv4()
-
-                          accountModel.setDeviceInfo({
-                            keyPair,
-                            deviceId: deviceId,
-                            deviceType: payload.deviceType,
-                            driveSyncingPublicKey: driveKey,
-                          }, payload.password)
-
-                          await _drive._localDB.put('vault', { isSet: true })
-
-                          await _drive.close()
-
-                          channel.send({ event: 'debug', data: 'START LOGIN'})
-
-                          setTimeout(() => {
-                            channel.send({ event: 'debug', data: 'START LOGIN GO'})
-                            login(keyPair)
-                          }, 1000)
-                          
-                        } catch(err: any) {
-                          ready = false
-                          channel.send({
-                            event: 'account:sync:callback',
-                            error: { 
-                              name: err.name, 
-                              message: err.message, 
-                              stack: err.stack 
-                            },
-                            data: null
-                          })
-                        }
-                      } else {
-                        ready = false
-                      }
-                    } catch(err: any) {
-                      ready = false
-                    }
-                  }
-                }, 2000)
-              })
-
-              await _drive.ready()
-
-            } catch(err: any) {
-              await drive.close()
-
-              // Remove account directory
-              const acctPath = path.join(userDataPath, `/${payload.email}`)
-              rmdir(acctPath)
-
-              channel.send({
-                event: 'account:sync:callback',
-                error: { 
-                  name: err.name, 
-                  message: err.message, 
-                  stack: err.stack 
-                },
-                data: null
-              })
-            }
-          })
-        }
-      }
-    })
+      channel.send({
+        event: 'account:sync:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
+    }
   }
 
   /*************************************************
@@ -652,6 +696,30 @@ export default async (props: AccountOpts) => {
   }
 
   /*************************************************
+   *  UPDATE ACCOUNT PLAN
+   ************************************************/
+  if (event === 'account:updatePlan') {
+    const { accountId, plan } = payload
+
+    try {
+      const Account = store.models.Account
+
+      const account = await Account.update({ accountId }, { plan })
+      channel.send({ event: 'account:updatePlan:callback', data: account })
+    } catch (err: any) {
+      channel.send({
+        event: 'account:updatePlan:callback',
+        error: { 
+          name: err.name, 
+          message: err.message, 
+          stack: err.stack 
+        },
+        data: null
+      })
+    }
+  }
+
+  /*************************************************
    *  GET ACCOUNT STATS
    ************************************************/
   if (event === 'account:retrieveStats') {
@@ -664,6 +732,7 @@ export default async (props: AccountOpts) => {
         plan: stats.plan,
         dailyEmailUsed: stats.daily_email_used,
         dailyEmailResetDate: stats.daily_email_reset_date,
+        domainUsed: stats.domain_used,
         namespaceUsed: stats.namespace_used,
         aliasesUsed: stats.aliases_used,
         storageSpaceUsed: stats.storage_space_used,
@@ -672,7 +741,9 @@ export default async (props: AccountOpts) => {
         maxAliasNames: stats.maxAliasNames,
         maxAliasAddresses: stats.maxAliasAddresses,
         maxGBCloudStorage: stats.maxGBCloudStorage,
-        maxGBBandwidth: stats.maxGBBandwidth
+        maxGBBandwidth: stats.maxGBBandwidth,
+        maxDomains: stats.maxDomains,
+        hasClaimableMailboxes: stats.hasClaimableMailboxes
       }
 
       channel.send({ event: 'account:retrieveStats:callback', error: null, data: finalPayload })
@@ -702,15 +773,27 @@ export default async (props: AccountOpts) => {
    *  LOGOUT
    ************************************************/
   if (event === 'account:logout') {
+    let kill = true
+    
+    if(payload) {
+      kill = payload.kill
+    }
+
     try {
-      store.setAccountSecrets({ email: undefined, password: undefined })
-      await store.setAccount(null)
+      if(!kill) {
+        const drive = store.getDrive()
+        await drive.close()
+      }
+
+      store.clear()
 
       channel.send({ event: 'account:logout:callback', error: null, data: null })
 
-      if (channel.pid) {
+      if (channel.pid && kill) {
         channel.kill(channel.pid)
       }
+
+      store.killMatomo()
     } catch (err: any) {
       channel.send({ 
         event: 'account:logout:callback', 
@@ -768,9 +851,6 @@ export default async (props: AccountOpts) => {
       // Initialize models
       await store.initModels()
 
-      //joinPeer(store, store.teliosPubKey, channel)
-      //store.initSocketIO()
-
       channel.send({ event: 'account:drive:reconnect:callback', error: null })
     } catch(err: any) {
       channel.send({ 
@@ -786,9 +866,9 @@ export default async (props: AccountOpts) => {
   }
 
   async function login(kp?: { publicKey: string, secretKey: string}) {
-    const acctPath = `${userDataPath}/${payload.email}`
+    const acctPath = getAcctPath(userDataPath, payload.email)
 
-    store.acctPath = acctPath
+    store.setAccountPath(acctPath)
     
     let mnemonic
     let encryptionKey
@@ -799,16 +879,33 @@ export default async (props: AccountOpts) => {
     // Initialize account collection
     const accountModel = store.models.Account
 
-    try {
-      deviceInfo = accountModel.getDeviceInfo(payload.password)
-    } catch(err:any) {
-      // file does not exist
+    if(payload.password) {
+      try {
+        deviceInfo = accountModel.getDeviceInfo(payload.password)
+      } catch(err:any) {
+        // file does not exist
+      }
     }
 
     try {
       try {
+        channel.send({ event: 'account:login:status', data: 'Decrypting account data' })
+        
         // Retrieve drive encryption key from vault using master password
-        let { drive_encryption_key: encryptionKey, keyPair: _keyPair } = accountModel.getVault(payload.password, 'vault')
+        let _keyPair
+
+        if(payload.password) {
+          const vault = accountModel.getVault(payload.password, 'vault')
+          encryptionKey = vault.drive_encryption_key
+          _keyPair = vault.keyPair
+        } else {
+          const { master_pass } = accountModel.getVault(payload.passphrase, 'recovery')
+          const vault = accountModel.getVault(master_pass, 'vault')
+          encryptionKey = vault.drive_encryption_key
+          _keyPair = vault.keyPair
+
+          deviceInfo = accountModel.getDeviceInfo(master_pass)
+        }
 
         // Existing account that already has a keyPair but has not created a deviceInfo file
         if(!kp && !deviceInfo) {
@@ -824,7 +921,35 @@ export default async (props: AccountOpts) => {
 
         if(encryptionKey && keyPair) {
           // Notify the receiver the master password has been authenticated
-          channel.send({ event: 'account:authorized' })
+          channel.send({ event: 'account:login:status', data: 'Account authorized' })
+        }
+
+        if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
+          try {
+            channel.send({ event: 'account:login:status', data: 'Migrating account data' })
+            await Migrate({ 
+              rootdir: acctPath, 
+              drivePath: '/Drive', 
+              encryptionKey: Buffer.from(encryptionKey, 'hex'), 
+              keyPair: {
+                publicKey: Buffer.from(keyPair.publicKey, 'hex'),
+                secretKey: Buffer.from(keyPair.secretKey, 'hex')
+              }
+            })
+            channel.send({ event: 'account:login:status', data: 'Account data migrated' })
+
+            deviceInfo = { ...deviceInfo, driveVersion: "2.0" }
+            accountModel.setDeviceInfo(deviceInfo, payload.password)
+          } catch(err:any) {
+            return channel.send({
+              event: 'account:login:callback',
+              error: { 
+                name: err.name, 
+                message: err.message, 
+                stack: err.stack 
+              }
+            })
+          }
         }
 
         // Initialize drive
@@ -836,15 +961,15 @@ export default async (props: AccountOpts) => {
         })
 
         handleDriveNetworkEvents(drive, channel) // listen for internet or drive network events
-        
+
+        channel.send({ event: 'account:login:status', data: 'Starting account drive' })
         await drive.ready()
+        channel.send({ event: 'account:login:status', data: 'Account drive ready' })
 
         store.setDriveStatus('ONLINE')
 
         store.setAccountSecrets({ email: payload.email, password: payload.password })
 
-        // Join Telios as a peer
-        //joinPeer(store, store.teliosPubKey, channel)
       } catch(err: any) {
         if(drive) await drive.close()
         
@@ -865,13 +990,16 @@ export default async (props: AccountOpts) => {
 
       let account = await accountModel.findOne()
 
+      channel.send({ event: 'account:login:status', data: 'Account initalized' })
+      
       // Monkey patch: Support older accounts when this info was stored in the account collection
       if(!deviceInfo && account.deviceId && account.serverSig) {
         deviceInfo = {
           keyPair,
           deviceType: 'DESKTOP',
           deviceId: account.deviceId,
-          serverSig: account.serverSig
+          serverSig: account.serverSig,
+          driveVersion: "2.0"
         }
 
         accountModel.setDeviceInfo({ ...deviceInfo }, payload.password)
@@ -879,17 +1007,6 @@ export default async (props: AccountOpts) => {
 
       // This is a new device trying to login so we need to register the device with the API server
       if(deviceInfo && !deviceInfo.serverSig) {
-        
-        channel.send({ event: 'debug', data: {
-          device: {
-            type: payload.deviceType,
-            account_key: account.secretBoxPubKey,
-            device_id: deviceInfo.deviceId,
-            device_signing_key: keyPair.publicKey.toString('hex')
-          },
-          accountSigningPrivKey: account.signingPrivKey
-        } })
-
         try {
           const { sig } = await Account.registerNewDevice({
             type: payload.deviceType,
@@ -898,18 +1015,16 @@ export default async (props: AccountOpts) => {
             device_signing_key: keyPair.publicKey.toString('hex')
           }, account.signingPrivKey)
 
+          channel.send({ event: 'account:login:status', data: 'Registered new device' })
+
           deviceInfo = { serverSig: sig, ...deviceInfo }
           accountModel.setDeviceInfo(deviceInfo, payload.password)
-
-          channel.send({ event: 'debug', data: { sig } })
         } catch(err: any) {
           channel.send({ event: 'debug', data: { message: err.message, stack: err.stack } })
         }
       }
 
-      // handleDriveMessages(drive, {...account, ...deviceInfo }, channel, store) // listen for async messages/emails coming from p2p network
-
-      store.setAccount({...account, deviceInfo })
+      store.setAccount({...account, deviceInfo }, false)
 
       let auth = {
         claims: {
@@ -945,21 +1060,33 @@ export default async (props: AccountOpts) => {
       // Fully sync account when registering a new device.
       // This method will fetch and sync all files from IPFS
       if(kp) {
+        channel.send({ event: 'account:login:status', data: 'Syncing data from peer devices' })
         await syncNewDevice(drive)
+        channel.send({ event: 'account:login:status', data: 'Data sync finished' })
       }
 
       // Check if Drive's Vault and Recovery files needs to be pushed out to IPFS
       // TODO: Deprecate this in the future. New accounts won't need to do this
-      await migrateVaultToIPFS()
+      if(!deviceInfo.driveVersion || deviceInfo.driveVersion !== '2.0') {
+        channel.send({ event: 'account:login:status', data: 'Migrating vault file to IPFS' })
+        await migrateVaultToIPFS()
+        channel.send({ event: 'account:login:status', data: 'Vault migrated to IPFS' })
+      }
 
       handleDriveSyncEvents() // Listen for and sync updates from remote peers/devices
 
       store.initSocketIO(store.getAccount(), channel)
+
+      if(!account.plan) {
+        const AccountSDK = store.sdk.account
+        const stats = await AccountSDK.retrieveStats()
+        await accountModel.update({ accountId: account.accountId }, { plan: stats.plan })
+      }
       
-      channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo, mnemonic }})
+      channel.send({ event: 'account:login:callback', error: null, data: { ...account, deviceInfo: deviceInfo }})
     } catch (err: any) {
       if(drive) await drive.close()
-
+      store.killMatomo()
       channel.send({
         event: 'account:login:callback',
         error: { 
@@ -1226,40 +1353,6 @@ export default async (props: AccountOpts) => {
   }
 }
 
-// async function handleDriveMessages(
-//   drive: any,
-//   account: any,
-//   channel: any,
-//   store: StoreSchema,
-// ) {
-//   drive.on('message', (peerKey: string, data: any) => {
-//     try {
-//       const msg = JSON.parse(data.toString())
-      
-//       // Service is telling client it has a new email to sync
-//       if (msg.type === 'newMail') {
-//         channel.send({
-//           event: 'account:newMessage',
-//           data: { meta: msg.meta, account, async: true },
-//         })
-//       }
-//     } catch(err) {
-//       // Could not parse message as JSON
-//     }
-//   })
-// }
-
-// function joinPeer(store: StoreSchema, peerPubKey: string, channel: any) {
-//   store.joinPeer(peerPubKey)
-
-//   store.on('peer-updated', async (data: { peerKey: string, status: DriveStatuses, server: boolean  } ) => {
-//     if(data.status === 'OFFLINE') {
-//       await reconnectDrive(channel, store)
-//     }
-//     channel.send({ event: 'drive:peer:updated', data: { peerKey: data.peerKey, status: data.status, server: data.server }})
-//   })
-// }
-
 function handleDriveNetworkEvents(drive: any, channel: any) {
   drive.on('network-updated', (network: { internet: boolean; drive: boolean }) => {
       channel.send({ event: 'drive:network:updated', data: { network } })
@@ -1267,47 +1360,27 @@ function handleDriveNetworkEvents(drive: any, channel: any) {
   )
 }
 
-function rmdir(dir:string) {
-  var list = fs.readdirSync(dir);
-  for(var i = 0; i < list.length; i++) {
-    var filename = path.join(dir, list[i]);
-    var stat = fs.statSync(filename);
-    
-    if(filename == "." || filename == "..") {
-      // pass these files
-    } else if(stat.isDirectory()) {
-      // rmdir recursively
-      rmdir(filename);
-    } else {
-      // rm fiilename
-      fs.unlinkSync(filename);
-    }
-  }
-  fs.rmdirSync(dir);
-}
+// async function reconnectDrive(channel: any, store: StoreSchema) {
+//   try {
+//     const drive = store.getDrive()
+//     await drive.close()
+//     await drive.ready()
 
-async function reconnectDrive(channel: any, store: StoreSchema) {
-  try {
-    const drive = store.getDrive()
-    await drive.close()
-    await drive.ready()
+//     // Initialize models
+//     await store.initModels()
 
-    // Initialize models
-    await store.initModels()
+//     store.initSocketIO(store.getAccount(), channel)
 
-    //joinPeer(store, store.teliosPubKey, channel)
-    store.initSocketIO(store.getAccount(), channel)
-
-    channel.send({ event: 'account:drive:reconnect:callback', error: null })
-  } catch(err: any) {
-    channel.send({ 
-      event: 'account:drive:reconnect:callback', 
-      error: {
-        name: err.name,
-        message: err.message,
-        stacktrace: err.stack,
-      }, 
-      data: null 
-    })
-  }
-}
+//     channel.send({ event: 'account:drive:reconnect:callback', error: null })
+//   } catch(err: any) {
+//     channel.send({ 
+//       event: 'account:drive:reconnect:callback', 
+//       error: {
+//         name: err.name,
+//         message: err.message,
+//         stacktrace: err.stack,
+//       }, 
+//       data: null 
+//     })
+//   }
+// }

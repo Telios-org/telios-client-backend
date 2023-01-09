@@ -15,31 +15,34 @@ export default async (props: FolderOpts) => {
       
       const folders: FolderSchema[] = await Folder.find({ mailboxId: payload.id }).sort('seq', 1)
 
-      const promises = folders.map(async f => {
-        const Email = store.models.Email
+      // const promises = folders.map(async f => {
+      //   const Email = store.models.Email
 
-         // Making sure the folder count is accurate
-        const { count } = await Folder.findOne({ folderId: f.folderId })
+      //    // Making sure the folder count is accurate
+      //   const { count } = await Folder.findOne({ folderId: f.folderId })
 
-        const emails = await Email.find({ unread: true, folderId: f.folderId})
+      //   const emails = await Email.find({ unread: true, folderId: f.folderId})
         
-        const newCount = emails.length;
+      //   const newCount = emails.length;
 
-        if(count !== newCount){
-          await Folder.update({ folderId: f.folderId }, { count: newCount })
-        }
+      //   if(count !== newCount){
+      //     await Folder.update({ folderId: f.folderId }, { count: newCount })
+      //   }
         
-        return {
-          ...f,
-          count: newCount
-        }
-      })
+      //   return {
+      //     ...f,
+      //     count: newCount
+      //   }
+      // })
 
-      const output = await Promise.all(promises)
+      for(const folder of folders) {
+        if(!folder.count) folder.count = 0
+        store.setFolderCount(folder.folderId, folder.count)
+      }
 
       channel.send({
         event: 'folder:getMailboxFolders:callback',
-        data: output
+        data: folders
       });
     } catch(err: any) {
       channel.send({
@@ -131,7 +134,9 @@ export default async (props: FolderOpts) => {
     try {
       const Folder = store.models.Folder
 
-      await Folder.update({ folderId: id }, { $inc: { count: amount } })
+      // const currCount = store.getFolderCount(id)
+      // await Folder.update({ folderId: id }, { count: currCount + amount } )
+      // store.setFolderCount(id, currCount + amount)
 
       channel.send({ event: 'folder:updateFolderCount:callback', updated: true })
     } catch(err: any) {

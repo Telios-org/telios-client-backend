@@ -9,12 +9,19 @@ interface IEmissions {
 }
 
 export declare interface StoreSchema {
+  _userAgent: string
+  _accountSecrets: {
+    email: string
+    password: string
+  }
   sdk: {
     account: any
     mailbox: any
     ipfs: any
     crypto: any
+    domain: any
   }
+  env: 'development' | 'production' | 'test'
   drive: any
   encryptionKey: any
   IPFSGateway: string
@@ -24,6 +31,7 @@ export declare interface StoreSchema {
     api: string
     mail: string
   }
+  folderCounts: any
   models: ModelType
   on: <K extends "peer-updated">(event: K, listener: IEmissions[K]) => this
   emit: <K extends "peer-updated">(event: K, ...args: Parameters<IEmissions[K]>) => boolean
@@ -34,7 +42,9 @@ export declare interface StoreSchema {
   setDriveStatus(string: DriveStatuses): any
   getDriveStatus(): DriveStatuses
   initModels(): Promise<void>
-  setAccount(account: AccountSchema | null): void
+  setAccount(account: AccountSchema | null, isNew: boolean): void
+  setAccountPath(path: string): void
+  getAccountPath(): string
   getAccount(): AccountSchema
   setAccountSecrets(secrets: AccountSecrets): void
   getAccountSecrets(): AccountSecrets
@@ -50,6 +60,11 @@ export declare interface StoreSchema {
   getPeers(): Record<string, any>
   messagePeer(peerPubKey: string, data: { type?: 'newMail', meta?: any, status?: DriveStatuses }): any
   refreshToken(): any
+  killMatomo(): void
+  getFolderCount(folderId: any): any
+  setFolderCount(folderId: any, count: number): any
+  clear(): void
+  killMatomo(): void
 }
 
 export interface DeviceSchema {
@@ -61,10 +76,13 @@ export interface DeviceSchema {
   deviceType?: string,
   serverSig?: string
   driveSyncingPublicKey?: string
+  driveVersion: string
 }
 
 export interface AccountSchema {
   _id?: any,
+  type: 'PRIMARY' | 'CLAIMABLE' | 'SUB',
+  plan: string
   accountId?: string
   displayName?: string
   avatar?: string
@@ -78,6 +96,7 @@ export interface AccountSchema {
   deviceId?: string
   serverSig?: string
   deviceInfo? : DeviceSchema
+  mnemonic: string
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -85,9 +104,17 @@ export interface AccountSchema {
 
 export interface MailboxSchema {
   _id?: any,
+  type: 'PRIMARY' | 'CLAIMABLE' | 'SUB',
   mailboxId: string
   address: string
   name?: string
+  displayName?: string
+  password?: string
+  domainKey?: string
+  driveSyncingPublicKey?: string
+  driveEncryptionKey?: string
+  mnemonic?: string
+  syncCode?: string
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -128,6 +155,7 @@ export interface AliasSchema {
   namespaceKey: string | undefined
   fwdAddresses?: any
   count: number
+  seq?: number
   disabled?: boolean | undefined
   whitelisted?: boolean | undefined
   // Timestamps
@@ -212,4 +240,44 @@ export interface ContactSchema {
 export interface MigrateSchema {
   _id: any
   name: string
+}
+
+export interface DomainSchema {
+  _id?: any
+  name: string
+  active?: boolean
+  dns: {
+    vcode?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    mx?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    dkim?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    spf?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+    dmarc?: {
+      type: string
+      name: string
+      value: string
+      verified: boolean
+    }
+  }
+  createdAt?: string
+  updatedAt?: string
 }

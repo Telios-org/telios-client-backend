@@ -7,6 +7,7 @@ import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
+import { DomainModel } from './models/domain.model'
 
 import { StoreSchema } from './schemas'
 
@@ -20,11 +21,13 @@ export interface ModelType {
   Folder: FolderModel
   Mailbox: MailboxModel
   Migrate: MigrateModel
+  Domain: DomainModel
 }
 
 export interface MainOpts {
   channel: any
   userDataPath: string
+  userAgent: string
   env: 'development' | 'production' | 'test'
 }
 
@@ -32,12 +35,15 @@ export interface AccountMessage {
   event: 'account:create' 
         | 'account:login'
         | 'account:resetPassword'
+        | 'account:updatePassword'
+        | 'account:createNewPassphrase'
         | 'account:recover'
         | 'account:createSyncCode'
         | 'account:getSyncInfo'
         | 'account:sync'
         | 'account:remove'
         | 'account:update'
+        | 'account:updatePlan'
         | 'account:retrieveStats' 
         | 'account:logout' 
         | 'account:exit'
@@ -46,7 +52,8 @@ export interface AccountMessage {
   payload: {
     accountId: string,
     displayName: string,
-    deviceType: 'DESKTOP' | 'MOBILE'
+    deviceType: 'DESKTOP' | 'MOBILE',
+    plan: string,
     avatar: string,
     email: string
     password: string
@@ -57,7 +64,8 @@ export interface AccountMessage {
     newPass: string,
     driveKey: string,
     encryptionKey: string
-    mnemonic: string
+    mnemonic: string,
+    kill: boolean
   }
 }
 
@@ -134,8 +142,32 @@ export interface MigrateMessage {
 }
 
 export interface FileMessage {
-  event: 'file:saveFile' | 'alias:getFile'
+  event: 'file:saveFile'
   payload: any
+}
+
+export interface DomainMessage {
+  event: 'domain:register'
+        | 'domain:delete'
+        | 'domain:getDomainByName'
+        | 'domain:getDomains'
+        | 'domain:isAvailable' 
+        | 'domain:verifyOwnership' 
+        | 'domain:verifyDNS'
+        | 'domain:registerMailbox'
+        | 'domain:resendMailboxInvite'
+        | 'domain:deleteMailbox'
+  payload: {
+    type: 'CLAIMABLE' | 'SUB'
+    name: string
+    displayName: string,
+    address: string,
+    email: string
+    domain: string
+    deviceType: 'DESKTOP' | 'MOBILE'
+    recoveryEmail: string,
+    password: string
+  }
 }
 
 export interface AccountOpts {
@@ -191,6 +223,13 @@ export interface MigrateOpts {
   channel: any
   userDataPath: string,
   msg: MigrateMessage,
+  store: StoreSchema
+}
+
+export interface DomainOpts {
+  channel: any
+  userDataPath: string,
+  msg: DomainMessage,
   store: StoreSchema
 }
 

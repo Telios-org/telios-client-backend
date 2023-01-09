@@ -15,9 +15,12 @@ import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
 import { MigrateModel } from './models/migrate.model'
+import { DomainModel } from './models/domain.model'
+import { Matomo } from './Matomo'
 
 export class Store extends EventEmitter{
   public sdk
+  public env: 'development' | 'production' | 'test'
   public drive: any
   public encryptionKey: any
   public teliosPubKey: string
@@ -26,6 +29,7 @@ export class Store extends EventEmitter{
     api: string
     mail: string
   }
+  public folderCounts: any
   public models: ModelType
 
   private _teliosSDK: any
@@ -36,19 +40,24 @@ export class Store extends EventEmitter{
   private _connections: Record<string, any>
   private _peers: Record<string, any>
   private _driveStatus: DriveStatuses = 'OFFLINE'
+  private _userAgent: string
+  private _matomo: any
+  private _socket: any
 
-  constructor(env: 'development' | 'production' | 'test', signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
+  constructor(env: 'development' | 'production' | 'test', userAgent: string, signingPubKey?: string, apiURL?: string, IPFSGateway?: string) {
     super()
     
     this._teliosSDK = new ClientSDK({ 
-      provider: apiURL || envAPI.prod
+      provider: apiURL || envAPI.prod,
+      IPFSGateway
     })
 
     this.sdk = {
       account: this._teliosSDK.Account,
       mailbox: this._teliosSDK.Mailbox,
       ipfs: this._teliosSDK.IPFS,
-      crypto: this._teliosSDK.Crypto
+      crypto: this._teliosSDK.Crypto,
+      domain: this._teliosSDK.Domain
     }
 
     this.domain = {
@@ -58,8 +67,9 @@ export class Store extends EventEmitter{
 
     this.IPFSGateway = IPFSGateway || 'https://ipfs.filebase.io/ipfs'
 
-    this.env = env
+    this._userAgent = userAgent
 
+    this.env = env
     
     this.models = {
       // @ts-ignore
@@ -79,8 +89,12 @@ export class Store extends EventEmitter{
       // @ts-ignore
       Mailbox: new MailboxModel(this),
       // @ts-ignore
-      Migrate: new MigrateModel(this)
+      Migrate: new MigrateModel(this),
+      // @ts-ignore
+      Domain: new DomainModel(this)
     }
+
+    this.folderCounts = {}
 
     this.drive = null
     this.encryptionKey = ''
@@ -90,6 +104,8 @@ export class Store extends EventEmitter{
     
     this._account = {
       uid: '',
+      type: 'PRIMARY',
+      plan: 'FREE',
       driveSyncingPublicKey: '',
       driveEncryptionKey:  '',
       secretBoxPubKey:  '',
@@ -102,8 +118,10 @@ export class Store extends EventEmitter{
           secretKey: ''
         },
         deviceId: '',
-        serverSig: ''
-      }
+        serverSig: '',
+        driveVersion: ''
+      },
+      mnemonic: ''
     }
 
     this._authPayload = {
@@ -125,6 +143,7 @@ export class Store extends EventEmitter{
     this._connections = new Map()
     this._peers = new Map()
     this._swarm = null
+    this._socket = null
   }
 
   public setIPFSGateway(gatewayURL: string) {
@@ -151,7 +170,7 @@ export class Store extends EventEmitter{
       checkNetworkStatus: true,
       syncFiles: false,
       blind: blind ? blind : false,
-      broadcast,
+      broadcast: true,
       swarmOpts: {
         server: true,
         client: true
@@ -197,7 +216,15 @@ export class Store extends EventEmitter{
     }
   }
 
-  public async setAccount(account: AccountSchema) {
+  public getFolderCount(folderId: any) {
+    return this.folderCounts[folderId]
+  }
+
+  public setFolderCount(folderId: any, count: number) {
+    this.folderCounts[folderId] = count
+  }
+
+  public async setAccount(account: AccountSchema, isNew: boolean) {
     this._account = account
 
     if(account) {
@@ -220,7 +247,19 @@ export class Store extends EventEmitter{
           this.setKeypair(keypair)
         }
       }
+
+      if(!this._matomo) {
+        this._initMatomo(isNew)
+      }
     }
+  }
+
+  public setAccountPath(path: string): void {
+    this.acctPath = path
+  }
+
+  public getAccountPath(): string {
+    return this.acctPath
   }
   
   public getAccount() : AccountSchema {
@@ -261,7 +300,7 @@ export class Store extends EventEmitter{
     const token = this.refreshToken()
     const domain = this.domain.api.replace('https://', 'wss://')
 
-    const socket = io(domain, {
+    this._socket = io(domain, {
       path: '/socket.io/',
       reconnectionDelayMax: 10000,
       auth: {
@@ -269,15 +308,15 @@ export class Store extends EventEmitter{
       }
     });
 
-    socket.on('connect', () => {
+    this._socket.on('connect', () => {
       channel.send({ event: 'Websocket connection established...'})
     })
 
-    socket.on('disconnect', () => {
+    this._socket.on('disconnect', () => {
       channel.send({ event: 'Websocket disconnected from server...'})
     })
 
-    socket.on('email', (data: any) => {
+    this._socket.on('email', (data: any) => {
       channel.send({
         event: 'account:newMessage',
         data: { meta: data.meta, account, async: true },
@@ -311,5 +350,102 @@ export class Store extends EventEmitter{
     }
 
     return this.sdk.account.createAuthToken(payload, this._account?.deviceInfo?.keyPair?.secretKey);
+  }
+
+  public killMatomo() {
+    if(this._matomo) {
+      this._matomo.kill()
+      this._matomo = null
+    }
+  }
+
+  public clear() {
+    this._socket.close()
+    this._socket = null
+    this.folderCounts = {}
+
+    this.drive = null
+    this.encryptionKey = ''
+    this.acctPath = ''
+    // Fallback to production signing public key if it could not be fetched from well-known resource
+    this.teliosPubKey = "fa8932f0256a4233dde93195d24a6ae4d93cc133d966f3c9f223e555953c70c1"
+    
+    this._account = {
+      uid: '',
+      type: 'PRIMARY',
+      plan: 'FREE',
+      driveSyncingPublicKey: '',
+      driveEncryptionKey:  '',
+      secretBoxPubKey:  '',
+      secretBoxPrivKey:  '',
+      signingPubKey:  '',
+      signingPrivKey:  '',
+      deviceInfo: {
+        keyPair: {
+          publicKey: '',
+          secretKey: ''
+        },
+        deviceId: '',
+        serverSig: '',
+        driveVersion: ''
+      },
+      mnemonic: ''
+    }
+
+    this._authPayload = {
+      claims: {
+        account_key: '',
+        device_signing_key: '',
+        device_id: ''
+      },
+      device_signing_priv_key: '',
+      sig: ''
+    }
+
+    this._accountSecrets = {
+      password: '',
+      email: ''
+    }
+    
+    this._keyPairs = new Map()
+    this._connections = new Map()
+    this._peers = new Map()
+    this._swarm = null
+
+    this.models = {
+      // @ts-ignore
+      Account: new AccountModel(this),
+      // @ts-ignore
+      Alias: new AliasModel(this),
+      // @ts-ignore
+      AliasNamespace: new AliasNamespaceModel(this),
+      // @ts-ignore
+      Contact: new ContactModel(this),
+      // @ts-ignore
+      Email: new EmailModel(this),
+      // @ts-ignore
+      File: new FileModel(this),
+      // @ts-ignore
+      Folder: new FolderModel(this),
+      // @ts-ignore
+      Mailbox: new MailboxModel(this),
+      // @ts-ignore
+      Migrate: new MigrateModel(this),
+      // @ts-ignore
+      Domain: new DomainModel(this)
+    }
+  }
+
+  private _initMatomo(isNew: boolean) {
+    this._matomo = new Matomo(this._account, this._userAgent, this.env, envAPI)
+
+    let params = {
+      e_c: 'Account',
+      e_a: isNew ? 'Registered' : 'Signin',
+      new_visit: 1
+    }
+
+    this._matomo.event(params, () => { return this.refreshToken() })
+    this._matomo.heartBeat(30000, () => { return this.refreshToken() })
   }
 }
