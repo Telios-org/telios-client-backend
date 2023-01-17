@@ -6,7 +6,6 @@ import { EmailModel } from './models/email.model'
 import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
-import { MigrateModel } from './models/migrate.model'
 import { DomainModel } from './models/domain.model'
 
 import { StoreSchema } from './schemas'
@@ -20,7 +19,6 @@ export interface ModelType {
   File: FileModel
   Folder: FolderModel
   Mailbox: MailboxModel
-  Migrate: MigrateModel
   Domain: DomainModel
 }
 

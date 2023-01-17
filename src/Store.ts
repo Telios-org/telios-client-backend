@@ -14,7 +14,6 @@ import { EmailModel } from './models/email.model'
 import { FileModel } from './models/file.model'
 import { FolderModel } from './models/folder.model'
 import { MailboxModel } from './models/mailbox.model'
-import { MigrateModel } from './models/migrate.model'
 import { DomainModel } from './models/domain.model'
 import { Matomo } from './Matomo'
 
@@ -88,8 +87,6 @@ export class Store extends EventEmitter{
       Folder: new FolderModel(this),
       // @ts-ignore
       Mailbox: new MailboxModel(this),
-      // @ts-ignore
-      Migrate: new MigrateModel(this),
       // @ts-ignore
       Domain: new DomainModel(this)
     }
@@ -429,8 +426,6 @@ export class Store extends EventEmitter{
       Folder: new FolderModel(this),
       // @ts-ignore
       Mailbox: new MailboxModel(this),
-      // @ts-ignore
-      Migrate: new MigrateModel(this),
       // @ts-ignore
       Domain: new DomainModel(this)
     }

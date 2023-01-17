@@ -9,8 +9,6 @@ import Contact from './lib/contact'
 import Domain from './lib/domain'
 const axios = require('axios')
 
-import Migrate from './lib/migrate'
-
 import { MainOpts } from './types'
 import { StoreSchema } from './schemas'
 
@@ -43,7 +41,6 @@ export = (props: MainOpts) => {
     Email({ channel, userDataPath, msg, store })
     Folder({ channel, userDataPath, msg, store })
     Contact({ channel, userDataPath, msg, store })
-    Migrate({ channel, userDataPath, msg, store })
     Domain({ channel, userDataPath, msg, store })
     messageHandler.listen(msg)
   })
