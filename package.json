@@ -26,7 +26,7 @@
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
     "@telios/client-sdk": "^8.1.3",
-    "@telios/nebula": "git+https://github.com/Telios-org/nebula#mobile-experimental",
+    "@telios/nebula": "git+https://github.com/Telios-org/nebula#mobile_experimental",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
