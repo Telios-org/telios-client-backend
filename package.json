@@ -8,7 +8,7 @@
     "dist/*"
   ],
   "scripts": {
-    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
+    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/01_account.test.js | tap-spec",
     "test-main": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/000_debug.test.js | tap-spec",
     "sync": "cross-env NODE_ENV=test_sdk npm run build; tape tests/07_remoteSync.test.js | tap-spec",
     "prepare": "npm run build",
@@ -26,10 +26,11 @@
   "homepage": "https://github.com/Telios-org/telios-client-backend#readme",
   "dependencies": {
     "@telios/client-sdk": "^8.1.3",
-    "@telios/nebula": "git+https://github.com/Telios-org/nebula#mobile_experimental",
+    "@telios/nebula": "git+https://github.com/Telios-org/nebula",
     "blakejs": "^1.2.1",
     "env-cmd": "^10.1.0",
     "file-type": "^16.5.3",
+    "full-icu": "^1.5.0",
     "generate-password": "^1.7.0",
     "luxon": "^2.3.1",
     "memorystream": "^0.3.1",

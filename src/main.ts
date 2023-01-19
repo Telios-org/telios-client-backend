@@ -1,3 +1,19 @@
+
+const path = require('path')
+
+const hasFullICU = () => {
+  try {
+    const january = new Date(9e8);
+    const spanish = new Intl.DateTimeFormat('es', { month: 'long' });
+    return spanish.format(january) === 'enero';
+  } catch (err) {
+    return false;
+  }
+};
+process.send({event: 'ICU_PATH', data: process.env.NODE_ICU_DATA })
+process.send({ event: 'NODE_CONFIG', data: process.config.variables })
+process.send({ event: 'HAS_FULL_ICU', data: hasFullICU() })
+
 import { Store } from './Store'
 import Account from './lib/account'
 import Mailbox from './lib/mailbox'
@@ -58,3 +74,5 @@ async function getTeliosResources(): Promise<any> {
       })
   })
 }
+
+
