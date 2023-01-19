@@ -15,10 +15,7 @@ class Channel extends EventEmitter {
       fs.mkdirSync(path.join(__dirname, 'Accounts'), { recursive: true })
 
     this.process = fork('./index', [dirPath, 'development', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:107.0) Gecko/20100101 Firefox/107.0'], {
-      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-      env: {
-        NODE_ICU_DATA: '/Users/garethharte/Documents/GitHub.nosync/telios-client-backend/node_modules/full-icu'
-      }
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     })
 
     this.pid = this.process.pid
