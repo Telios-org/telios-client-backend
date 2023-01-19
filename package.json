@@ -8,7 +8,7 @@
     "dist/*"
   ],
   "scripts": {
-    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/01_account.test.js | tap-spec",
+    "test": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/*.test.js | tap-spec",
     "test-main": "cross-env NODE_ENV=test_sdk npm run build; cross-env NODE_ENV=test_sdk tape tests/000_debug.test.js | tap-spec",
     "sync": "cross-env NODE_ENV=test_sdk npm run build; tape tests/07_remoteSync.test.js | tap-spec",
     "prepare": "npm run build",

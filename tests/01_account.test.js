@@ -452,7 +452,7 @@ test('account login with passphrase', async t => {
 })
 
 async function cleanup() {
-  // if (fs.existsSync(path.join(__dirname, '/Accounts'))) {
-  //   fs.rmSync(path.join(__dirname, 'Accounts'), { recursive: true })
-  // }
+  if (fs.existsSync(path.join(__dirname, '/Accounts'))) {
+    fs.rmSync(path.join(__dirname, 'Accounts'), { recursive: true })
+  }
 }
