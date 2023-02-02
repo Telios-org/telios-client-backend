@@ -227,11 +227,32 @@ export interface ContactSchema {
   pgpPublicKey?: string
   photo?: string
   email: string
-  phone?: any
-  address?: string
+  phone?: [
+    {
+      value: string
+      type?: string
+    }
+  ]
+  address?: [
+    {
+      formatted?: string
+      street: string
+      street2?: string
+      city: string
+      state: string
+      postalCode?: string
+      country?: string
+      type?: string
+    }
+  ]
   website?: string
   notes?: string
-  organization?: any
+  organization?: [
+    {
+      name: string
+      jobTitle?: string
+    }
+  ]
   // Timestamps
   createdAt?: string
   updatedAt?: string
