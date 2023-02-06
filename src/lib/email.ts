@@ -46,18 +46,17 @@ export default async (props: EmailOpts) => {
 
       // Is the email going somewhere off network?
       const recipients = [...email.to, ...email.cc, ...email.bcc];
-      const isOffWorlding = recipients.some((r) => !r.account_key)
+      const isOffWorlding = recipients.some((r) => !r.account_key || r.account_key === null)
 
       // 1. Save individual attachments to local disk
       if(attachments?.length) {
         for(let attachment of attachments) {
           await new Promise((resolve, reject) => {
             try {
-
               totalAttachmentSize += attachment.size;
               let filename = attachment.filename || attachment.name
 
-              if(attachment.content !== null && !attachment.path){
+              if(attachment.content !== null && !attachment.path && !isOffWorlding){
                   FileUtil.saveFileToDrive(File, { file: attachment, content: attachment.content, drive, ipfs }).then((file) => {
                       _attachments.push({
                           _id: file._id,
@@ -76,7 +75,7 @@ export default async (props: EmailOpts) => {
                   }).catch((err) => {
                       reject(err);
                   });
-              }else if(isOffWorlding){
+              }else if(isOffWorlding && attachment.path){
                   //If we send the message outside the network we need to send the base64 content
                   FileUtil.readFile(attachment.path as string, { drive, type: 'attachment', cid: attachment.cid, IPFSGateway: store.IPFSGateway } ).then((content: string) => {
                       _attachments.push({
@@ -87,14 +86,12 @@ export default async (props: EmailOpts) => {
                   }).catch((err) => {
                       reject(err);
                   });
-              }else{
-                  //If we stay within network all the information necessary is already available
-                  _attachments.push({
-                      ...attachment
-                  });
-                  resolve(attachment)
+              } else {
+                _attachments.push({
+                    ...attachment
+                });
+                resolve(attachment)
               }
-              
           }
           catch (e) {
               reject(e);
