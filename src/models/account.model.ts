@@ -45,7 +45,7 @@ export class AccountModel {
   }
  
   public async update(doc:any, props: any, opts?:any) {
-    return this.collection.update(doc, props, opts)
+    return this.collection.update(doc, props, {...opts, deIndex: false })
   }
 
   public setDeviceInfo(payload: DeviceSchema, password: string) {

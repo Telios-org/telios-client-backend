@@ -42,7 +42,7 @@ export class FolderModel {
       const currentCount = this._store.getFolderCount(doc.folderId)
       this._store.setFolderCount(doc.folderId, currentCount + props['$inc'].count)
     }
-    return this.collection.update(doc, props, opts)
+    return this.collection.update(doc, props, { ...opts, deIndex: false })
   }
 }
 

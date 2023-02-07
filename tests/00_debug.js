@@ -45,7 +45,7 @@ test('account login success', async t => {
 
     // const bootstrap = await init(_channel)
 
-    let aliasFolders = await getAliasAddresses(_channel)
+    // let aliasFolders = await getAliasAddresses(_channel)
 
     // setTimeout(async() => {
     //   const emails = await getEmailsByAlias(_channel)
@@ -60,20 +60,20 @@ test('account login success', async t => {
     //   //console.log(eml2)
 
     //   setTimeout(async () => {
-    //     aliasFolders = await getAliasAddresses(_channel)
+        // aliasFolders = await getAliasAddresses(_channel)
 
-    //     console.log(aliasFolders)
+        // console.log(aliasFolders)
     //   }, 2000)
     // }, 5000)
 
-    // for(let i=0; i < 145; i++) {
-    //   await saveEmailToDB(_channel, `EMAIL!!! ${i}${i}${i}${i}`, )
-    //   // console.log(`saved ${i}...`)
-    // }
+    for(let i=0; i < 150; i++) {
+      saveEmailToDB(_channel, `EMAIL!!! ${i}${i}${i}${i}`, )
+      // console.log(`saved ${i}...`)
+    }
 
-    //setTimeout(async() => {
+    setTimeout(async() => {
       const emails = await getEmailsByAlias(_channel)
-      console.log(emails[12])
+      console.log('EMAILS LENGTH', emails.length)
 
       // const eml1 = await getEmailById(_channel, emails[11].emailId)
       // //console.log(eml1)
@@ -84,11 +84,11 @@ test('account login success', async t => {
       //console.log(eml2)
 
       //setTimeout(async () => {
-        aliasFolders = await getAliasAddresses(_channel)
+        // aliasFolders = await getAliasAddresses(_channel)
 
-        console.log(aliasFolders)
+        // console.log(aliasFolders)
       //}, 2000)
-    //}, 5000)
+    }, 5000)
 
     // console.log('GET EMAIL BY _id')
     // const email = await getEmailById(_channel, 'd89637860b13bb7079deba1c88a0971dd9453e19421bb427cf4b0ec928359c8904f0640d550002c4e7649bf9f94b2deeb2200f6c6f326bfa28867182f009cdf4')
@@ -139,7 +139,6 @@ async function createAccount() {
 
       setTimeout(() => {
         channel.kill()
-
         return resolve(data)
       }, 1000)
     })
