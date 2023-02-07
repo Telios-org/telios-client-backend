@@ -39,7 +39,7 @@ export class AliasModel {
       const currentCount = this._store.getFolderCount(doc.aliasId)
       this._store.setFolderCount(doc.aliasId, currentCount + props['$inc'].count)
     }
-    return this.collection.update(doc, props, opts)
+    return this.collection.update(doc, props, {...opts, deIndex: false })
   }
 
   public async search(doc?: AliasSchema, opts?: any) : Promise<AliasSchema[]> {

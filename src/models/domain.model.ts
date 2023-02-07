@@ -35,7 +35,7 @@ export class DomainModel {
   }
  
   public async update(doc:any, props: any, opts?:any) {
-    const result = await this.collection.update(doc, props, opts)
+    const result = await this.collection.update(doc, props, {...opts, deIndex: false })
     
     // TODO: refactor this so we don't have to do a lookup for text indexing
     this.collection.findOne(doc).then((contact:DomainSchema) => {

@@ -104,7 +104,7 @@ export class EmailModel {
 
   public async update(doc: EmailProps, updateVars: any, opts?: any) {
     // TODO: update search index
-    return this.collection.update(doc, updateVars, opts)
+    return this.collection.update(doc, updateVars, {...opts, deIndex: false })
   }
 
   public async remove(doc: EmailProps, opts?: any) {

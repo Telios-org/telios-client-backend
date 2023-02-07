@@ -36,7 +36,7 @@ export class AliasNamespaceModel {
   }
  
   public async update(doc:any, props: any, opts?:any) {
-    return this.collection.update(doc, props, opts)
+    return this.collection.update(doc, props, {...opts, deIndex: false })
   }
 
   public async search(doc?: AliasNamespaceSchema, opts?: any) : Promise<AliasNamespaceSchema[]> {
